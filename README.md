@@ -231,13 +231,18 @@ Calculating evaporation from bare soil surfaces requires calculating both potent
 
 $r_{\text{total}}$ strongly depends on the atmospheric demand for water vapor (i.e., VPD or $D$):
 
-- iff VPD $\le \text{VPD}_{\text{open}}$: $r_{\text{total}} = r_{\text{corr}} r_{\text{BL,max}}$
-- iff VPD $\ge \text{VPD}_{\text{close}}$: $r_{\text{total}} = r_{\text{corr}} r_{\text{BL,min}}$
+- iff VPD $\le \text{VPD}_{\text{open}}$:
+  - $r_{\text{total}} = r_{\text{corr}} r_{\text{BL,max}}$
+- iff VPD $\ge \text{VPD}_{\text{close}}$:
+  - $r_{\text{total}} = r_{\text{corr}} r_{\text{BL,min}}$
 - And if and only if VPD is between these values:
 
-\\[
-r_{\text{total}} = r_{\text{corr}} r_{\text{BL,max}} - \frac{(r_{\text{BL,max}} - r_{\text{BL,min}})(\text{VPD}_{\text{close}} - \text{VPD})}{\text{VPD}_{\text{close}} - \text{VPD}_{\text{open}}}
-\\]
+$$
+r_{\text{total}} = r_{\text{corr}} r_{\text{BL,max}} - \frac{(r_{\text{BL,max}} - r_{\text{BL,min}})(\text{VPD}_{\text{close}} -
+   \text{VPD})}{
+     \text{VPD}_{
+       \text{close}} - \text{VPD}_{\text{open}}}
+$$
 
 Essentially, when VPD is low, the boundary-layer resistance is at its maximum ($r_{\text{BL,max}}$); the atmosphere's demand for water is very low, so there is greater resistance to accepting more water vapor from the surface. When VPD is high, (greater than or equal to $\text{VPD}_{\text{close}}$), atmospheric water vapor is relatively scarce and the boundary-layer resistance is at a minimum. In between these two extremes, we linearly interpolate the boundary layer resistance.
 
@@ -306,17 +311,20 @@ Where $C_L$ is the mean potential stomatal conductance per unit LAI and $f()$ re
 - iff $T_{\text{min}} \le T_{\text{min,close}}$: $f(T_{\text{min}}) = 0$
 - And if and only if $T_{\text{min}}$ is in between these values:
 
-\\[
+$$
 f(T_{\text{min}}) = \frac{T_{\text{min}} - T_{\text{min,close}}}{T_{\text{min,open}} - T_{\text{min,close}}}
-\\]
+$$
 
 - iff $\text{VPD} \le \text{VPD}_{\text{open}}$: $f(\text{VPD}) = 1$
 - iff $\text{VPD} \ge \text{VPD}_{\text{close}}$: $f(\text{VPD}) = 0$
 - And if and only if VPD is in between these values:
 
-\\[
-f(\text{VPD}) = \frac{\text{VPD}_{\text{close}} - \text{VPD}}{\text{VPD}_{\text{close}} - \text{VPD}_{\text{open}}}
-\\]
+$$
+f(\text{VPD}) = \frac{
+  \text{VPD}_{
+    \text{close}} - \text{VPD}}{\text{VPD}_{
+      \text{close}} - \text{VPD}_{\text{open}}}
+$$
 
 **Although the stomata of many plant species do not entirely close at night, in MOD16, it is assumed that $g_S = 0$ at nighttime,** as this optimizes the intrinsic trade-off between water loss and carbon gain during a photoperiod (night) in which carbon gain typically isn't possible due to the lack of photosynthetically active radiation.
 
