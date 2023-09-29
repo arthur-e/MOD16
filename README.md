@@ -18,11 +18,13 @@ Surface Energy Balance
 ----------------------
 
 Net radiation intercepted by the earth's surface, $R$, can be partitioned into fluxes of sensible heat ($H$), latent heat ($\lambda E$), ground heat ($G$), and the change in heat storage ($\Delta S$):
+
 $$
 R = H + \lambda E + G + \Delta S
 $$
 
 Latent heat, or heat that has been used to vaporize water, is the quantity of interest in the MOD16 algorithm and it can generally be described in terms:
+
 $$
 \lambda E = \frac{\rho\, C_p}{\gamma} \frac{e_{\text{sat}} - e}{r_A + r_S}
 $$
@@ -155,7 +157,7 @@ Note that this formula comes from the MOD16 source code and cannot be further at
 **Air density** must also be calculated; we use the NIST simplified air density formula with buoyancy correction (NPL 2021):
 
 $$
-\rho = \frac{(0.34844\times P) - \text{RH}_{\%}(0.00252\times (T - 273.15)) - 0.020582}{T}
+\rho = \frac{(0.34844\times P) - \text{RH}(0.00252\times (T - 273.15)) - 0.020582}{T}
 $$
 
 Where $P$ is air pressure in millibars; RH should be expressed in percentage terms.
@@ -229,15 +231,15 @@ Calculating evaporation from bare soil surfaces requires calculating both potent
 
 $r_{\text{total}}$ strongly depends on the atmospheric demand for water vapor (i.e., VPD or $D$):
 
+- iff $\text{VPD} \leq \text{VPD}_{\text{open}}$: $r_{\text{total}} = r_{\text{corr}} r_{\text{BL,max}}$
+- iff $\text{VPD} \geq \text{VPD}_{\text{close}}$: $r_{\text{total}} = r_{\text{corr}} r_{\text{BL,min}}$
+- And if and only if $\text{VPD}_{\text{open}}< \text{VPD} < \text{VPD}_{\text{close}}$:
+
 $$
-r_{\text{total}} = r_{\text{corr}}\left\{\begin{array}{lr}
-r_{\text{BL,max}} & \text{VPD} \leq \text{VPD}_{\text{open}}\\
-r_{\text{BL,max}} - \frac{(r_{\text{BL,max}} - r_{\text{BL,min}})(\text{VPD}_{\text{close}} - \text{VPD})}{\text{VPD}_{\text{close}} - \text{VPD}_{\text{open}}} & \text{VPD}_{\text{open}}< \text{VPD} < \text{VPD}_{\text{close}}\\
-r_{\text{BL,min}} & \text{VPD} \geq \text{VPD}_{\text{close}}\\
-\end{array}\right\}
+r_{\text{total}} = r_{\text{corr}} r_{\text{BL,max}} - \frac{(r_{\text{BL,max}} - r_{\text{BL,min}})(\text{VPD}_{\text{close}} - \text{VPD})}{\text{VPD}_{\text{close}} - \text{VPD}_{\text{open}}}
 $$
 
-Essentially, when VPD is low (less than or equal to $\text{VPD}_{\text{open}}$), the boundary-layer resistance is at its maximum ($r_{\text{BL,max}}$); the atmosphere's demand for water is very low, so there is greater resistance to accepting more water vapor from the surface. When VPD is high, (greater than or equal to $\text{VPD}_{\text{close}}$), atmospheric water vapor is relatively scarce and the boundary-layer resistance is at a minimum. In between these two extremes, we linearly interpolate the boundary layer resistance.
+Essentially, when VPD is low, the boundary-layer resistance is at its maximum ($r_{\text{BL,max}}$); the atmosphere's demand for water is very low, so there is greater resistance to accepting more water vapor from the surface. When VPD is high, (greater than or equal to $\text{VPD}_{\text{close}}$), atmospheric water vapor is relatively scarce and the boundary-layer resistance is at a minimum. In between these two extremes, we linearly interpolate the boundary layer resistance.
 
 **As the conductance of water vapor through the air varies with the air's temperature and pressure, and because prescribed values are assumed to be representative of standard temperature (293.15 deg K) and pressure (101300 Pa) conditions, a correction factor, $r_{\text{corr}}$, is applied; this is used elsewhere as well:**
 
@@ -300,20 +302,20 @@ $$
 
 Where $C_L$ is the mean potential stomatal conductance per unit LAI and $f()$ represents linear functions that transform VPD ($D$) or $T_{\text{min}}$ into dimensionless scalars on $[0,1]$:
 
-$$
-f(T_{\text{min}}) = \left\{\begin{array}{lr}
-1 & T_{\text{min}} \ge T_{\text{min,open}}\\
-\frac{T_{\text{min}} - T_{\text{min,close}}}{T_{\text{min,open}} - T_{\text{min,close}}} & T_{\text{min}}\text{ in between}\\
-0 & T_{\text{min}} \le T_{\text{min,close}}\\
-\end{array}\right\}
-$$
+- iff $T_{\text{min}} \ge T_{\text{min,open}}$: $f(T_{\text{min}}) = 1$
+- iff $T_{\text{min}} \le T_{\text{min,close}}$: $f(T_{\text{min}}) = 0$
+- And if and only if $T_{\text{min}}$ is in between these values:
 
 $$
-f(\text{VPD}) = \left\{\begin{array}{lr}
-1 & \text{VPD} \le \text{VPD}_{\text{open}}\\
-\frac{\text{VPD}_{\text{close}} - \text{VPD}}{\text{VPD}_{\text{close}} - \text{VPD}_{\text{open}}} & \text{VPD in between}\\
-0 & \text{VPD} \ge \text{VPD}_{\text{close}}\\
-\end{array}\right\}
+f(T_{\text{min}}) = \frac{T_{\text{min}} - T_{\text{min,close}}}{T_{\text{min,open}} - T_{\text{min,close}}}
+$$
+
+- iff $\text{VPD} \le \text{VPD}_{\text{open}}$: $f(\text{VPD}) = 1$
+- iff $\text{VPD} \ge \text{VPD}_{\text{close}}$: $f(\text{VPD}) = 0$
+- And if and only if VPD is in between these values:
+
+$$
+f(\text{VPD}) = \frac{\text{VPD}_{\text{close}} - \text{VPD}}{\text{VPD}_{\text{close}} - \text{VPD}_{\text{open}}}
 $$
 
 **Although the stomata of many plant species do not entirely close at night, in MOD16, it is assumed that $g_S = 0$ at nighttime,** as this optimizes the intrinsic trade-off between water loss and carbon gain during a photoperiod (night) in which carbon gain typically isn't possible due to the lack of photosynthetically active radiation.
