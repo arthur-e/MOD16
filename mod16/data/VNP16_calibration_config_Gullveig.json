@@ -1,0 +1,33 @@
+{
+  "BPLUT": {
+    "ET": "/usr/local/dev/mod16/lib/python/mod16/data/VNP16_BPLUT_CX.X_05deg_MCD43B_Albedo_MERRA.csv"
+  },
+  "data": {
+    "file": "/anx_lagr4/MODIS_VIIRS/calibration/VIIRS_MOD16_tower_site_latent_heat_and_drivers_v4.h5",
+    "class_map": "state/PFT",
+    "target_observable": "FLUXNET/latent_heat",
+    "sites_blacklisted": ["US-HRA"],
+    "dates": {
+      "start": "2012-01-01",
+      "end": "2019-12-31"
+    }
+  },
+  "optimization": {
+    "backend_template": "/home/arthur.endsley/20220819_VNP16_%s_calibration_PFT%d.nc4",
+    "prior": "/usr/local/dev/mod16/lib/python/mod16/data/MOD16_BPLUT_prior_20220601.json",
+    "objective": "RMSD",
+    "bounds": {
+      "tmin_close": [-35, 0],
+      "tmin_open": [0, 25],
+      "vpd_open": [0, 1000],
+      "vpd_close": [1000, 8000],
+      "gl_sh": [0.01, 0.06],
+      "gl_wv": [0.01, 0.06],
+      "g_cuticular": [1e-6, 1e-4],
+      "csl": [0.001, 0.1],
+      "rbl_min": [40, 80],
+      "rbl_max": [80, 120],
+      "beta": [0, 1000]
+    }
+  }
+}
