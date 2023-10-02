@@ -122,8 +122,8 @@ $$
 $$
 
 After Fisher et al. (2008), we calculate **the fraction of the land surface that is saturated, $F_{\text{wet}}$,** based on the relative humidity:
-$$
 
+$$
 F_{\text{wet}} = \left\{
   \begin{array}{cr}
     0 & \text{if RH} < 70\%\\
@@ -244,6 +244,16 @@ r_{\text{total}} = r_{\text{corr}} r_{\text{BL,max}} - \frac{(r_{\text{BL,max}} 
        \text{close}} - \text{VPD}_{\text{open}}}
 $$
 
+$$
+r_{\text{total}} = r_{\text{corr}} r_{\text{BL,max}} - (r_{\text{BL,max}} - r_{\text{BL,min}})\text{VPD}^{*}
+$$
+
+Where VPD$^{*}$ is the normalized difference ratio of VPD:
+
+$$
+VPD^{*} = \text{VPD}_{\text{close}} - \text{VPD})}{\text{VPD}_{\text{close}} - \text{VPD}_{\text{open}}}
+$$
+
 Essentially, when VPD is low, the boundary-layer resistance is at its maximum ($r_{\text{BL,max}}$); the atmosphere's demand for water is very low, so there is greater resistance to accepting more water vapor from the surface. When VPD is high, (greater than or equal to $\text{VPD}_{\text{close}}$), atmospheric water vapor is relatively scarce and the boundary-layer resistance is at a minimum. In between these two extremes, we linearly interpolate the boundary layer resistance.
 
 **As the conductance of water vapor through the air varies with the air's temperature and pressure, and because prescribed values are assumed to be representative of standard temperature (293.15 deg K) and pressure (101300 Pa) conditions, a correction factor, $r_{\text{corr}}$, is applied; this is used elsewhere as well:**
@@ -317,14 +327,7 @@ $$
 
 - iff $\text{VPD} \le \text{VPD}_{\text{open}}$: $f(\text{VPD}) = 1$
 - iff $\text{VPD} \ge \text{VPD}_{\text{close}}$: $f(\text{VPD}) = 0$
-- And if and only if VPD is in between these values:
-
-$$
-f(\text{VPD}) = \frac{
-  \text{VPD}_{
-    \text{close}} - \text{VPD}}{\text{VPD}_{
-      \text{close}} - \text{VPD}_{\text{open}}}
-$$
+- And if and only if VPD is in between these values, $f(\text{VPD}) = VPD^{*}$, the normalized difference ratio of VPD (see section, above, on "Evaporation from Bare Soil Surfaces").
 
 **Although the stomata of many plant species do not entirely close at night, in MOD16, it is assumed that $g_S = 0$ at nighttime,** as this optimizes the intrinsic trade-off between water loss and carbon gain during a photoperiod (night) in which carbon gain typically isn't possible due to the lack of photosynthetically active radiation.
 
