@@ -26,13 +26,13 @@ $$
 Latent heat, or heat that has been used to vaporize water, is the quantity of interest in the MOD16 algorithm and it can generally be described in terms:
 
 $$
-\lambda E = \frac{\rho\, C_p}{\gamma} \frac{e_{\text{sat}} - e}{r_A + r_S}
+\lambda E = \frac{\rho\times C_p}{\gamma} \frac{e_{\text{sat}} - e}{r_A + r_S}
 $$
 
 The individual terms are described in the sections below, but the general idea is that the latent heat flux:
 
 - Increases with the air's capacity to store water vapor, $e_{\text{sat}} - e$
-- Increases with the heat storage capacity of air, $\rho\, C_p$
+- Increases with the heat storage capacity of air, $\rho\times C_p$
 - Decreases with increasing aerodynamic and surface resistances, $r_A$ + $r_S$
 
 The flux of latent heat is also termed **evapotranspiration (ET)** because it includes both *evaporated* water and *transpired* water vapor fluxes. Most discussions of modeling ET begin with a version of the equation above, which gets complicated quickly when we try to calculate ET over large areas using weather data. As such, our description of the MOD16 ET model is instead procedural, to aid implementation.
@@ -73,7 +73,7 @@ Ground heat flux is calculated based on the surface energy balance and a pre-det
 
 $$
 G = 4.73 T - 20.87 \quad\mathrm{iff}\quad T_{\text{min,close}}
-        \le T_{\text{annual}} < 25 ,\, T_{\text{day}} - T_{\text{night}} \ge 5
+        \le T_{\text{annual}} < 25 \quad\text{and}\quad T_{\text{day}} - T_{\text{night}} \ge 5
 $$
 
 Otherwise, ground heat flux is zero. When non-zero (as above), we additionally constrain $G$ so that it is no greater than 39% of the net radiation to the land surface:
@@ -93,7 +93,7 @@ The **saturation vapor pressure (SVP)** is calculated based on the August-Roche-
 
 $$
 \text{SVP} = 1\times 10^3\left(
-  0.6108\,\text{exp}\left(
+  0.6108\times \text{exp}\left(
     \frac{17.27 (T - 273.15)}{(T - 273.15) + 237.3}
     \right)
   \right)
@@ -126,7 +126,7 @@ After Fisher et al. (2008), we calculate **the fraction of the land surface that
 - $F_{\text{wet}} = 0$ iff RH < 70%
 - Otherwise, $F_{\text{wet}} = \text{RH}^4$
 
-**The latent heat of vaporization, $\lambda$,** (units: Joules per kilogram) is a key term that quantifies the amount of energy required to vaporize a kilogram of water, based on the current temperature of the water:
+**The latent heat of vaporization, $\lambda$** (units: Joules per kilogram), is a key term that quantifies the amount of energy required to vaporize a kilogram of water, based on the current temperature of the water:
 
 $$
 \lambda = (2.501 - 0.002361\times (T - 273.15))\times 10^6
@@ -160,7 +160,7 @@ In MODIS Collection 6.1, MOD16 used air pressure as given by the surface meteoro
 
 $$
 P_a = P_{\text{std}}\times \left(
-    1 - \ell\, z\, T_{\text{std}}^{-1}
+    1 - \ell z T_{\text{std}}^{-1}
   \right)^{5.256}
 $$
 
@@ -178,7 +178,7 @@ $$
 The movement of water vapor from the surface to the atmosphere is analogized to an electrical circuit (Zhang et al. 2016). Therefore, the next step involves calculating the *resistances* to the flow of water vapor. The **resistance to radiative heat transfer through the air,** $r_R$, is given as a function of temperature ($T$, degrees K) and air density ($\rho$):
 
 $$
-r_R = \frac{\rho\, C_p}{4\, \sigma\, T^3}
+r_R = \frac{\rho C_p}{4 \sigma T^3}
 $$
 
 Where $\sigma$ is the Stefan-Boltzmann constant.
@@ -198,15 +198,15 @@ $$
 And, finally, the **aerodynamic resistance to evaporated water on the wet canopy surface,** $r_{\text{wet}}$, is given by combining the resistances $r_R$ and $r_{SH}$ in parallel, because heat (of the wet canopy surface) can be lost through either channel:
 
 $$
-r_{\text{wet}} = \frac{r_{SH}\, r_R}{r_{SH} + r_R}
+r_{\text{wet}} = \frac{r_{SH}\times r_R}{r_{SH} + r_R}
 $$
 
 We now have all the quantities necessary to calculate the **wet canopy evaporation flux:**
 
 $$
 \lambda E_{\text{canopy}} = F_{\text{wet}} \frac{
-        s\, A_{\text{canopy}}\, F_c + \rho\, C_p\, [\text{VPD}]\, (F_c / r_{\text{wet}})
-      }{s + (P_a\, C_p\, r_{WV})(0.622\, \lambda\, r_{\text{wet}})^{-1}}
+        s  A_{\text{canopy}}  F_c + \rho  C_p  [\text{VPD}]  (F_c / r_{\text{wet}})
+      }{s + (P_a  C_p  r_{WV})(0.622  \lambda  r_{\text{wet}})^{-1}}
 $$
 
 Again 0.622 is the ratio of molecular weights, water vapor to dry air. **Note that if $F_{\text{wet}}$ or LAI are zero, then $\lambda E_{\text{canopy}}$ is also zero.**
@@ -234,8 +234,7 @@ $r_{\text{total}}$ strongly depends on the atmospheric demand for water vapor (i
 $$
 r_{\text{total}} = r_{\text{corr}} r_{\text{BL,max}} - \frac{(r_{\text{BL,max}} - r_{\text{BL,min}})(\text{VPD}^{\text{close}} -
    \text{VPD})}{
-     \text{VPD}_{
-       \text{close}} - \text{VPD}^{\text{open}}}
+     \text{VPD}^{\text{close}} - \text{VPD}^{\text{open}}}
 $$
 
 Essentially, when VPD is low, the boundary-layer resistance is at its maximum ($r_{\text{BL,max}}$); the atmosphere's demand for water is very low, so there is greater resistance to accepting more water vapor from the surface. When VPD is high, (greater than or equal to $\text{VPD}^{\text{close}}$), atmospheric water vapor is relatively scarce and the boundary-layer resistance is at a minimum. In between these two extremes, we linearly interpolate the boundary layer resistance.
@@ -251,13 +250,13 @@ $$
 **Aerodynamic resistance at the soil surface,** $r_{\text{AS}}$, is calculated as the parallel resistance of $r_R$ (from our wet-canopy evaporation calculations, above) and $r_{\text{total}}$:
 
 $$
-r_{\text{AS}} = \frac{r_R\, r_{\text{total}}}{r_R + r_{\text{total}}}
+r_{\text{AS}} = \frac{r_R\times r_{\text{total}}}{r_R + r_{\text{total}}}
 $$
 
 Evaporation from the soil consists of the same, core PM equation:
 
 $$
-\lambda E_{\text{soil}}^* = \frac{s\, A_{\text{soil}} + \rho\, C_p (1 - F_C)\, D\, r_{\text{AS}}^{-1}}{s + \gamma\, r_{\text{total}}\,r_{\text{AS}}^{-1}}
+\lambda E_{\text{soil}}^* = \frac{s A_{\text{soil}} + \rho C_p (1 - F_C) [\text{VPD}] r_{\text{AS}}^{-1}}{s + \gamma r_{\text{total}}r_{\text{AS}}^{-1}}
 $$
 
 But actual evaporation from the saturated soil surface is calculated:
@@ -269,7 +268,7 @@ $$
 While the actual evaporation of the unsaturated soil surface is calculated by scaling the potential evaporation by an empirical soil moisture constraint:
 
 $$
-\lambda E_{\text{unsat}} = (1 - F_{\text{wet}})\, \lambda E_{\text{soil}}^*\, \left(
+\lambda E_{\text{unsat}} = (1 - F_{\text{wet}}) \lambda E_{\text{soil}}^* \left(
   \frac{\text{RH}}{100}
     \right)^{\text{VPD}/\beta}
 $$
@@ -288,7 +287,7 @@ $$
 Transpiration from plants depends on a key parameter, the canopy conductance, which is derived from the mean stomatal and cuticular conductances of the various leaf elements that make up the canopy. Specifically, canopy conductance to transpired water vapor per unit LAI ($C_C$), is derived from the parallel conductance of cuticular ($g_C$) and stomatal (or surface) conductance, in series with the leaf boundary layer conductance ($g_{\text{BL}}$):
 
 $$
-C_C = \frac{g_{\text{BL}}(g_S + g_C)}{g_{\text{BL}} + g_S + g_C} \quad\mbox{iff}\quad \text{LAI} > 0, (1 - F_{\text{wet}}) > 0
+C_C = \frac{g_{\text{BL}}(g_S + g_C)}{g_{\text{BL}} + g_S + g_C} \quad\mbox{iff}\quad \text{LAI} > 0 \quad\text{and}\quad (1 - F_{\text{wet}}) > 0
 $$
 
 Where $g_S$ is the surface conductance, described below. If LAI or $(1 - F_{\text{wet}})$ are equal to zero, then canopy conductance is also zero.
@@ -316,8 +315,7 @@ $$
 $$
 f(\text{VPD}) = \frac{\text{VPD}^{\text{close}} -
    \text{VPD}}{
-     \text{VPD}_{
-       \text{close}} - \text{VPD}^{\text{open}}}
+     \text{VPD}^{\text{close}} - \text{VPD}^{\text{open}}}
 $$
 
 **Although the stomata of many plant species do not entirely close at night, in MOD16, it is assumed that $g_S = 0$ at nighttime,** as this optimizes the intrinsic trade-off between water loss and carbon gain during a photoperiod (night) in which carbon gain typically isn't possible due to the lack of photosynthetically active radiation.
@@ -339,14 +337,14 @@ $$
 The last term in our plant transpiration calculation is **the aerodynamic resistance of the dry canopy,** $r_{\text{dry}}$, calculated as a parallel resistance to radiative ($r_R$, see wet canopy evaporation calculations) and convective heat transfer, where the latter is the inverse of leaf conductance to sensible heat ($g_{\text{SH}}$):
 
 $$
-r_{\text{dry}} = \frac{g_{\text{SH}}^{-1}\, r_R}{g_{\text{SH}}^{-1} + r_R}
+r_{\text{dry}} = \frac{g_{\text{SH}}^{-1}\times r_R}{g_{\text{SH}}^{-1} + r_R}
 $$
 
 **Finally, we compute plant transpiration as:**
 
 $$
 \lambda E_{\text{trans}} = (1 - F_{\text{wet}})
-  \frac{s\, A_C\, + \rho\, C_p\, F_C\, [\text{VPD}]\, r_{\text{dry}}^{-1}}{s + \gamma(1 + C_C^{-1} r_{\text{dry}}^{-1})}
+  \frac{s A_C + \rho C_p F_C [\text{VPD}] r_{\text{dry}}^{-1}}{s + \gamma(1 + C_C^{-1} r_{\text{dry}}^{-1})}
 $$
 
 Note that, at nighttime, the denominator of $\lambda E_{\text{trans}}$ simplifies to $(s + \gamma)$, as canopy conductance is assumed to be zero. Also, if $F_{\text{wet}} = 1$, then $\lambda E_{\text{trans}} = 0$.
@@ -360,16 +358,16 @@ $$
 \lambda E = \lambda E_{\text{canopy}} + \lambda E_{\text{soil}} + \lambda E_{\text{trans}}
 $$
 
-Daily potential ET (PET) is also calculated in MOD16; it is the sum of wet canopy evaporation, evaporation from saturated soil ($\lambda E_{\text{soil,sat}}$), evaporation from unsaturated soil *without* the soil moisture correction ($F_{\text{wet}})\, \lambda E_{\text{soil}}^*$), and potential transpiration, ($\lambda E_{\text{trans,potential}}$):
+Daily potential ET (PET) is also calculated in MOD16; it is the sum of wet canopy evaporation, evaporation from saturated soil ($\lambda E_{\text{soil,sat}}$), evaporation from unsaturated soil *without* the soil moisture correction ($F_{\text{wet}}) \lambda E_{\text{soil}}^*$), and potential transpiration, ($\lambda E_{\text{trans,potential}}$):
 
 $$
-\lambda E_{\text{potential}} = \lambda E_{\text{canopy}} + \lambda E_{\text{soil,sat}} + (1 - F_{\text{wet}})\, \lambda E_{\text{soil}}^* + \lambda E_{\text{trans,potential}}
+\lambda E_{\text{potential}} = \lambda E_{\text{canopy}} + \lambda E_{\text{soil,sat}} + (1 - F_{\text{wet}}) \lambda E_{\text{soil}}^* + \lambda E_{\text{trans,potential}}
 $$
 
 Where potential transpiration is given by the Priestly-Taylor equation:
 
 $$
-\lambda E_{\text{trans,potential}} = \frac{\alpha\, s\, A_C\, (1 - F_{\text{wet}})}{s + \gamma}
+\lambda E_{\text{trans,potential}} = \frac{\alpha s A_C (1 - F_{\text{wet}})}{s + \gamma}
 $$
 
 Where $\alpha = 1.26$.
