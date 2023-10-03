@@ -2,6 +2,34 @@ r'''
 The MODIS MOD16 terrestrial evapotranspiration (ET) algorithm. See the README
 for full references.
 
+**There are two types of interfaces in the MOD16 Python code.**
+
+User-friendly methods of a `MOD16` instance, parameterized for a single l
+and-cover type:
+
+- `MOD16.evapotranspiration()`
+- `MOD16.transpiration()`
+- `MOD16.evaporation_soil()`
+- `MOD16.evaporation_canopy()`
+- And so on.
+
+There is also a single, vectorized interface implemented as a static method
+of the `MOD16` class, which can handle multiple land-cover types:
+
+- `MOD16._evapotranspiration()`
+- `MOD16._et()` (alias for the function above)
+
+The user-friendly, instance methods have code blocks that are easy to read and
+understand, but those methods might run slow for large spatial domains because
+they incur a lot of Python overhead. The values returned by those functions
+are in mass-flux units (kg [H2O] m-2 sec-1).
+
+The vectorized interface is faster because it incurs less Python overhead; it
+is useful, for example, when calibrating MOD16, because this may require
+hundreds or thousands of function evaluations every second. It can also handle
+multiple land-cover types. The vectorized interface returns values in energy
+units (W m-2), for comparison to eddy covariance tower measurements.
+
 NOTES:
 
 - Air pressure is an input field, which could be taken as given from a
