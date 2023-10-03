@@ -14,6 +14,12 @@ This Python implementation can be used to:
 - Calculate the sensitivity of the model to its parameters, based on observed latent heat fluxes
 
 
+Documentation
+-------------
+
+[You can read the online module documentation here.](https://arthur-e.github.io/MOD16/)
+
+
 Surface Energy Balance
 ----------------------
 
