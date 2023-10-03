@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.10.0" />
+<title>mod16.utils API documentation</title>
+<meta name="description" content="Utilities related to the MOD16 algorithm." />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS_CHTML" integrity="sha256-kZafAc6mZvK3W3v1pHOcUix30OHQN6pU/NO2oFkqZVw=" crossorigin></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>mod16.utils</code></h1>
+</header>
+<section id="section-intro">
+<p>Utilities related to the MOD16 algorithm.</p>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">&#39;&#39;&#39;
+Utilities related to the MOD16 algorithm.
+&#39;&#39;&#39;
+
+from __future__ import annotations
+import csv
+import os
+import numpy as np
+import pandas as pd
+import mod16
+from collections import Counter
+from typing import Callable, Sequence
+from pandas._typing import FilePath, ReadCsvBuffer
+
+BPLUT_FIELD_LOOKUP = {
+    &#39;Tmin_min(C)&#39;:      &#39;tmin_close&#39;,
+    &#39;Tmin_max(C)&#39;:      &#39;tmin_open&#39;,
+    &#39;VPD_min(Pa)&#39;:      &#39;vpd_open&#39;,
+    &#39;VPD_max(Pa)&#39;:      &#39;vpd_close&#39;,
+    &#39;gl_sh((m/s)&#39;:      &#39;gl_sh&#39;,
+    &#39;gl_e_wv(m/s)&#39;:     &#39;gl_wv&#39;,
+    &#39;g_cuticular(m/s)&#39;: &#39;g_cuticular&#39;,
+    &#39;Cl(m/s)&#39;:          &#39;csl&#39;,
+    &#39;RBL_MIN(s/m)&#39;:     &#39;rbl_min&#39;,
+    &#39;RBL_MAX(s/m)&#39;:     &#39;rbl_max&#39;,
+    &#39;beta&#39;:             &#39;beta&#39;
+}
+
+def pft_dominant(
+        pft_map: np.ndarray, site_list: list = None,
+        valid_pft: list = (1,2,3,4,5,6,7,8,9,10,12)):
+    &#39;&#39;&#39;
+    Returns the dominant PFT type, based on the PFT mode among the sub-grid
+    for each site. Note that this is specific to the MOD17 calibration/
+    validation (Cal/Val) protocol, i.e., three sites are always classified as
+    Deciduous Needleleaf (PFT 3):
+
+        CA-SF2
+        CA-SF3
+        US-NGC
+
+    One other site, US-A10, is black-listed because it&#39;s PI-reported PFT is
+    not compatible with our PFT classification.
+
+    Parameters
+    ----------
+    pft_map : numpy.ndarray
+        (N x M) array of PFT classes, where N is the number of sites and
+        M is the number of sub-grid cells (N PFT classes are returned)
+    site_list : list
+        (Optional) List of the site names; must be provided to get PFT
+        classes that accurately match the Cal/Val protocol
+    valid_pft : list
+        (Optional) List of valid PFT classes (Default: `range(1, 13)` but
+        without 11)
+
+    Returns
+    -------
+    numpy.ndarray
+        An (N,) array of the dominant PFT classes
+    &#39;&#39;&#39;
+    pft_dom = np.zeros(pft_map.shape[0], np.float32)
+    for i in range(0, pft_map.shape[0]):
+        try:
+            pft_dom[i] = Counter(
+                list(filter(lambda x: x in valid_pft, pft_map[i])))\
+                .most_common()[0][0]
+        except:
+            # Skip those sites that have no valid PFTs
+            continue
+    if site_list is not None:
+        pft_dom[site_list.index(&#39;US-A10&#39;)] = np.nan
+        # For PFT==3, DNF, use pre-determined locations
+        idx = [site_list.index(sid) for sid in (&#39;CA-SF2&#39;, &#39;CA-SF3&#39;, &#39;US-NGC&#39;)]
+        pft_dom[idx] = 3
+    return pft_dom
+
+
+def restore_bplut(
+        path_or_buffer: FilePath | ReadCsvBuffer | str,
+        nrows: int = 11) -&gt; dict:
+    &#39;&#39;&#39;
+    NOTE: I manually exported Maosheng&#39;s fixed-width version (fixed-width
+    files are a crime) to CSV for easier handling.
+
+    Parameters
+    ----------
+    path_or_buffer : str or buffer
+        File path or buffer representing the BPLUT to be read
+    nrows : int
+        Number of rows to read
+
+    Returns
+    -------
+    dict
+    &#39;&#39;&#39;
+    # Remaps Maosheng&#39;s PFT order to the actual PFT code from MCD12Q1
+    #   LC_Type2
+    pft_lookup = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12]
+    data = pd.read_csv(path_or_buffer, nrows = nrows)
+    # Create a dictionary with an array for every key
+    output = dict([
+        (k, np.full((13,), np.nan))
+        for k in BPLUT_FIELD_LOOKUP.values()
+    ])
+    # Assumes the first column indexes the parameter/ field names
+    field_index = data.columns[0]
+    pft_index = list(data.columns)
+    pft_index.remove(field_index)
+    for k, key in enumerate(data[field_index]):
+        if key not in data[data.columns[0]].values:
+            continue # e.g., &#34;beta&#34; not included in Collection 5.x
+        values = data.loc[data[field_index] == key, pft_index].values.ravel()
+        output[BPLUT_FIELD_LOOKUP[key]][pft_lookup] = values
+    return output
+
+
+def write_bplut(params_dict: dict, output_path: str):
+    &#39;&#39;&#39;
+    Writes a BPLUT parameters dictionary to an output CSV file.
+
+    Parameters
+    ----------
+    params_dict : dict
+    output_path : str
+        The output CSV file path
+    &#39;&#39;&#39;
+    template = os.path.join(
+        os.path.dirname(mod16.__file__), &#39;data/MOD16_BPLUT_C5.1_05deg_MCD43B_Albedo_MERRA_GMAO.csv&#39;)
+    with open(template, &#39;r&#39;) as file:
+        reader = csv.reader(file)
+        for line in reader:
+            if reader.line_num &gt; 1:
+                break
+            header = line
+    with open(output_path, &#39;w&#39;) as file:
+        writer = csv.writer(file)
+        writer.writerow(header)
+        for name, key in BPLUT_FIELD_LOOKUP.items():
+            values = []
+            for pft in mod16.PFT_VALID:
+                values.append(params_dict[key][pft])
+            writer.writerow((name, *values))</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="mod16.utils.pft_dominant"><code class="name flex">
+<span>def <span class="ident">pft_dominant</span></span>(<span>pft_map: np.ndarray, site_list: list = None, valid_pft: list = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12))</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Returns the dominant PFT type, based on the PFT mode among the sub-grid
+for each site. Note that this is specific to the MOD17 calibration/
+validation (Cal/Val) protocol, i.e., three sites are always classified as
+Deciduous Needleleaf (PFT 3):</p>
+<pre><code>CA-SF2
+CA-SF3
+US-NGC
+</code></pre>
+<p>One other site, US-A10, is black-listed because it's PI-reported PFT is
+not compatible with our PFT classification.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>pft_map</code></strong> :&ensp;<code>numpy.ndarray</code></dt>
+<dd>(N x M) array of PFT classes, where N is the number of sites and
+M is the number of sub-grid cells (N PFT classes are returned)</dd>
+<dt><strong><code>site_list</code></strong> :&ensp;<code>list</code></dt>
+<dd>(Optional) List of the site names; must be provided to get PFT
+classes that accurately match the Cal/Val protocol</dd>
+<dt><strong><code>valid_pft</code></strong> :&ensp;<code>list</code></dt>
+<dd>(Optional) List of valid PFT classes (Default: <code>range(1, 13)</code> but
+without 11)</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>numpy.ndarray</code></dt>
+<dd>An (N,) array of the dominant PFT classes</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def pft_dominant(
+        pft_map: np.ndarray, site_list: list = None,
+        valid_pft: list = (1,2,3,4,5,6,7,8,9,10,12)):
+    &#39;&#39;&#39;
+    Returns the dominant PFT type, based on the PFT mode among the sub-grid
+    for each site. Note that this is specific to the MOD17 calibration/
+    validation (Cal/Val) protocol, i.e., three sites are always classified as
+    Deciduous Needleleaf (PFT 3):
+
+        CA-SF2
+        CA-SF3
+        US-NGC
+
+    One other site, US-A10, is black-listed because it&#39;s PI-reported PFT is
+    not compatible with our PFT classification.
+
+    Parameters
+    ----------
+    pft_map : numpy.ndarray
+        (N x M) array of PFT classes, where N is the number of sites and
+        M is the number of sub-grid cells (N PFT classes are returned)
+    site_list : list
+        (Optional) List of the site names; must be provided to get PFT
+        classes that accurately match the Cal/Val protocol
+    valid_pft : list
+        (Optional) List of valid PFT classes (Default: `range(1, 13)` but
+        without 11)
+
+    Returns
+    -------
+    numpy.ndarray
+        An (N,) array of the dominant PFT classes
+    &#39;&#39;&#39;
+    pft_dom = np.zeros(pft_map.shape[0], np.float32)
+    for i in range(0, pft_map.shape[0]):
+        try:
+            pft_dom[i] = Counter(
+                list(filter(lambda x: x in valid_pft, pft_map[i])))\
+                .most_common()[0][0]
+        except:
+            # Skip those sites that have no valid PFTs
+            continue
+    if site_list is not None:
+        pft_dom[site_list.index(&#39;US-A10&#39;)] = np.nan
+        # For PFT==3, DNF, use pre-determined locations
+        idx = [site_list.index(sid) for sid in (&#39;CA-SF2&#39;, &#39;CA-SF3&#39;, &#39;US-NGC&#39;)]
+        pft_dom[idx] = 3
+    return pft_dom</code></pre>
+</details>
+</dd>
+<dt id="mod16.utils.restore_bplut"><code class="name flex">
+<span>def <span class="ident">restore_bplut</span></span>(<span>path_or_buffer: FilePath | ReadCsvBuffer | str, nrows: int = 11) ‑> dict</span>
+</code></dt>
+<dd>
+<div class="desc"><p>NOTE: I manually exported Maosheng's fixed-width version (fixed-width
+files are a crime) to CSV for easier handling.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>path_or_buffer</code></strong> :&ensp;<code>str</code> or <code>buffer</code></dt>
+<dd>File path or buffer representing the BPLUT to be read</dd>
+<dt><strong><code>nrows</code></strong> :&ensp;<code>int</code></dt>
+<dd>Number of rows to read</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>dict</code></dt>
+<dd>&nbsp;</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def restore_bplut(
+        path_or_buffer: FilePath | ReadCsvBuffer | str,
+        nrows: int = 11) -&gt; dict:
+    &#39;&#39;&#39;
+    NOTE: I manually exported Maosheng&#39;s fixed-width version (fixed-width
+    files are a crime) to CSV for easier handling.
+
+    Parameters
+    ----------
+    path_or_buffer : str or buffer
+        File path or buffer representing the BPLUT to be read
+    nrows : int
+        Number of rows to read
+
+    Returns
+    -------
+    dict
+    &#39;&#39;&#39;
+    # Remaps Maosheng&#39;s PFT order to the actual PFT code from MCD12Q1
+    #   LC_Type2
+    pft_lookup = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12]
+    data = pd.read_csv(path_or_buffer, nrows = nrows)
+    # Create a dictionary with an array for every key
+    output = dict([
+        (k, np.full((13,), np.nan))
+        for k in BPLUT_FIELD_LOOKUP.values()
+    ])
+    # Assumes the first column indexes the parameter/ field names
+    field_index = data.columns[0]
+    pft_index = list(data.columns)
+    pft_index.remove(field_index)
+    for k, key in enumerate(data[field_index]):
+        if key not in data[data.columns[0]].values:
+            continue # e.g., &#34;beta&#34; not included in Collection 5.x
+        values = data.loc[data[field_index] == key, pft_index].values.ravel()
+        output[BPLUT_FIELD_LOOKUP[key]][pft_lookup] = values
+    return output</code></pre>
+</details>
+</dd>
+<dt id="mod16.utils.write_bplut"><code class="name flex">
+<span>def <span class="ident">write_bplut</span></span>(<span>params_dict: dict, output_path: str)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Writes a BPLUT parameters dictionary to an output CSV file.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>params_dict</code></strong> :&ensp;<code>dict</code></dt>
+<dd>&nbsp;</dd>
+<dt><strong><code>output_path</code></strong> :&ensp;<code>str</code></dt>
+<dd>The output CSV file path</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def write_bplut(params_dict: dict, output_path: str):
+    &#39;&#39;&#39;
+    Writes a BPLUT parameters dictionary to an output CSV file.
+
+    Parameters
+    ----------
+    params_dict : dict
+    output_path : str
+        The output CSV file path
+    &#39;&#39;&#39;
+    template = os.path.join(
+        os.path.dirname(mod16.__file__), &#39;data/MOD16_BPLUT_C5.1_05deg_MCD43B_Albedo_MERRA_GMAO.csv&#39;)
+    with open(template, &#39;r&#39;) as file:
+        reader = csv.reader(file)
+        for line in reader:
+            if reader.line_num &gt; 1:
+                break
+            header = line
+    with open(output_path, &#39;w&#39;) as file:
+        writer = csv.writer(file)
+        writer.writerow(header)
+        for name, key in BPLUT_FIELD_LOOKUP.items():
+            values = []
+            for pft in mod16.PFT_VALID:
+                values.append(params_dict[key][pft])
+            writer.writerow((name, *values))</code></pre>
+</details>
+</dd>
+</dl>
+</section>
+<section>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="mod16" href="index.html">mod16</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="mod16.utils.pft_dominant" href="#mod16.utils.pft_dominant">pft_dominant</a></code></li>
+<li><code><a title="mod16.utils.restore_bplut" href="#mod16.utils.restore_bplut">restore_bplut</a></code></li>
+<li><code><a title="mod16.utils.write_bplut" href="#mod16.utils.write_bplut">write_bplut</a></code></li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.10.0</a>.</p>
+</footer>
+</body>
+</html>

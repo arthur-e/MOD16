@@ -1,0 +1,1363 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.10.0" />
+<title>mod16.calibration API documentation</title>
+<meta name="description" content="Calibration of MOD16 against a representative, global eddy covariance (EC)
+flux tower network. The model calibration is based on Markov-Chain Monte
+…" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS_CHTML" integrity="sha256-kZafAc6mZvK3W3v1pHOcUix30OHQN6pU/NO2oFkqZVw=" crossorigin></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>mod16.calibration</code></h1>
+</header>
+<section id="section-intro">
+<p>Calibration of MOD16 against a representative, global eddy covariance (EC)
+flux tower network. The model calibration is based on Markov-Chain Monte
+Carlo (MCMC). Example use:</p>
+<pre><code>python calibration.py tune --pft=1
+</code></pre>
+<p>The general calibration protocol used here involves:</p>
+<ol>
+<li>Check how well the chain(s) are mixing by running short:
+<code>python calibration.py tune 1 --draws=5000</code></li>
+<li>If any chain is "sticky," run a short chain while tuning the jump scale:
+<code>python calibration.py tune 1 --tune=scaling --draws=5000</code></li>
+<li>Using the trace plot from Step (2) as a reference, experiment with
+different jump scales to try and achieve the same (optimal) mixing when
+tuning on <code>lambda</code> (default) instead, e.g.:
+<code>python calibration.py tune 1 --scaling=1e-2 --draws=5000</code></li>
+<li>When the right jump scale is found, run a chain at the desired length.</li>
+</ol>
+<p>Once a good mixture is obtained, it is necessary to prune the samples to
+eliminate autocorrelation, e.g., in Python:</p>
+<pre><code>sampler = MOD16StochasticSampler(...)
+sampler.plot_autocorr(burn = 1000, thin = 10)
+trace = sampler.get_trace(burn = 1000, thin = 10)
+</code></pre>
+<p>A thinned posterior can be exported from the command line:</p>
+<pre><code>$ python calibration.py export-bplut output.csv --burn=1000 --thin=10
+</code></pre>
+<p>TODO:</p>
+<ul>
+<li>[ ] Filter out negative ET measurements from flux tower sites?</li>
+</ul>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">&#39;&#39;&#39;
+Calibration of MOD16 against a representative, global eddy covariance (EC)
+flux tower network. The model calibration is based on Markov-Chain Monte
+Carlo (MCMC). Example use:
+
+    python calibration.py tune --pft=1
+
+The general calibration protocol used here involves:
+
+1. Check how well the chain(s) are mixing by running short:
+`python calibration.py tune 1 --draws=5000`
+2. If any chain is &#34;sticky,&#34; run a short chain while tuning the jump scale:
+`python calibration.py tune 1 --tune=scaling --draws=5000`
+3. Using the trace plot from Step (2) as a reference, experiment with
+different jump scales to try and achieve the same (optimal) mixing when
+tuning on `lambda` (default) instead, e.g.:
+`python calibration.py tune 1 --scaling=1e-2 --draws=5000`
+4. When the right jump scale is found, run a chain at the desired length.
+
+Once a good mixture is obtained, it is necessary to prune the samples to
+eliminate autocorrelation, e.g., in Python:
+
+    sampler = MOD16StochasticSampler(...)
+    sampler.plot_autocorr(burn = 1000, thin = 10)
+    trace = sampler.get_trace(burn = 1000, thin = 10)
+
+A thinned posterior can be exported from the command line:
+
+    $ python calibration.py export-bplut output.csv --burn=1000 --thin=10
+
+TODO:
+
+- [ ] Filter out negative ET measurements from flux tower sites?
+&#39;&#39;&#39;
+
+import datetime
+import json
+import os
+import numpy as np
+import h5py
+import pymc as pm
+import aesara.tensor as at
+import arviz as az
+import mod16
+from multiprocessing import get_context, set_start_method
+from pathlib import Path
+from typing import Sequence
+from scipy import signal
+from matplotlib import pyplot
+from mod16 import MOD16
+from mod16.utils import restore_bplut, pft_dominant
+from mod17 import PFT_VALID
+from mod17.calibration import BlackBoxLikelihood, StochasticSampler
+
+MOD16_DIR = os.path.dirname(mod16.__file__)
+
+
+class MOD16StochasticSampler(StochasticSampler):
+    &#39;&#39;&#39;
+    A Markov Chain-Monte Carlo (MCMC) sampler for MOD16. The specific sampler
+    used is the Differential Evolution (DE) MCMC algorithm described by
+    Ter Braak (2008), though the implementation is specific to the PyMC3
+    library.
+
+    Parameters
+    ----------
+    config : dict
+        Dictionary of configuration parameters
+    model : Callable
+        The function to call (with driver data and parameters); this function
+        should take driver data as positional arguments and the model
+        parameters as a `*Sequence`; it should require no external state.
+    observed : Sequence
+        Sequence of observed values that will be used to calibrate the model;
+        i.e., model is scored by how close its predicted values are to the
+        observed values
+    params_dict : dict or None
+        Dictionary of model parameters, to be used as initial values and as
+        the basis for constructing a new dictionary of optimized parameters
+    backend : str or None
+        Path to a NetCDF4 file backend (Default: None)
+    weights : Sequence or None
+        Optional sequence of weights applied to the model residuals (as in
+        weighted least squares)
+    &#39;&#39;&#39;
+    required_parameters = {
+        &#39;ET&#39;: MOD16.required_parameters
+    }
+    required_drivers = {
+        &#39;ET&#39;: [
+            &#39;lw_net_day&#39;, &#39;lw_net_night&#39;, &#39;sw_rad_day&#39;, &#39;sw_rad_night&#39;,
+            &#39;sw_albedo&#39;, &#39;temp_day&#39;, &#39;temp_night&#39;, &#39;temp_annual&#39;, &#39;tmin&#39;,
+            &#39;vpd_day&#39;, &#39;vpd_night&#39;, &#39;pressure&#39;, &#39;fpar&#39;, &#39;lai&#39;
+        ]
+    }
+
+    def compile_et_model(
+            self, observed: Sequence, drivers: Sequence) -&gt; pm.Model:
+        &#39;&#39;&#39;
+        Creates a new ET model based on the prior distribution. Model can be
+        re-compiled multiple times, e.g., for cross validation.
+
+        Parameters
+        ----------
+        observed : Sequence
+            Sequence of observed values that will be used to calibrate the model;
+            i.e., model is scored by how close its predicted values are to the
+            observed values
+        drivers : list or tuple
+            Sequence of driver datasets to be supplied, in order, to the
+            model&#39;s run function
+
+        Returns
+        -------
+        pm.Model
+        &#39;&#39;&#39;
+        # Define the objective/ likelihood function
+        log_likelihood = BlackBoxLikelihood(
+            self.model, observed, x = drivers, weights = self.weights)
+        # With this context manager, &#34;all PyMC3 objects introduced in the indented
+        #   code block...are added to the model behind the scenes.&#34;
+        with pm.Model() as model:
+            # NOTE: Parameters shared with MOD17 are fixed based on MOD17
+            #   re-calibration
+            tmin_close = self.params[&#39;tmin_close&#39;]
+            tmin_open = self.params[&#39;tmin_open&#39;]
+            vpd_open = self.params[&#39;vpd_open&#39;]
+            vpd_close = self.params[&#39;vpd_close&#39;]
+            gl_sh =       pm.Triangular(&#39;gl_sh&#39;, **self.prior[&#39;gl_sh&#39;])
+            gl_wv =       pm.Triangular(&#39;gl_wv&#39;, **self.prior[&#39;gl_wv&#39;])
+            g_cuticular = pm.LogNormal(
+                &#39;g_cuticular&#39;, **self.prior[&#39;g_cuticular&#39;])
+            csl =         pm.LogNormal(&#39;csl&#39;, **self.prior[&#39;csl&#39;])
+            rbl_min =     pm.Triangular(&#39;rbl_min&#39;, **self.prior[&#39;rbl_min&#39;])
+            rbl_max =     pm.Triangular(&#39;rbl_max&#39;, **self.prior[&#39;rbl_max&#39;])
+            beta =        pm.Triangular(&#39;beta&#39;, **self.prior[&#39;beta&#39;])
+            # (Stochstic) Priors for unknown model parameters
+            # Convert model parameters to a tensor vector
+            params_list = [
+                tmin_close, tmin_open, vpd_open, vpd_close, gl_sh, gl_wv,
+                g_cuticular, csl, rbl_min, rbl_max, beta
+            ]
+            params = at.as_tensor_variable(params_list)
+            # Key step: Define the log-likelihood as an added potential
+            pm.Potential(&#39;likelihood&#39;, log_likelihood(params))
+        return model
+
+
+class CalibrationAPI(object):
+    &#39;&#39;&#39;
+    Convenience class for calibrating the MOD17 GPP and NPP models. Meant to
+    be used with `fire.Fire()`.
+    &#39;&#39;&#39;
+
+    def __init__(self, config = None):
+        config_file = config
+        if config_file is None:
+            config_file = os.path.join(
+                MOD16_DIR, &#39;data/MOD16_calibration_config.json&#39;)
+        with open(config_file, &#39;r&#39;) as file:
+            self.config = json.load(file)
+        self.hdf5 = self.config[&#39;data&#39;][&#39;file&#39;]
+
+    def _filter(self, raw: Sequence, size: int):
+        &#39;Apply a smoothing filter with zero phase offset&#39;
+        if size &gt; 1:
+            window = np.ones(size) / size
+            return np.apply_along_axis(
+                lambda x: signal.filtfilt(window, np.ones(1), x), 0, raw)
+        return raw # Or, revert to the raw data
+
+    def clean_observed(
+            self, raw: Sequence, drivers: Sequence, protocol: str = &#39;ET&#39;,
+            filter_length: int = 2) -&gt; Sequence:
+        &#39;&#39;&#39;
+        Cleans observed tower flux data according to a prescribed protocol.
+
+        Parameters
+        ----------
+        raw : Sequence
+        drivers : Sequence
+        protocol : str
+        filter_length : int
+            The window size for the smoothing filter, applied to the observed
+            data
+
+        Returns
+        -------
+        Sequence
+        &#39;&#39;&#39;
+        # Read in the observed data and apply smoothing filter; then mask out
+        #   negative latent heat observations
+        obs = self._filter(raw, filter_length)
+        return np.where(obs &lt; 0, np.nan, obs)
+
+    def export_posterior(
+            self, model: str, param: str, output_path: str, thin: int = 10,
+            burn: int = 1000, k_folds: int = 1):
+        &#39;&#39;&#39;
+        Exports posterior distribution for a parameter, for each PFT to HDF5.
+
+        Parameters
+        ----------
+        model : str
+            The name of the model (&#34;GPP&#34; or &#34;NPP&#34;)
+        param : str
+            The model parameter to export
+        output_path : str
+            The output HDF5 file path
+        thin : int
+            Thinning rate
+        burn : int
+            The burn-in (i.e., first N samples to discard)
+        k_folds : int
+            The number of k-folds used in cross-calibration/validation;
+            if more than one (default), the folds for each PFT will be
+            combined into a single HDF5 file
+        &#39;&#39;&#39;
+        params_dict = restore_bplut(self.config[&#39;BPLUT&#39;][model])
+        bplut = params_dict.copy()
+        # Filter the parameters to just those for the PFT of interest
+        post = []
+        for pft in PFT_VALID:
+            params = dict([(k, v[pft]) for k, v in params_dict.items()])
+            backend = self.config[&#39;optimization&#39;][&#39;backend_template&#39;] %\
+                (model, pft)
+            post_by_fold = []
+            for fold in range(1, k_folds + 1):
+                if k_folds &gt; 1:
+                    backend = self.config[&#39;optimization&#39;][&#39;backend_template&#39;] %\
+                        (f&#39;{model}-k{fold}&#39;, pft)
+                # NOTE: This value was hard-coded in the extant version of MOD16
+                if &#39;beta&#39; not in params:
+                    params[&#39;beta&#39;] = 250
+                sampler = MOD16StochasticSampler(
+                    self.config, getattr(MOD16, &#39;_%s&#39; % model.lower()), params,
+                    backend = backend)
+                trace = sampler.get_trace()
+                fit = trace.sel(draw = slice(burn, None, thin))[&#39;posterior&#39;]
+                if param in fit:
+                    post_by_fold.append(
+                        az.extract_dataset(fit, combined = True)[param].values)
+                else:
+                    # In case there is, e.g., a parameter that takes on a
+                    #   constant value for a specific PFT
+                    if k_folds &gt; 1:
+                        post_by_fold.append(
+                            np.ones((1, post[-1].shape[-1])) * np.nan)
+                    else:
+                        a_key = list(fit.keys())[0]
+                        post_by_fold.append(
+                            np.ones(fit[a_key].values.shape) * np.nan)
+            if k_folds &gt; 1:
+                post.append(np.vstack(post_by_fold))
+            else:
+                post.extend(post_by_fold)
+        # If not every PFT&#39;s posterior has the same number of samples (e.g.,
+        #   when one set of chains was run longer than another)...
+        if not all([p.shape == post[0].shape for p in post]):
+            max_len = max([p.shape for p in post])[0]
+            # ...Reshape all posteriors to match the greatest sample size
+            import ipdb
+            ipdb.set_trace()#FIXME
+            post = [
+                np.pad(
+                    p.astype(np.float32), (0, max_len - p.size),
+                    mode = &#39;constant&#39;, constant_values = (np.nan,))
+                for p in post
+            ]
+        with h5py.File(output_path, &#39;a&#39;) as hdf:
+            post = np.stack(post)
+            ts = datetime.date.today().strftime(&#39;%Y-%m-%d&#39;) # Today&#39;s date
+            dataset = hdf.create_dataset(
+                f&#39;{param}_posterior&#39;, post.shape, np.float32, post)
+            dataset.attrs[&#39;description&#39;] = &#39;CalibrationAPI.export_posterior() on {ts}&#39;
+
+    def tune(
+            self, pft: int, plot_trace: bool = False, ipdb: bool = False,
+            save_fig: bool = False, **kwargs):
+        &#39;&#39;&#39;
+        Run the MOD16 ET calibration.
+
+        Parameters
+        ----------
+        pft : int
+            The Plant Functional Type (PFT) to calibrate
+        plot_trace : bool
+            True to plot the trace for a previous calibration run; this will
+            also NOT start a new calibration (Default: False)
+        ipdb : bool
+            True to drop the user into an ipdb prompt, prior to and instead of
+            running calibration
+        save_fig : bool
+            True to save figures to files instead of showing them
+            (Default: False)
+        **kwargs
+            Additional keyword arguments passed to
+            `MOD16StochasticSampler.run()`
+
+        NOTE that `MOD16StochasticSampler` inherits methods from the `mod17`
+        module, including [run()](https://arthur-e.github.io/MOD17/calibration.html#mod17.calibration.StochasticSampler).
+        &#39;&#39;&#39;
+        assert pft in PFT_VALID, f&#39;Invalid PFT: {pft}&#39;
+        # Set var_names to tell ArviZ to plot only the free parameters
+        kwargs.update({&#39;var_names&#39;: MOD16.required_parameters[4:]})
+        # Pass configuration parameters to MOD16StochasticSampler.run()
+        for key in (&#39;chains&#39;, &#39;draws&#39;, &#39;tune&#39;, &#39;scaling&#39;):
+            if key in self.config[&#39;optimization&#39;].keys():
+                kwargs[key] = self.config[&#39;optimization&#39;][key]
+        # Filter the parameters to just those for the PFT of interest
+        params_dict = restore_bplut(self.config[&#39;BPLUT&#39;][&#39;ET&#39;])
+        params_dict = dict([(k, v[pft]) for k, v in params_dict.items()])
+        # NOTE: This value was hard-coded in the extant version of MOD16
+        if np.isnan(params_dict[&#39;beta&#39;]):
+            params_dict[&#39;beta&#39;] = 250
+        model = MOD16(params_dict)
+        with h5py.File(self.hdf5, &#39;r&#39;) as hdf:
+            sites = hdf[&#39;FLUXNET/site_id&#39;][:].tolist()
+            if hasattr(sites[0], &#39;decode&#39;):
+                sites = [s.decode(&#39;utf-8&#39;) for s in sites]
+            # Get dominant PFT
+            pft_map = pft_dominant(hdf[&#39;state/PFT&#39;][:], site_list = sites)
+            # Blacklist various sites
+            blacklist = self.config[&#39;data&#39;][&#39;sites_blacklisted&#39;]
+            pft_mask = np.logical_and(pft_map == pft, ~np.in1d(sites, blacklist))
+            weights = hdf[&#39;weights&#39;][pft_mask]
+            # Read in tower observations
+            tower_obs = hdf[&#39;FLUXNET/latent_heat&#39;][:][:,pft_mask]
+            # Read the validation mask; mask out observations that are
+            #   reserved for validation
+            print(&#39;Masking out validation data...&#39;)
+            mask = hdf[&#39;FLUXNET/validation_mask&#39;][pft]
+            tower_obs[mask] = np.nan
+            # Read start and end dates and mask data appropriately
+            timestamps = [
+                 f&#39;{y}-{str(m).zfill(2)}-{str(d).zfill(2)}&#39;
+                 for y, m, d in hdf[&#39;time&#39;][:].tolist()
+            ]
+            start = self.config[&#39;data&#39;][&#39;dates&#39;][&#39;start&#39;]
+            end = self.config[&#39;data&#39;][&#39;dates&#39;][&#39;end&#39;]
+            t0 = timestamps.index(start)
+            t1 = timestamps.index(end) + 1
+            tower_obs = tower_obs[t0:t1]
+            # Read in driver datasets
+            print(&#39;Loading driver datasets...&#39;)
+            lw_net_day = hdf[&#39;MERRA2/LWGNT_daytime&#39;][:][t0:t1,pft_mask]
+            lw_net_night = hdf[&#39;MERRA2/LWGNT_nighttime&#39;][:][t0:t1,pft_mask]
+            if self.config[&#39;optimization&#39;][&#39;platform&#39;] == &#39;VIIRS&#39;:
+                sw_albedo = hdf[&#39;VIIRS/VNP43MA3_black_sky_sw_albedo&#39;][:][t0:t1,pft_mask]
+            else:
+                sw_albedo = hdf[&#39;MODIS/MCD43GF_black_sky_sw_albedo&#39;][:][t0:t1,pft_mask]
+            sw_albedo = np.nanmean(sw_albedo, axis = -1)
+            sw_rad_day = hdf[&#39;MERRA2/SWGDN_daytime&#39;][:][t0:t1,pft_mask]
+            sw_rad_night = hdf[&#39;MERRA2/SWGDN_nighttime&#39;][:][t0:t1,pft_mask]
+            temp_day = hdf[&#39;MERRA2/T10M_daytime&#39;][:][t0:t1,pft_mask]
+            temp_night = hdf[&#39;MERRA2/T10M_nighttime&#39;][:][t0:t1,pft_mask]
+            tmin = hdf[&#39;MERRA2/Tmin&#39;][:][t0:t1,pft_mask]
+            # As long as the time series is balanced w.r.t. years (i.e., same
+            #   number of records per year), the overall mean is the annual mean
+            temp_annual = hdf[&#39;MERRA2/T10M&#39;][:][t0:t1,pft_mask].mean(axis = 0)
+            vpd_day = MOD16.vpd(
+                hdf[&#39;MERRA2/QV10M_daytime&#39;][:][t0:t1,pft_mask],
+                hdf[&#39;MERRA2/PS_daytime&#39;][:][t0:t1,pft_mask],
+                temp_day)
+            vpd_night = MOD16.vpd(
+                hdf[&#39;MERRA2/QV10M_nighttime&#39;][:][t0:t1,pft_mask],
+                hdf[&#39;MERRA2/PS_nighttime&#39;][:][t0:t1,pft_mask],
+                temp_night)
+            pressure = hdf[&#39;MERRA2/PS&#39;][:][t0:t1,pft_mask]
+            # Read in fPAR, LAI, and convert from (%) to [0,1]
+            prefix = &#39;MODIS/MOD&#39;
+            if self.config[&#39;optimization&#39;][&#39;platform&#39;] == &#39;VIIRS&#39;:
+                prefix = &#39;VIIRS/VNP&#39;
+            fpar = np.nanmean(
+                hdf[f&#39;{prefix}15A2HGF_fPAR_interp&#39;][:][t0:t1,pft_mask], axis = -1)
+            lai = np.nanmean(
+                hdf[f&#39;{prefix}15A2HGF_LAI_interp&#39;][:][t0:t1,pft_mask], axis = -1)
+            # Convert fPAR from (%) to [0,1] and re-scale LAI; reshape fPAR and LAI
+            fpar /= 100
+            lai /= 10
+        # Compile driver datasets
+        drivers = [
+            lw_net_day, lw_net_night, sw_rad_day, sw_rad_night, sw_albedo,
+            temp_day, temp_night, temp_annual, tmin, vpd_day, vpd_night,
+            pressure, fpar, lai
+        ]
+        print(&#39;Initializing sampler...&#39;)
+        backend = self.config[&#39;optimization&#39;][&#39;backend_template&#39;] % (&#39;ET&#39;, pft)
+        sampler = MOD16StochasticSampler(
+            self.config, MOD16._et, params_dict, backend = backend,
+            weights = weights)
+        if plot_trace or ipdb:
+            # This matplotlib setting prevents labels from overplotting
+            pyplot.rcParams[&#39;figure.constrained_layout.use&#39;] = True
+            trace = sampler.get_trace()
+            if ipdb:
+                import ipdb
+                ipdb.set_trace()
+            az.plot_trace(trace, var_names = MOD16.required_parameters)
+            pyplot.show()
+            return
+        tower_obs = self.clean_observed(tower_obs, drivers)
+        # Get (informative) priors for just those parameters that have them
+        with open(self.config[&#39;optimization&#39;][&#39;prior&#39;], &#39;r&#39;) as file:
+            prior = json.load(file)
+        prior_params = list(filter(
+            lambda p: p in prior.keys(), sampler.required_parameters[&#39;ET&#39;]))
+        prior = dict([
+            (p, dict([(k, v[pft]) for k, v in prior[p].items()]))
+            for p in prior_params
+        ])
+        sampler.run(
+            tower_obs, drivers, prior = prior, save_fig = save_fig, **kwargs)
+
+
+if __name__ == &#39;__main__&#39;:
+    import fire
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter(&#39;ignore&#39;)
+        fire.Fire(CalibrationAPI)</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="mod16.calibration.CalibrationAPI"><code class="flex name class">
+<span>class <span class="ident">CalibrationAPI</span></span>
+<span>(</span><span>config=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Convenience class for calibrating the MOD17 GPP and NPP models. Meant to
+be used with <code>fire.Fire()</code>.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class CalibrationAPI(object):
+    &#39;&#39;&#39;
+    Convenience class for calibrating the MOD17 GPP and NPP models. Meant to
+    be used with `fire.Fire()`.
+    &#39;&#39;&#39;
+
+    def __init__(self, config = None):
+        config_file = config
+        if config_file is None:
+            config_file = os.path.join(
+                MOD16_DIR, &#39;data/MOD16_calibration_config.json&#39;)
+        with open(config_file, &#39;r&#39;) as file:
+            self.config = json.load(file)
+        self.hdf5 = self.config[&#39;data&#39;][&#39;file&#39;]
+
+    def _filter(self, raw: Sequence, size: int):
+        &#39;Apply a smoothing filter with zero phase offset&#39;
+        if size &gt; 1:
+            window = np.ones(size) / size
+            return np.apply_along_axis(
+                lambda x: signal.filtfilt(window, np.ones(1), x), 0, raw)
+        return raw # Or, revert to the raw data
+
+    def clean_observed(
+            self, raw: Sequence, drivers: Sequence, protocol: str = &#39;ET&#39;,
+            filter_length: int = 2) -&gt; Sequence:
+        &#39;&#39;&#39;
+        Cleans observed tower flux data according to a prescribed protocol.
+
+        Parameters
+        ----------
+        raw : Sequence
+        drivers : Sequence
+        protocol : str
+        filter_length : int
+            The window size for the smoothing filter, applied to the observed
+            data
+
+        Returns
+        -------
+        Sequence
+        &#39;&#39;&#39;
+        # Read in the observed data and apply smoothing filter; then mask out
+        #   negative latent heat observations
+        obs = self._filter(raw, filter_length)
+        return np.where(obs &lt; 0, np.nan, obs)
+
+    def export_posterior(
+            self, model: str, param: str, output_path: str, thin: int = 10,
+            burn: int = 1000, k_folds: int = 1):
+        &#39;&#39;&#39;
+        Exports posterior distribution for a parameter, for each PFT to HDF5.
+
+        Parameters
+        ----------
+        model : str
+            The name of the model (&#34;GPP&#34; or &#34;NPP&#34;)
+        param : str
+            The model parameter to export
+        output_path : str
+            The output HDF5 file path
+        thin : int
+            Thinning rate
+        burn : int
+            The burn-in (i.e., first N samples to discard)
+        k_folds : int
+            The number of k-folds used in cross-calibration/validation;
+            if more than one (default), the folds for each PFT will be
+            combined into a single HDF5 file
+        &#39;&#39;&#39;
+        params_dict = restore_bplut(self.config[&#39;BPLUT&#39;][model])
+        bplut = params_dict.copy()
+        # Filter the parameters to just those for the PFT of interest
+        post = []
+        for pft in PFT_VALID:
+            params = dict([(k, v[pft]) for k, v in params_dict.items()])
+            backend = self.config[&#39;optimization&#39;][&#39;backend_template&#39;] %\
+                (model, pft)
+            post_by_fold = []
+            for fold in range(1, k_folds + 1):
+                if k_folds &gt; 1:
+                    backend = self.config[&#39;optimization&#39;][&#39;backend_template&#39;] %\
+                        (f&#39;{model}-k{fold}&#39;, pft)
+                # NOTE: This value was hard-coded in the extant version of MOD16
+                if &#39;beta&#39; not in params:
+                    params[&#39;beta&#39;] = 250
+                sampler = MOD16StochasticSampler(
+                    self.config, getattr(MOD16, &#39;_%s&#39; % model.lower()), params,
+                    backend = backend)
+                trace = sampler.get_trace()
+                fit = trace.sel(draw = slice(burn, None, thin))[&#39;posterior&#39;]
+                if param in fit:
+                    post_by_fold.append(
+                        az.extract_dataset(fit, combined = True)[param].values)
+                else:
+                    # In case there is, e.g., a parameter that takes on a
+                    #   constant value for a specific PFT
+                    if k_folds &gt; 1:
+                        post_by_fold.append(
+                            np.ones((1, post[-1].shape[-1])) * np.nan)
+                    else:
+                        a_key = list(fit.keys())[0]
+                        post_by_fold.append(
+                            np.ones(fit[a_key].values.shape) * np.nan)
+            if k_folds &gt; 1:
+                post.append(np.vstack(post_by_fold))
+            else:
+                post.extend(post_by_fold)
+        # If not every PFT&#39;s posterior has the same number of samples (e.g.,
+        #   when one set of chains was run longer than another)...
+        if not all([p.shape == post[0].shape for p in post]):
+            max_len = max([p.shape for p in post])[0]
+            # ...Reshape all posteriors to match the greatest sample size
+            import ipdb
+            ipdb.set_trace()#FIXME
+            post = [
+                np.pad(
+                    p.astype(np.float32), (0, max_len - p.size),
+                    mode = &#39;constant&#39;, constant_values = (np.nan,))
+                for p in post
+            ]
+        with h5py.File(output_path, &#39;a&#39;) as hdf:
+            post = np.stack(post)
+            ts = datetime.date.today().strftime(&#39;%Y-%m-%d&#39;) # Today&#39;s date
+            dataset = hdf.create_dataset(
+                f&#39;{param}_posterior&#39;, post.shape, np.float32, post)
+            dataset.attrs[&#39;description&#39;] = &#39;CalibrationAPI.export_posterior() on {ts}&#39;
+
+    def tune(
+            self, pft: int, plot_trace: bool = False, ipdb: bool = False,
+            save_fig: bool = False, **kwargs):
+        &#39;&#39;&#39;
+        Run the MOD16 ET calibration.
+
+        Parameters
+        ----------
+        pft : int
+            The Plant Functional Type (PFT) to calibrate
+        plot_trace : bool
+            True to plot the trace for a previous calibration run; this will
+            also NOT start a new calibration (Default: False)
+        ipdb : bool
+            True to drop the user into an ipdb prompt, prior to and instead of
+            running calibration
+        save_fig : bool
+            True to save figures to files instead of showing them
+            (Default: False)
+        **kwargs
+            Additional keyword arguments passed to
+            `MOD16StochasticSampler.run()`
+
+        NOTE that `MOD16StochasticSampler` inherits methods from the `mod17`
+        module, including [run()](https://arthur-e.github.io/MOD17/calibration.html#mod17.calibration.StochasticSampler).
+        &#39;&#39;&#39;
+        assert pft in PFT_VALID, f&#39;Invalid PFT: {pft}&#39;
+        # Set var_names to tell ArviZ to plot only the free parameters
+        kwargs.update({&#39;var_names&#39;: MOD16.required_parameters[4:]})
+        # Pass configuration parameters to MOD16StochasticSampler.run()
+        for key in (&#39;chains&#39;, &#39;draws&#39;, &#39;tune&#39;, &#39;scaling&#39;):
+            if key in self.config[&#39;optimization&#39;].keys():
+                kwargs[key] = self.config[&#39;optimization&#39;][key]
+        # Filter the parameters to just those for the PFT of interest
+        params_dict = restore_bplut(self.config[&#39;BPLUT&#39;][&#39;ET&#39;])
+        params_dict = dict([(k, v[pft]) for k, v in params_dict.items()])
+        # NOTE: This value was hard-coded in the extant version of MOD16
+        if np.isnan(params_dict[&#39;beta&#39;]):
+            params_dict[&#39;beta&#39;] = 250
+        model = MOD16(params_dict)
+        with h5py.File(self.hdf5, &#39;r&#39;) as hdf:
+            sites = hdf[&#39;FLUXNET/site_id&#39;][:].tolist()
+            if hasattr(sites[0], &#39;decode&#39;):
+                sites = [s.decode(&#39;utf-8&#39;) for s in sites]
+            # Get dominant PFT
+            pft_map = pft_dominant(hdf[&#39;state/PFT&#39;][:], site_list = sites)
+            # Blacklist various sites
+            blacklist = self.config[&#39;data&#39;][&#39;sites_blacklisted&#39;]
+            pft_mask = np.logical_and(pft_map == pft, ~np.in1d(sites, blacklist))
+            weights = hdf[&#39;weights&#39;][pft_mask]
+            # Read in tower observations
+            tower_obs = hdf[&#39;FLUXNET/latent_heat&#39;][:][:,pft_mask]
+            # Read the validation mask; mask out observations that are
+            #   reserved for validation
+            print(&#39;Masking out validation data...&#39;)
+            mask = hdf[&#39;FLUXNET/validation_mask&#39;][pft]
+            tower_obs[mask] = np.nan
+            # Read start and end dates and mask data appropriately
+            timestamps = [
+                 f&#39;{y}-{str(m).zfill(2)}-{str(d).zfill(2)}&#39;
+                 for y, m, d in hdf[&#39;time&#39;][:].tolist()
+            ]
+            start = self.config[&#39;data&#39;][&#39;dates&#39;][&#39;start&#39;]
+            end = self.config[&#39;data&#39;][&#39;dates&#39;][&#39;end&#39;]
+            t0 = timestamps.index(start)
+            t1 = timestamps.index(end) + 1
+            tower_obs = tower_obs[t0:t1]
+            # Read in driver datasets
+            print(&#39;Loading driver datasets...&#39;)
+            lw_net_day = hdf[&#39;MERRA2/LWGNT_daytime&#39;][:][t0:t1,pft_mask]
+            lw_net_night = hdf[&#39;MERRA2/LWGNT_nighttime&#39;][:][t0:t1,pft_mask]
+            if self.config[&#39;optimization&#39;][&#39;platform&#39;] == &#39;VIIRS&#39;:
+                sw_albedo = hdf[&#39;VIIRS/VNP43MA3_black_sky_sw_albedo&#39;][:][t0:t1,pft_mask]
+            else:
+                sw_albedo = hdf[&#39;MODIS/MCD43GF_black_sky_sw_albedo&#39;][:][t0:t1,pft_mask]
+            sw_albedo = np.nanmean(sw_albedo, axis = -1)
+            sw_rad_day = hdf[&#39;MERRA2/SWGDN_daytime&#39;][:][t0:t1,pft_mask]
+            sw_rad_night = hdf[&#39;MERRA2/SWGDN_nighttime&#39;][:][t0:t1,pft_mask]
+            temp_day = hdf[&#39;MERRA2/T10M_daytime&#39;][:][t0:t1,pft_mask]
+            temp_night = hdf[&#39;MERRA2/T10M_nighttime&#39;][:][t0:t1,pft_mask]
+            tmin = hdf[&#39;MERRA2/Tmin&#39;][:][t0:t1,pft_mask]
+            # As long as the time series is balanced w.r.t. years (i.e., same
+            #   number of records per year), the overall mean is the annual mean
+            temp_annual = hdf[&#39;MERRA2/T10M&#39;][:][t0:t1,pft_mask].mean(axis = 0)
+            vpd_day = MOD16.vpd(
+                hdf[&#39;MERRA2/QV10M_daytime&#39;][:][t0:t1,pft_mask],
+                hdf[&#39;MERRA2/PS_daytime&#39;][:][t0:t1,pft_mask],
+                temp_day)
+            vpd_night = MOD16.vpd(
+                hdf[&#39;MERRA2/QV10M_nighttime&#39;][:][t0:t1,pft_mask],
+                hdf[&#39;MERRA2/PS_nighttime&#39;][:][t0:t1,pft_mask],
+                temp_night)
+            pressure = hdf[&#39;MERRA2/PS&#39;][:][t0:t1,pft_mask]
+            # Read in fPAR, LAI, and convert from (%) to [0,1]
+            prefix = &#39;MODIS/MOD&#39;
+            if self.config[&#39;optimization&#39;][&#39;platform&#39;] == &#39;VIIRS&#39;:
+                prefix = &#39;VIIRS/VNP&#39;
+            fpar = np.nanmean(
+                hdf[f&#39;{prefix}15A2HGF_fPAR_interp&#39;][:][t0:t1,pft_mask], axis = -1)
+            lai = np.nanmean(
+                hdf[f&#39;{prefix}15A2HGF_LAI_interp&#39;][:][t0:t1,pft_mask], axis = -1)
+            # Convert fPAR from (%) to [0,1] and re-scale LAI; reshape fPAR and LAI
+            fpar /= 100
+            lai /= 10
+        # Compile driver datasets
+        drivers = [
+            lw_net_day, lw_net_night, sw_rad_day, sw_rad_night, sw_albedo,
+            temp_day, temp_night, temp_annual, tmin, vpd_day, vpd_night,
+            pressure, fpar, lai
+        ]
+        print(&#39;Initializing sampler...&#39;)
+        backend = self.config[&#39;optimization&#39;][&#39;backend_template&#39;] % (&#39;ET&#39;, pft)
+        sampler = MOD16StochasticSampler(
+            self.config, MOD16._et, params_dict, backend = backend,
+            weights = weights)
+        if plot_trace or ipdb:
+            # This matplotlib setting prevents labels from overplotting
+            pyplot.rcParams[&#39;figure.constrained_layout.use&#39;] = True
+            trace = sampler.get_trace()
+            if ipdb:
+                import ipdb
+                ipdb.set_trace()
+            az.plot_trace(trace, var_names = MOD16.required_parameters)
+            pyplot.show()
+            return
+        tower_obs = self.clean_observed(tower_obs, drivers)
+        # Get (informative) priors for just those parameters that have them
+        with open(self.config[&#39;optimization&#39;][&#39;prior&#39;], &#39;r&#39;) as file:
+            prior = json.load(file)
+        prior_params = list(filter(
+            lambda p: p in prior.keys(), sampler.required_parameters[&#39;ET&#39;]))
+        prior = dict([
+            (p, dict([(k, v[pft]) for k, v in prior[p].items()]))
+            for p in prior_params
+        ])
+        sampler.run(
+            tower_obs, drivers, prior = prior, save_fig = save_fig, **kwargs)</code></pre>
+</details>
+<h3>Methods</h3>
+<dl>
+<dt id="mod16.calibration.CalibrationAPI.clean_observed"><code class="name flex">
+<span>def <span class="ident">clean_observed</span></span>(<span>self, raw: Sequence, drivers: Sequence, protocol: str = 'ET', filter_length: int = 2) ‑> Sequence</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Cleans observed tower flux data according to a prescribed protocol.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>raw</code></strong> :&ensp;<code>Sequence</code></dt>
+<dd>&nbsp;</dd>
+<dt><strong><code>drivers</code></strong> :&ensp;<code>Sequence</code></dt>
+<dd>&nbsp;</dd>
+<dt><strong><code>protocol</code></strong> :&ensp;<code>str</code></dt>
+<dd>&nbsp;</dd>
+<dt><strong><code>filter_length</code></strong> :&ensp;<code>int</code></dt>
+<dd>The window size for the smoothing filter, applied to the observed
+data</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>Sequence</code></dt>
+<dd>&nbsp;</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def clean_observed(
+        self, raw: Sequence, drivers: Sequence, protocol: str = &#39;ET&#39;,
+        filter_length: int = 2) -&gt; Sequence:
+    &#39;&#39;&#39;
+    Cleans observed tower flux data according to a prescribed protocol.
+
+    Parameters
+    ----------
+    raw : Sequence
+    drivers : Sequence
+    protocol : str
+    filter_length : int
+        The window size for the smoothing filter, applied to the observed
+        data
+
+    Returns
+    -------
+    Sequence
+    &#39;&#39;&#39;
+    # Read in the observed data and apply smoothing filter; then mask out
+    #   negative latent heat observations
+    obs = self._filter(raw, filter_length)
+    return np.where(obs &lt; 0, np.nan, obs)</code></pre>
+</details>
+</dd>
+<dt id="mod16.calibration.CalibrationAPI.export_posterior"><code class="name flex">
+<span>def <span class="ident">export_posterior</span></span>(<span>self, model: str, param: str, output_path: str, thin: int = 10, burn: int = 1000, k_folds: int = 1)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Exports posterior distribution for a parameter, for each PFT to HDF5.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>model</code></strong> :&ensp;<code>str</code></dt>
+<dd>The name of the model ("GPP" or "NPP")</dd>
+<dt><strong><code>param</code></strong> :&ensp;<code>str</code></dt>
+<dd>The model parameter to export</dd>
+<dt><strong><code>output_path</code></strong> :&ensp;<code>str</code></dt>
+<dd>The output HDF5 file path</dd>
+<dt><strong><code>thin</code></strong> :&ensp;<code>int</code></dt>
+<dd>Thinning rate</dd>
+<dt><strong><code>burn</code></strong> :&ensp;<code>int</code></dt>
+<dd>The burn-in (i.e., first N samples to discard)</dd>
+<dt><strong><code>k_folds</code></strong> :&ensp;<code>int</code></dt>
+<dd>The number of k-folds used in cross-calibration/validation;
+if more than one (default), the folds for each PFT will be
+combined into a single HDF5 file</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def export_posterior(
+        self, model: str, param: str, output_path: str, thin: int = 10,
+        burn: int = 1000, k_folds: int = 1):
+    &#39;&#39;&#39;
+    Exports posterior distribution for a parameter, for each PFT to HDF5.
+
+    Parameters
+    ----------
+    model : str
+        The name of the model (&#34;GPP&#34; or &#34;NPP&#34;)
+    param : str
+        The model parameter to export
+    output_path : str
+        The output HDF5 file path
+    thin : int
+        Thinning rate
+    burn : int
+        The burn-in (i.e., first N samples to discard)
+    k_folds : int
+        The number of k-folds used in cross-calibration/validation;
+        if more than one (default), the folds for each PFT will be
+        combined into a single HDF5 file
+    &#39;&#39;&#39;
+    params_dict = restore_bplut(self.config[&#39;BPLUT&#39;][model])
+    bplut = params_dict.copy()
+    # Filter the parameters to just those for the PFT of interest
+    post = []
+    for pft in PFT_VALID:
+        params = dict([(k, v[pft]) for k, v in params_dict.items()])
+        backend = self.config[&#39;optimization&#39;][&#39;backend_template&#39;] %\
+            (model, pft)
+        post_by_fold = []
+        for fold in range(1, k_folds + 1):
+            if k_folds &gt; 1:
+                backend = self.config[&#39;optimization&#39;][&#39;backend_template&#39;] %\
+                    (f&#39;{model}-k{fold}&#39;, pft)
+            # NOTE: This value was hard-coded in the extant version of MOD16
+            if &#39;beta&#39; not in params:
+                params[&#39;beta&#39;] = 250
+            sampler = MOD16StochasticSampler(
+                self.config, getattr(MOD16, &#39;_%s&#39; % model.lower()), params,
+                backend = backend)
+            trace = sampler.get_trace()
+            fit = trace.sel(draw = slice(burn, None, thin))[&#39;posterior&#39;]
+            if param in fit:
+                post_by_fold.append(
+                    az.extract_dataset(fit, combined = True)[param].values)
+            else:
+                # In case there is, e.g., a parameter that takes on a
+                #   constant value for a specific PFT
+                if k_folds &gt; 1:
+                    post_by_fold.append(
+                        np.ones((1, post[-1].shape[-1])) * np.nan)
+                else:
+                    a_key = list(fit.keys())[0]
+                    post_by_fold.append(
+                        np.ones(fit[a_key].values.shape) * np.nan)
+        if k_folds &gt; 1:
+            post.append(np.vstack(post_by_fold))
+        else:
+            post.extend(post_by_fold)
+    # If not every PFT&#39;s posterior has the same number of samples (e.g.,
+    #   when one set of chains was run longer than another)...
+    if not all([p.shape == post[0].shape for p in post]):
+        max_len = max([p.shape for p in post])[0]
+        # ...Reshape all posteriors to match the greatest sample size
+        import ipdb
+        ipdb.set_trace()#FIXME
+        post = [
+            np.pad(
+                p.astype(np.float32), (0, max_len - p.size),
+                mode = &#39;constant&#39;, constant_values = (np.nan,))
+            for p in post
+        ]
+    with h5py.File(output_path, &#39;a&#39;) as hdf:
+        post = np.stack(post)
+        ts = datetime.date.today().strftime(&#39;%Y-%m-%d&#39;) # Today&#39;s date
+        dataset = hdf.create_dataset(
+            f&#39;{param}_posterior&#39;, post.shape, np.float32, post)
+        dataset.attrs[&#39;description&#39;] = &#39;CalibrationAPI.export_posterior() on {ts}&#39;</code></pre>
+</details>
+</dd>
+<dt id="mod16.calibration.CalibrationAPI.tune"><code class="name flex">
+<span>def <span class="ident">tune</span></span>(<span>self, pft: int, plot_trace: bool = False, ipdb: bool = False, save_fig: bool = False, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Run the MOD16 ET calibration.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>pft</code></strong> :&ensp;<code>int</code></dt>
+<dd>The Plant Functional Type (PFT) to calibrate</dd>
+<dt><strong><code>plot_trace</code></strong> :&ensp;<code>bool</code></dt>
+<dd>True to plot the trace for a previous calibration run; this will
+also NOT start a new calibration (Default: False)</dd>
+<dt><strong><code>ipdb</code></strong> :&ensp;<code>bool</code></dt>
+<dd>True to drop the user into an ipdb prompt, prior to and instead of
+running calibration</dd>
+<dt><strong><code>save_fig</code></strong> :&ensp;<code>bool</code></dt>
+<dd>True to save figures to files instead of showing them
+(Default: False)</dd>
+<dt><strong><code>**kwargs</code></strong></dt>
+<dd>Additional keyword arguments passed to
+<code>MOD16StochasticSampler.run()</code></dd>
+</dl>
+<p>NOTE that <code><a title="mod16.calibration.MOD16StochasticSampler" href="#mod16.calibration.MOD16StochasticSampler">MOD16StochasticSampler</a></code> inherits methods from the <code>mod17</code>
+module, including <a href="https://arthur-e.github.io/MOD17/calibration.html#mod17.calibration.StochasticSampler">run()</a>.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def tune(
+        self, pft: int, plot_trace: bool = False, ipdb: bool = False,
+        save_fig: bool = False, **kwargs):
+    &#39;&#39;&#39;
+    Run the MOD16 ET calibration.
+
+    Parameters
+    ----------
+    pft : int
+        The Plant Functional Type (PFT) to calibrate
+    plot_trace : bool
+        True to plot the trace for a previous calibration run; this will
+        also NOT start a new calibration (Default: False)
+    ipdb : bool
+        True to drop the user into an ipdb prompt, prior to and instead of
+        running calibration
+    save_fig : bool
+        True to save figures to files instead of showing them
+        (Default: False)
+    **kwargs
+        Additional keyword arguments passed to
+        `MOD16StochasticSampler.run()`
+
+    NOTE that `MOD16StochasticSampler` inherits methods from the `mod17`
+    module, including [run()](https://arthur-e.github.io/MOD17/calibration.html#mod17.calibration.StochasticSampler).
+    &#39;&#39;&#39;
+    assert pft in PFT_VALID, f&#39;Invalid PFT: {pft}&#39;
+    # Set var_names to tell ArviZ to plot only the free parameters
+    kwargs.update({&#39;var_names&#39;: MOD16.required_parameters[4:]})
+    # Pass configuration parameters to MOD16StochasticSampler.run()
+    for key in (&#39;chains&#39;, &#39;draws&#39;, &#39;tune&#39;, &#39;scaling&#39;):
+        if key in self.config[&#39;optimization&#39;].keys():
+            kwargs[key] = self.config[&#39;optimization&#39;][key]
+    # Filter the parameters to just those for the PFT of interest
+    params_dict = restore_bplut(self.config[&#39;BPLUT&#39;][&#39;ET&#39;])
+    params_dict = dict([(k, v[pft]) for k, v in params_dict.items()])
+    # NOTE: This value was hard-coded in the extant version of MOD16
+    if np.isnan(params_dict[&#39;beta&#39;]):
+        params_dict[&#39;beta&#39;] = 250
+    model = MOD16(params_dict)
+    with h5py.File(self.hdf5, &#39;r&#39;) as hdf:
+        sites = hdf[&#39;FLUXNET/site_id&#39;][:].tolist()
+        if hasattr(sites[0], &#39;decode&#39;):
+            sites = [s.decode(&#39;utf-8&#39;) for s in sites]
+        # Get dominant PFT
+        pft_map = pft_dominant(hdf[&#39;state/PFT&#39;][:], site_list = sites)
+        # Blacklist various sites
+        blacklist = self.config[&#39;data&#39;][&#39;sites_blacklisted&#39;]
+        pft_mask = np.logical_and(pft_map == pft, ~np.in1d(sites, blacklist))
+        weights = hdf[&#39;weights&#39;][pft_mask]
+        # Read in tower observations
+        tower_obs = hdf[&#39;FLUXNET/latent_heat&#39;][:][:,pft_mask]
+        # Read the validation mask; mask out observations that are
+        #   reserved for validation
+        print(&#39;Masking out validation data...&#39;)
+        mask = hdf[&#39;FLUXNET/validation_mask&#39;][pft]
+        tower_obs[mask] = np.nan
+        # Read start and end dates and mask data appropriately
+        timestamps = [
+             f&#39;{y}-{str(m).zfill(2)}-{str(d).zfill(2)}&#39;
+             for y, m, d in hdf[&#39;time&#39;][:].tolist()
+        ]
+        start = self.config[&#39;data&#39;][&#39;dates&#39;][&#39;start&#39;]
+        end = self.config[&#39;data&#39;][&#39;dates&#39;][&#39;end&#39;]
+        t0 = timestamps.index(start)
+        t1 = timestamps.index(end) + 1
+        tower_obs = tower_obs[t0:t1]
+        # Read in driver datasets
+        print(&#39;Loading driver datasets...&#39;)
+        lw_net_day = hdf[&#39;MERRA2/LWGNT_daytime&#39;][:][t0:t1,pft_mask]
+        lw_net_night = hdf[&#39;MERRA2/LWGNT_nighttime&#39;][:][t0:t1,pft_mask]
+        if self.config[&#39;optimization&#39;][&#39;platform&#39;] == &#39;VIIRS&#39;:
+            sw_albedo = hdf[&#39;VIIRS/VNP43MA3_black_sky_sw_albedo&#39;][:][t0:t1,pft_mask]
+        else:
+            sw_albedo = hdf[&#39;MODIS/MCD43GF_black_sky_sw_albedo&#39;][:][t0:t1,pft_mask]
+        sw_albedo = np.nanmean(sw_albedo, axis = -1)
+        sw_rad_day = hdf[&#39;MERRA2/SWGDN_daytime&#39;][:][t0:t1,pft_mask]
+        sw_rad_night = hdf[&#39;MERRA2/SWGDN_nighttime&#39;][:][t0:t1,pft_mask]
+        temp_day = hdf[&#39;MERRA2/T10M_daytime&#39;][:][t0:t1,pft_mask]
+        temp_night = hdf[&#39;MERRA2/T10M_nighttime&#39;][:][t0:t1,pft_mask]
+        tmin = hdf[&#39;MERRA2/Tmin&#39;][:][t0:t1,pft_mask]
+        # As long as the time series is balanced w.r.t. years (i.e., same
+        #   number of records per year), the overall mean is the annual mean
+        temp_annual = hdf[&#39;MERRA2/T10M&#39;][:][t0:t1,pft_mask].mean(axis = 0)
+        vpd_day = MOD16.vpd(
+            hdf[&#39;MERRA2/QV10M_daytime&#39;][:][t0:t1,pft_mask],
+            hdf[&#39;MERRA2/PS_daytime&#39;][:][t0:t1,pft_mask],
+            temp_day)
+        vpd_night = MOD16.vpd(
+            hdf[&#39;MERRA2/QV10M_nighttime&#39;][:][t0:t1,pft_mask],
+            hdf[&#39;MERRA2/PS_nighttime&#39;][:][t0:t1,pft_mask],
+            temp_night)
+        pressure = hdf[&#39;MERRA2/PS&#39;][:][t0:t1,pft_mask]
+        # Read in fPAR, LAI, and convert from (%) to [0,1]
+        prefix = &#39;MODIS/MOD&#39;
+        if self.config[&#39;optimization&#39;][&#39;platform&#39;] == &#39;VIIRS&#39;:
+            prefix = &#39;VIIRS/VNP&#39;
+        fpar = np.nanmean(
+            hdf[f&#39;{prefix}15A2HGF_fPAR_interp&#39;][:][t0:t1,pft_mask], axis = -1)
+        lai = np.nanmean(
+            hdf[f&#39;{prefix}15A2HGF_LAI_interp&#39;][:][t0:t1,pft_mask], axis = -1)
+        # Convert fPAR from (%) to [0,1] and re-scale LAI; reshape fPAR and LAI
+        fpar /= 100
+        lai /= 10
+    # Compile driver datasets
+    drivers = [
+        lw_net_day, lw_net_night, sw_rad_day, sw_rad_night, sw_albedo,
+        temp_day, temp_night, temp_annual, tmin, vpd_day, vpd_night,
+        pressure, fpar, lai
+    ]
+    print(&#39;Initializing sampler...&#39;)
+    backend = self.config[&#39;optimization&#39;][&#39;backend_template&#39;] % (&#39;ET&#39;, pft)
+    sampler = MOD16StochasticSampler(
+        self.config, MOD16._et, params_dict, backend = backend,
+        weights = weights)
+    if plot_trace or ipdb:
+        # This matplotlib setting prevents labels from overplotting
+        pyplot.rcParams[&#39;figure.constrained_layout.use&#39;] = True
+        trace = sampler.get_trace()
+        if ipdb:
+            import ipdb
+            ipdb.set_trace()
+        az.plot_trace(trace, var_names = MOD16.required_parameters)
+        pyplot.show()
+        return
+    tower_obs = self.clean_observed(tower_obs, drivers)
+    # Get (informative) priors for just those parameters that have them
+    with open(self.config[&#39;optimization&#39;][&#39;prior&#39;], &#39;r&#39;) as file:
+        prior = json.load(file)
+    prior_params = list(filter(
+        lambda p: p in prior.keys(), sampler.required_parameters[&#39;ET&#39;]))
+    prior = dict([
+        (p, dict([(k, v[pft]) for k, v in prior[p].items()]))
+        for p in prior_params
+    ])
+    sampler.run(
+        tower_obs, drivers, prior = prior, save_fig = save_fig, **kwargs)</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="mod16.calibration.MOD16StochasticSampler"><code class="flex name class">
+<span>class <span class="ident">MOD16StochasticSampler</span></span>
+<span>(</span><span>config: dict, model: Callable, params_dict: dict = None, backend: str = None, weights: Sequence = None, model_name: str = None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>A Markov Chain-Monte Carlo (MCMC) sampler for MOD16. The specific sampler
+used is the Differential Evolution (DE) MCMC algorithm described by
+Ter Braak (2008), though the implementation is specific to the PyMC3
+library.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>config</code></strong> :&ensp;<code>dict</code></dt>
+<dd>Dictionary of configuration parameters</dd>
+<dt><strong><code>model</code></strong> :&ensp;<code>Callable</code></dt>
+<dd>The function to call (with driver data and parameters); this function
+should take driver data as positional arguments and the model
+parameters as a <code>*Sequence</code>; it should require no external state.</dd>
+<dt><strong><code>observed</code></strong> :&ensp;<code>Sequence</code></dt>
+<dd>Sequence of observed values that will be used to calibrate the model;
+i.e., model is scored by how close its predicted values are to the
+observed values</dd>
+<dt><strong><code>params_dict</code></strong> :&ensp;<code>dict</code> or <code>None</code></dt>
+<dd>Dictionary of model parameters, to be used as initial values and as
+the basis for constructing a new dictionary of optimized parameters</dd>
+<dt><strong><code>backend</code></strong> :&ensp;<code>str</code> or <code>None</code></dt>
+<dd>Path to a NetCDF4 file backend (Default: None)</dd>
+<dt><strong><code>weights</code></strong> :&ensp;<code>Sequence</code> or <code>None</code></dt>
+<dd>Optional sequence of weights applied to the model residuals (as in
+weighted least squares)</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class MOD16StochasticSampler(StochasticSampler):
+    &#39;&#39;&#39;
+    A Markov Chain-Monte Carlo (MCMC) sampler for MOD16. The specific sampler
+    used is the Differential Evolution (DE) MCMC algorithm described by
+    Ter Braak (2008), though the implementation is specific to the PyMC3
+    library.
+
+    Parameters
+    ----------
+    config : dict
+        Dictionary of configuration parameters
+    model : Callable
+        The function to call (with driver data and parameters); this function
+        should take driver data as positional arguments and the model
+        parameters as a `*Sequence`; it should require no external state.
+    observed : Sequence
+        Sequence of observed values that will be used to calibrate the model;
+        i.e., model is scored by how close its predicted values are to the
+        observed values
+    params_dict : dict or None
+        Dictionary of model parameters, to be used as initial values and as
+        the basis for constructing a new dictionary of optimized parameters
+    backend : str or None
+        Path to a NetCDF4 file backend (Default: None)
+    weights : Sequence or None
+        Optional sequence of weights applied to the model residuals (as in
+        weighted least squares)
+    &#39;&#39;&#39;
+    required_parameters = {
+        &#39;ET&#39;: MOD16.required_parameters
+    }
+    required_drivers = {
+        &#39;ET&#39;: [
+            &#39;lw_net_day&#39;, &#39;lw_net_night&#39;, &#39;sw_rad_day&#39;, &#39;sw_rad_night&#39;,
+            &#39;sw_albedo&#39;, &#39;temp_day&#39;, &#39;temp_night&#39;, &#39;temp_annual&#39;, &#39;tmin&#39;,
+            &#39;vpd_day&#39;, &#39;vpd_night&#39;, &#39;pressure&#39;, &#39;fpar&#39;, &#39;lai&#39;
+        ]
+    }
+
+    def compile_et_model(
+            self, observed: Sequence, drivers: Sequence) -&gt; pm.Model:
+        &#39;&#39;&#39;
+        Creates a new ET model based on the prior distribution. Model can be
+        re-compiled multiple times, e.g., for cross validation.
+
+        Parameters
+        ----------
+        observed : Sequence
+            Sequence of observed values that will be used to calibrate the model;
+            i.e., model is scored by how close its predicted values are to the
+            observed values
+        drivers : list or tuple
+            Sequence of driver datasets to be supplied, in order, to the
+            model&#39;s run function
+
+        Returns
+        -------
+        pm.Model
+        &#39;&#39;&#39;
+        # Define the objective/ likelihood function
+        log_likelihood = BlackBoxLikelihood(
+            self.model, observed, x = drivers, weights = self.weights)
+        # With this context manager, &#34;all PyMC3 objects introduced in the indented
+        #   code block...are added to the model behind the scenes.&#34;
+        with pm.Model() as model:
+            # NOTE: Parameters shared with MOD17 are fixed based on MOD17
+            #   re-calibration
+            tmin_close = self.params[&#39;tmin_close&#39;]
+            tmin_open = self.params[&#39;tmin_open&#39;]
+            vpd_open = self.params[&#39;vpd_open&#39;]
+            vpd_close = self.params[&#39;vpd_close&#39;]
+            gl_sh =       pm.Triangular(&#39;gl_sh&#39;, **self.prior[&#39;gl_sh&#39;])
+            gl_wv =       pm.Triangular(&#39;gl_wv&#39;, **self.prior[&#39;gl_wv&#39;])
+            g_cuticular = pm.LogNormal(
+                &#39;g_cuticular&#39;, **self.prior[&#39;g_cuticular&#39;])
+            csl =         pm.LogNormal(&#39;csl&#39;, **self.prior[&#39;csl&#39;])
+            rbl_min =     pm.Triangular(&#39;rbl_min&#39;, **self.prior[&#39;rbl_min&#39;])
+            rbl_max =     pm.Triangular(&#39;rbl_max&#39;, **self.prior[&#39;rbl_max&#39;])
+            beta =        pm.Triangular(&#39;beta&#39;, **self.prior[&#39;beta&#39;])
+            # (Stochstic) Priors for unknown model parameters
+            # Convert model parameters to a tensor vector
+            params_list = [
+                tmin_close, tmin_open, vpd_open, vpd_close, gl_sh, gl_wv,
+                g_cuticular, csl, rbl_min, rbl_max, beta
+            ]
+            params = at.as_tensor_variable(params_list)
+            # Key step: Define the log-likelihood as an added potential
+            pm.Potential(&#39;likelihood&#39;, log_likelihood(params))
+        return model</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>mod17.calibration.StochasticSampler</li>
+<li>mod17.calibration.AbstractSampler</li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="mod16.calibration.MOD16StochasticSampler.required_drivers"><code class="name">var <span class="ident">required_drivers</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="mod16.calibration.MOD16StochasticSampler.required_parameters"><code class="name">var <span class="ident">required_parameters</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="mod16.calibration.MOD16StochasticSampler.compile_et_model"><code class="name flex">
+<span>def <span class="ident">compile_et_model</span></span>(<span>self, observed: Sequence, drivers: Sequence) ‑> pymc.model.Model</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Creates a new ET model based on the prior distribution. Model can be
+re-compiled multiple times, e.g., for cross validation.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>observed</code></strong> :&ensp;<code>Sequence</code></dt>
+<dd>Sequence of observed values that will be used to calibrate the model;
+i.e., model is scored by how close its predicted values are to the
+observed values</dd>
+<dt><strong><code>drivers</code></strong> :&ensp;<code>list</code> or <code>tuple</code></dt>
+<dd>Sequence of driver datasets to be supplied, in order, to the
+model's run function</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>pm.Model</code></dt>
+<dd>&nbsp;</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def compile_et_model(
+        self, observed: Sequence, drivers: Sequence) -&gt; pm.Model:
+    &#39;&#39;&#39;
+    Creates a new ET model based on the prior distribution. Model can be
+    re-compiled multiple times, e.g., for cross validation.
+
+    Parameters
+    ----------
+    observed : Sequence
+        Sequence of observed values that will be used to calibrate the model;
+        i.e., model is scored by how close its predicted values are to the
+        observed values
+    drivers : list or tuple
+        Sequence of driver datasets to be supplied, in order, to the
+        model&#39;s run function
+
+    Returns
+    -------
+    pm.Model
+    &#39;&#39;&#39;
+    # Define the objective/ likelihood function
+    log_likelihood = BlackBoxLikelihood(
+        self.model, observed, x = drivers, weights = self.weights)
+    # With this context manager, &#34;all PyMC3 objects introduced in the indented
+    #   code block...are added to the model behind the scenes.&#34;
+    with pm.Model() as model:
+        # NOTE: Parameters shared with MOD17 are fixed based on MOD17
+        #   re-calibration
+        tmin_close = self.params[&#39;tmin_close&#39;]
+        tmin_open = self.params[&#39;tmin_open&#39;]
+        vpd_open = self.params[&#39;vpd_open&#39;]
+        vpd_close = self.params[&#39;vpd_close&#39;]
+        gl_sh =       pm.Triangular(&#39;gl_sh&#39;, **self.prior[&#39;gl_sh&#39;])
+        gl_wv =       pm.Triangular(&#39;gl_wv&#39;, **self.prior[&#39;gl_wv&#39;])
+        g_cuticular = pm.LogNormal(
+            &#39;g_cuticular&#39;, **self.prior[&#39;g_cuticular&#39;])
+        csl =         pm.LogNormal(&#39;csl&#39;, **self.prior[&#39;csl&#39;])
+        rbl_min =     pm.Triangular(&#39;rbl_min&#39;, **self.prior[&#39;rbl_min&#39;])
+        rbl_max =     pm.Triangular(&#39;rbl_max&#39;, **self.prior[&#39;rbl_max&#39;])
+        beta =        pm.Triangular(&#39;beta&#39;, **self.prior[&#39;beta&#39;])
+        # (Stochstic) Priors for unknown model parameters
+        # Convert model parameters to a tensor vector
+        params_list = [
+            tmin_close, tmin_open, vpd_open, vpd_close, gl_sh, gl_wv,
+            g_cuticular, csl, rbl_min, rbl_max, beta
+        ]
+        params = at.as_tensor_variable(params_list)
+        # Key step: Define the log-likelihood as an added potential
+        pm.Potential(&#39;likelihood&#39;, log_likelihood(params))
+    return model</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="mod16" href="index.html">mod16</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="mod16.calibration.CalibrationAPI" href="#mod16.calibration.CalibrationAPI">CalibrationAPI</a></code></h4>
+<ul class="">
+<li><code><a title="mod16.calibration.CalibrationAPI.clean_observed" href="#mod16.calibration.CalibrationAPI.clean_observed">clean_observed</a></code></li>
+<li><code><a title="mod16.calibration.CalibrationAPI.export_posterior" href="#mod16.calibration.CalibrationAPI.export_posterior">export_posterior</a></code></li>
+<li><code><a title="mod16.calibration.CalibrationAPI.tune" href="#mod16.calibration.CalibrationAPI.tune">tune</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="mod16.calibration.MOD16StochasticSampler" href="#mod16.calibration.MOD16StochasticSampler">MOD16StochasticSampler</a></code></h4>
+<ul class="">
+<li><code><a title="mod16.calibration.MOD16StochasticSampler.compile_et_model" href="#mod16.calibration.MOD16StochasticSampler.compile_et_model">compile_et_model</a></code></li>
+<li><code><a title="mod16.calibration.MOD16StochasticSampler.required_drivers" href="#mod16.calibration.MOD16StochasticSampler.required_drivers">required_drivers</a></code></li>
+<li><code><a title="mod16.calibration.MOD16StochasticSampler.required_parameters" href="#mod16.calibration.MOD16StochasticSampler.required_parameters">required_parameters</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.10.0</a>.</p>
+</footer>
+</body>
+</html>
