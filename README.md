@@ -402,6 +402,7 @@ References
 - Jacobsen, A. and B. U. Hansen. 1999. Estimation of the soil heat flux/net radiation ratio based on spectral vegetation indexes in high-latitude Arctic areas. *International Journal of Remote Sensing.* 20(2):445-461.
 - Maidment, D. 1969. Handbook of Hydrology.
 - Monteith, J. L., and M. Unsworth. 2001. Principles of Environmental Physics. Second Ed.
+- Mu, Q., Heinsch, F. A., Zhao, M., & Running, S. W. 2007. Development of a global evapotranspiration algorithm based on MODIS and global meteorology data. *Remote Sensing of Environment,* 111(4), 519–536.
 - Mu, Q., M. Zhao, and S. W. Running. 2011. Improvements to a MODIS global terrestrial evapotranspiration algorithm. *Remote Sensing of Environment* 115 (8):1781–1800.
 - National Physical Laboratory. 2021. "Buoyancy Correction and Air Density Measurement." http://resource.npl.co.uk/docs/science_technology/mass_force_pressure/clubs_groups/instmc_weighing_panel/buoycornote.pdf Accessed: September 3, 2023.
 - Zhang, K., J. S. Kimball, and S. W. Running. 2016. A review of remote sensing based actual evapotranspiration estimation. *Wiley Interdisciplinary Reviews: Water* 3 (6):834–853.

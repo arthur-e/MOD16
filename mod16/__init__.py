@@ -1,19 +1,6 @@
 r'''
-The MODIS MOD16 terrestrial evapotranspiration (ET) algorithm.
-
-References:
-
-    Monteith, J. L., and M. Unsworth. 2001.
-      "Principles of Environmental Physics", Second Ed.
-
-    Mu, Q., Heinsch, F. A., Zhao, M., & Running, S. W. (2007).
-      Development of a global evapotranspiration algorithm based on MODIS and
-      global meteorology data.
-      Remote Sensing of Environment, 111(4), 519–536.
-
-    Mu, Q., Zhao, M., & Running, S. W. (2011).
-      Improvements to a MODIS global terrestrial evapotranspiration algorithm.
-      Remote Sensing of Environment, 115(8), 1781–1800.
+The MODIS MOD16 terrestrial evapotranspiration (ET) algorithm. See the README
+for full references.
 
 NOTES:
 
@@ -30,18 +17,19 @@ NOTES:
     is written there: When VPD <= `VPD_open`, then `rbl_max` should be used
     and when VPD >= `VPD_close`, then `rbl_min` should be used.
 - MOD16 C6.1 User's Guide suggested that, in calculating the radiation
-    received by the soil ($A_{soil}$, Equation 8), only net radiation is
-    modulated by bare soil area, (1 - fPAR). In fact, the difference between
-    net radiation and the ground heat flux is what is modulated; i.e., the
-    correct equation is: $A_{soil} = (1 - fPAR)\times (A - G)$.
+    received by the soil (Equation 8), only net radiation is modulated by
+    bare soil area, (1 - fPAR). In fact, the difference between net
+    radiation and the ground heat flux is what is modulated; i.e., the
+    correct equation is \(A_{soil} = (1 - fPAR)\times (A - G)\)
 - The MERRA2 longwave radiation field `LWGNT` is defined as the "surface net
     downward longwave flux", hence, it is usually negative because of the net
     outward flux of longwave radiation from the Earth's surface.
 - For numerical stability, the quantity `r_corr` used in this implementation
-    is different from the term $r_{corr}$ defined in the MOD16 C6.1 User's
-    Guide (ca. Equation 13). Here, `r_corr` is a large number ($\gt 1.0$),
-    equal to $1/r_{corr}$; this avoids numerical instability associated with
-    keeping track of a very small number.
+    is different from the term defined in the MOD16 C6.1 User's Guide (ca.
+    Equation 13). Here, `r_corr` is a large number (greater than 1), equal to
+    1/r, where r is the value provided in the User Guide; this avoids
+    numerical instability associated with keeping track of a very small
+    number.
 
 Also, in MOD16 C6.1, canopy conductance was calculated as:
 $$
@@ -53,7 +41,10 @@ $$
 C_c = \frac{(G_0(G_S = G_C))}{G_0 + G_S + G_C}
 $$
 
-Where $G_0 = gl_{sh} \times \text{LAI}(1 - F_{wet})$.
+Where:
+$$
+G_0 = gl_{sh} \times \text{LAI}(1 - F_{wet})
+$$
 
 TODO:
 
@@ -89,24 +80,24 @@ class MOD16(object):
     '''
     The MODIS MxD16 Evapotranspiration model. The required model parameters are:
 
-        - `tmin_close`: Temperature at which stomata are almost completely
-            closed due to (minimum) temperature stress (deg C)
-        - `tmin_open`: Temperature at which stomata are completely open, i.e.,
-            there is no effect of temperature on transpiration (deg C)
-        - `vpd_open`: The VPD at which stomata are completely open, i.e.,
-            there is no effect of water stress on transpiration (Pa)
-        - `vpd_close`: The VPD at which stomata are almost completely closed
-            due to water stress (Pa)
-        - `gl_sh`: Leaf conductance to sensible heat per unit LAI
-            (m s-1 LAI-1);
-        - `gl_wv`: Leaf conductance to evaporated water per unit LAI
-            (m s-1 LAI-1);
-        - `g_cuticular`: Leaf cuticular conductance (m s-1);
-        - `csl`: Mean potential stomatal conductance per unit leaf area (m s-1);
-        - `rbl_min`: Minimum leaf boundary layer resistance (s m-1);
-        - `rbl_max`: Maximum leaf boundary layer resistance (s m-1);
-        - `beta`: Factor in soil moisture constraint on potential soil
-            evaporation, i.e., (VPD / beta); from Bouchet (1963)
+    - `tmin_close`: Temperature at which stomata are almost completely
+        closed due to (minimum) temperature stress (deg C)
+    - `tmin_open`: Temperature at which stomata are completely open, i.e.,
+        there is no effect of temperature on transpiration (deg C)
+    - `vpd_open`: The VPD at which stomata are completely open, i.e.,
+        there is no effect of water stress on transpiration (Pa)
+    - `vpd_close`: The VPD at which stomata are almost completely closed
+        due to water stress (Pa)
+    - `gl_sh`: Leaf conductance to sensible heat per unit LAI
+        (m s-1 LAI-1);
+    - `gl_wv`: Leaf conductance to evaporated water per unit LAI
+        (m s-1 LAI-1);
+    - `g_cuticular`: Leaf cuticular conductance (m s-1);
+    - `csl`: Mean potential stomatal conductance per unit leaf area (m s-1);
+    - `rbl_min`: Minimum leaf boundary layer resistance (s m-1);
+    - `rbl_max`: Maximum leaf boundary layer resistance (s m-1);
+    - `beta`: Factor in soil moisture constraint on potential soil
+        evaporation, i.e., (VPD / beta); from Bouchet (1963)
 
     Parameters
     ----------
@@ -377,13 +368,26 @@ class MOD16(object):
 
     @staticmethod
     def air_pressure(elevation_m: Number) -> Number:
-        '''
+        r'''
         Atmospheric pressure as a function of elevation. From the discussion on
         atmospheric statics (p. 168) in:
 
             Iribane, J.V., and W.L. Godson, 1981. Atmospheric Thermodynamics
                 2nd Edition. D. Reidel Publishing Company, Dordrecht,
                 The Netherlands.
+
+        It is calculated:
+
+        $$
+        P_a = P_{\text{std}}\times \left(
+            1 - \ell z T_{\text{std}}^{-1}
+          \right)^{5.256}
+        $$
+
+        Where \(\ell\) is the standard temperature lapse rate (-0.0065 deg K
+        per meter), \(z\) is the elevation in meters, and \(P_{\text{std}}\),
+        \(T_{\text{std}}\) are the standard pressure (101325 Pa) and
+        temperature (288.15 deg K) at sea level.
 
         Parameters
         ----------
@@ -399,8 +403,25 @@ class MOD16(object):
 
     @staticmethod
     def vpd(qv10m: Number, pressure: Number, tmean: Number) -> Number:
-        '''
-        Computes vapor pressure deficit (VPD) from surface meteorology.
+        r'''
+        Computes vapor pressure deficit (VPD) from surface meteorology:
+
+        $$
+        \text{VPD} = \left(610.7\times \text{exp}\left(
+          \frac{17.38\times T}{239 + T}
+        \right) - \text{AVP}\right)
+        $$
+
+        Where \(T\) is the temperature in deg K and the actual vapor pressure
+        (AVP) is given:
+
+        $$
+        \text{AVP} = \frac{\text{QV10M}\times
+            \text{P}}{0.622 + 0.379\times \text{QV10M}}
+        $$
+
+        Where P is the air pressure in Pascals and QV10M is the water vapor
+        mixing ratio at 10-meter height.
 
         Parameters
         ----------
@@ -424,9 +445,13 @@ class MOD16(object):
 
     @staticmethod
     def rhumidity(temp_k: Number, vpd: Number) -> Number:
-        '''
+        r'''
         Calculates relative humidity as the difference between the saturation
-        vapor pressure (SVP) and VPD, normalized by the SVP.
+        vapor pressure (SVP) and VPD, normalized by the SVP:
+
+        $$
+        \text{RH} = \frac{\text{SVP} - \text{VPD}}{\text{SVP}}
+        $$
 
         Parameters
         ----------
@@ -565,19 +590,20 @@ class MOD16(object):
         the saturated and unsaturated soil surfaces, as:
 
         $$
-        \lambda E_{\mathrm{sat}} = f_{\mathrm{wet}}
+        \lambda E_{\mathrm{sat}} = F_{\text{wet}}
           \frac{s A_{\mathrm{soil}} + \rho C_p (1 - F_c) D r_a^{-1}}{s + \gamma(1 + r_t r_a^{-1})}
         $$
         $$
-        \lambda E_{\mathrm{unsat}} = (1 - f_{\mathrm{wet}})
+        \lambda E_{\mathrm{unsat}} = (1 - F_{\text{wet}})
           \frac{s A_{\mathrm{soil}} + \rho C_p (1 - F_c) D r_a^{-1}}{s + \gamma(1 + r_t r_a^{-1})}
         \phi^{D\beta^{-1}}
         $$
 
-        NOTE: The `r_corr` argument to this function is different from the
-        ($r_{corr}$) parameter, as defined in Equation 13 in MOD16 C61 User's
-        Guide. For numerical stability, `r_corr` equals $1/r_{corr}$. See
-        `MOD16.evapotranspiration()` for how `r_corr` is calculated.
+        NOTE: The `r_corr` argument to this function is different from that
+        defined in Equation 13 in the MOD16 C61 User's Guide. For numerical
+        stability, `r_corr` equals 1/r where r is the quantity defined in
+        Equation 13. See `MOD16.evapotranspiration()` for how `r_corr` is
+        calculated.
 
         Parameters
         ----------
@@ -669,17 +695,17 @@ class MOD16(object):
 
         Where:
 
-        - $s$ is the slope of the saturation vapor pressure curve (see
-            `mod16.science.svp_slope()`)
-        - $A_c$ is the radiation intercepted by the canopy [J m-2 s-1];
-        - $F_c$ is the canopy fraction of ground cover (i.e., fPAR);
-        - $\rho$ is the density of air [kg m-3];
-        - $C_p$ is the specific heat capacity of air;
-        - $D$ is the vapor pressure deficit;
-        - $F_{wet}$ is the fraction of the land surface that is saturated;
-        - $P_a$ is the air pressure (Pa);
-        - $\lambda$ is the latent heat of vaporization;
-        - $\varepsilon$ is the ratio of molecular weight of water vapor to that
+        - \(s\) is the slope of the saturation vapor pressure curve (see
+            `mod16.svp_slope()`)
+        - \(A_c\) is the radiation intercepted by the canopy [J m-2 s-1]
+        - \(F_c\) is the canopy fraction of ground cover (i.e., fPAR)
+        - \(\rho\) is the density of air [kg m-3]
+        - \(C_p\) is the specific heat capacity of air
+        - \(D\) is the vapor pressure deficit
+        - \(F_{wet}\) is the fraction of the land surface that is saturated
+        - \(P_a\) is the air pressure (Pa)
+        - \(\lambda\) is the latent heat of vaporization
+        - \(\varepsilon\) is the ratio of molecular weight of water vapor to that
             of dry air
 
         Parameters
@@ -764,9 +790,9 @@ class MOD16(object):
         A = (1-\alpha)R_{S\downarrow} + R_L
         $$
 
-        Where $\alpha$ is the short-wave albedo (under "black-sky"
-        conditions); $R_{S\downarrow}$ is the (daytime) down-welling short-
-        wave radidation; $R_L$ is the (daytime) net downward long-wave
+        Where \(\alpha\) is the short-wave albedo (under "black-sky"
+        conditions); \(R_{S\downarrow}\) is the (daytime) down-welling short-
+        wave radidation; \(R_L\) is the (daytime) net downward long-wave
         radiation.
 
         At nighttime, net incoming radiation is simply the net downward long-
@@ -777,8 +803,9 @@ class MOD16(object):
         $$
 
         And the net radiation received by the soil is modulated by the
-        fractional area covered by vegetation, $F_C$, such that areas with
+        fractional area covered by vegetation, \(F_C\), such that areas with
         100% vegetation cover have no net radiation to the soil:
+
         $$
         A_{\text{soil}} = (1 - F_C)\times (A - G)
         $$
@@ -847,8 +874,10 @@ class MOD16(object):
         than 5 deg C:
 
         $$
-        G_{soil} = 4.73 T - 20.87 \quad\mathrm{iff}\quad T_{min,close}
-            \le T_{annual} < 25 ,\, T_{day} - T_{night} \ge 5
+        G_{\text{soil}} = 4.73 T - 20.87
+            \quad\text{iff}\quad T_{\text{min,close}}
+            \le T_{\text{annual}} < 25 ,\,
+                T_{\text{day}} - T_{\text{night}} \ge 5
         $$
 
         Otherwise, soil heat flux is zero.
@@ -857,7 +886,7 @@ class MOD16(object):
         radiation to the land surface.
 
         $$
-        G_{soil} = 0.39 A \quad\mathrm{iff}\quad G_{soil} > 0.39 |A|
+        G_{\text{soil}} = 0.39 A \quad\text{iff}\quad G_{soil} > 0.39 |A|
         $$
 
         Parameters
@@ -911,10 +940,10 @@ class MOD16(object):
         carbon gain).
 
         $$
-        G_{surf} = C_L \times f(T_{min}) \times f(\mathrm{VPD})
+        G_{\text{surf}} = C_L \times f(T_{\text{min}}) \times f(\text{VPD})
         $$
 
-        Where $C_L$ is the mean potential stomatal conductance per unit leaf
+        Where \(C_L\) is the mean potential stomatal conductance per unit leaf
         area.
 
         Parameters
@@ -948,10 +977,11 @@ class MOD16(object):
           {s + \gamma(1 + r_s r_d^{-1})}
         $$
 
-        NOTE: The `r_corr` argument to this function is different from the
-        ($r_{corr}$) parameter, as defined in Equation 13 in MOD16 C61 User's
-        Guide. For numerical stability, `r_corr` equals $1/r_{corr}$. See
-        `MOD16.evapotranspiration()` for how `r_corr` is calculated.
+        NOTE: The `r_corr` argument to this function is different from that
+        defined in Equation 13 in the MOD16 C61 User's Guide. For numerical
+        stability, `r_corr` equals 1/r where r is the quantity defined in
+        Equaiton 13. See `MOD16.evapotranspiration()` for how `r_corr` is
+        calculated.
 
         Parameters
         ----------
@@ -1048,10 +1078,10 @@ def psychrometric_constant(pressure: Number, temp_k: Number) -> Number:
     \gamma = \frac{C_p \times P}{\lambda\times 0.622}
     $$
 
-    Where `C_p` is the specific heat capacity of air, `P` is air pressure, and
-    `lambda` is the latent heat of vaporization. The `C_p` of air varies with
-    its saturation, so the value 1.013e-3 [MJ kg-1 (deg C)-1] reflects average
-    atmospheric conditions.
+    Where \(C_p\) is the specific heat capacity of air, \(P\) is air pressure,
+    and \(\lambda\) is the latent heat of vaporization. The \(C_p\) of air
+    varies with its saturation, so the value 1.013e-3 [MJ kg-1 (deg C)-1]
+    reflects average atmospheric conditions.
 
     Parameters
     ----------
@@ -1087,8 +1117,8 @@ def radiation_net(
     \quad\mbox{where}\quad \varepsilon_s = 0.97
     $$
 
-    Where `alpha` is the MODIS albedo, `R_S` is down-welling short-wave
-    radiation, `sigma` is the Stefan-Boltzmann constant, and:
+    Where \(\alpha\) is the MODIS albedo, `R_S` is down-welling short-wave
+    radiation, \(\sigma\) is the Stefan-Boltzmann constant, and:
 
     $$
     \varepsilon_a = 1 - 0.26\,\mathrm{exp}\left(

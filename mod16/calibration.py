@@ -296,6 +296,9 @@ class CalibrationAPI(object):
         **kwargs
             Additional keyword arguments passed to
             `MOD16StochasticSampler.run()`
+
+        NOTE that `MOD16StochasticSampler` inherits methods from the `mod17`
+        module, including [run()](https://arthur-e.github.io/MOD17/calibration.html#mod17.calibration.StochasticSampler).
         '''
         assert pft in PFT_VALID, f'Invalid PFT: {pft}'
         # Set var_names to tell ArviZ to plot only the free parameters
