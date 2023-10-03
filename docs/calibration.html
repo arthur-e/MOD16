@@ -49,7 +49,7 @@ sampler.plot_autocorr(burn = 1000, thin = 10)
 trace = sampler.get_trace(burn = 1000, thin = 10)
 </code></pre>
 <p>A thinned posterior can be exported from the command line:</p>
-<pre><code>$ python calibration.py export-bplut output.csv --burn=1000 --thin=10
+<pre><code>python calibration.py export-bplut output.csv --burn=1000 --thin=10
 </code></pre>
 <p>TODO:</p>
 <ul>
@@ -87,7 +87,7 @@ eliminate autocorrelation, e.g., in Python:
 
 A thinned posterior can be exported from the command line:
 
-    $ python calibration.py export-bplut output.csv --burn=1000 --thin=10
+    python calibration.py export-bplut output.csv --burn=1000 --thin=10
 
 TODO:
 
