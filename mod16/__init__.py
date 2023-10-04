@@ -4,13 +4,13 @@ for full references.
 
 **There are two types of interfaces in the MOD16 Python code.**
 
-User-friendly methods of a `MOD16` instance, parameterized for a single l
-and-cover type:
+User-friendly methods of a `MOD16` instance, parameterized for a single
+land-cover type:
 
 - `MOD16.evapotranspiration()`
 - `MOD16.transpiration()`
 - `MOD16.evaporation_soil()`
-- `MOD16.evaporation_canopy()`
+- `MOD16.evaporation_wet_canopy()`
 - And so on.
 
 There is also a single, vectorized interface implemented as a static method

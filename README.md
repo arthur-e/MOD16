@@ -13,6 +13,8 @@ This Python implementation can be used to:
 - Run MOD16 for arbitrary spatial domains (arrays) over arbitrary time steps
 - Calculate the sensitivity of the model to its parameters, based on observed latent heat fluxes
 
+**The version of MOD16 in this Python implementation is a draft release of the algorithm that will be used in MODIS Collection 7 and in VIIRS Collection 2.** There are substantial changes from MODIS MOD16 Collection 6.1, [which are detailed in the module documentation](https://arthur-e.github.io/MOD16/) (under "NOTES").
+
 
 Installation and Tests
 ----------------------
