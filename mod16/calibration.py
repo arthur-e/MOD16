@@ -4,6 +4,11 @@ flux tower network. The model calibration is based on Markov-Chain Monte
 Carlo (MCMC). Example use:
 
     python calibration.py tune --pft=1
+    python calibration.py tune --pft=1 --config=MOD16_calibration_config.json
+
+The default configuration file provided in the repository,
+`mod16/data/MOD16_calibration_config.json`, should be copied and modified to
+suit your needs.
 
 The general calibration protocol used here involves:
 
@@ -27,10 +32,6 @@ eliminate autocorrelation, e.g., in Python:
 A thinned posterior can be exported from the command line:
 
     python calibration.py export-bplut output.csv --burn=1000 --thin=10
-
-TODO:
-
-- [ ] Filter out negative ET measurements from flux tower sites?
 '''
 
 import datetime
