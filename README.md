@@ -424,6 +424,13 @@ Note that all of the ET values are given in energy units, [W m-2]. If you wish t
 | $\beta$                    | Soil moisture constraint on potential soil evaporation      |
 
 
+
+Acknowledgments
+---------------
+
+This software was developed under a grant from NASA (80NSSC22K0198).
+
+
 References
 --------------
 
