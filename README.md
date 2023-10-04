@@ -1,3 +1,6 @@
+[![DOI](https://zenodo.org/badge/698407001.svg)](https://zenodo.org/badge/latestdoi/698407001)
+
+
 MOD16 Evapotranspiration Model
 ==============================
 
