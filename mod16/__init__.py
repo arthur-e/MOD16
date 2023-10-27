@@ -46,7 +46,7 @@ NOTES:
     and when VPD >= `VPD_close`, then `rbl_min` should be used.
 - MOD16 C6.1 User's Guide suggested that, in calculating the radiation
     received by the soil (Equation 8), only net radiation is modulated by
-    bare soil area, (1 - fPAR). In fact, the difference between net
+    bare soil area, \((1 - fPAR)\). In fact, the difference between net
     radiation and the ground heat flux is what is modulated; i.e., the
     correct equation is \(A_{soil} = (1 - fPAR)\times (A - G)\)
 - The MERRA2 longwave radiation field `LWGNT` is defined as the "surface net
