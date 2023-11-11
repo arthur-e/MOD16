@@ -27,13 +27,13 @@ for full references …" />
 <p>The MODIS MOD16 terrestrial evapotranspiration (ET) algorithm. See the README
 for full references.</p>
 <p><strong>There are two types of interfaces in the MOD16 Python code.</strong></p>
-<p>User-friendly methods of a <code><a title="mod16.MOD16" href="#mod16.MOD16">MOD16</a></code> instance, parameterized for a single l
-and-cover type:</p>
+<p>User-friendly methods of a <code><a title="mod16.MOD16" href="#mod16.MOD16">MOD16</a></code> instance, parameterized for a single
+land-cover type:</p>
 <ul>
 <li><code><a title="mod16.MOD16.evapotranspiration" href="#mod16.MOD16.evapotranspiration">MOD16.evapotranspiration()</a></code></li>
 <li><code><a title="mod16.MOD16.transpiration" href="#mod16.MOD16.transpiration">MOD16.transpiration()</a></code></li>
 <li><code><a title="mod16.MOD16.evaporation_soil" href="#mod16.MOD16.evaporation_soil">MOD16.evaporation_soil()</a></code></li>
-<li><code>MOD16.evaporation_canopy()</code></li>
+<li><code><a title="mod16.MOD16.evaporation_wet_canopy" href="#mod16.MOD16.evaporation_wet_canopy">MOD16.evaporation_wet_canopy()</a></code></li>
 <li>And so on.</li>
 </ul>
 <p>There is also a single, vectorized interface implemented as a static method
@@ -67,7 +67,7 @@ is written there: When VPD &lt;= <code>VPD_open</code>, then <code>rbl_max</code
 and when VPD &gt;= <code>VPD_close</code>, then <code>rbl_min</code> should be used.</li>
 <li>MOD16 C6.1 User's Guide suggested that, in calculating the radiation
 received by the soil (Equation 8), only net radiation is modulated by
-bare soil area, (1 - fPAR). In fact, the difference between net
+bare soil area, <span><span class="MathJax_Preview">(1 - fPAR)</span><script type="math/tex">(1 - fPAR)</script></span>. In fact, the difference between net
 radiation and the ground heat flux is what is modulated; i.e., the
 correct equation is <span><span class="MathJax_Preview">A_{soil} = (1 - fPAR)\times (A - G)</span><script type="math/tex">A_{soil} = (1 - fPAR)\times (A - G)</script></span></li>
 <li>The MERRA2 longwave radiation field <code>LWGNT</code> is defined as the "surface net
@@ -112,13 +112,13 @@ for full references.
 
 **There are two types of interfaces in the MOD16 Python code.**
 
-User-friendly methods of a `MOD16` instance, parameterized for a single l
-and-cover type:
+User-friendly methods of a `MOD16` instance, parameterized for a single
+land-cover type:
 
 - `MOD16.evapotranspiration()`
 - `MOD16.transpiration()`
 - `MOD16.evaporation_soil()`
-- `MOD16.evaporation_canopy()`
+- `MOD16.evaporation_wet_canopy()`
 - And so on.
 
 There is also a single, vectorized interface implemented as a static method
@@ -154,7 +154,7 @@ NOTES:
     and when VPD &gt;= `VPD_close`, then `rbl_min` should be used.
 - MOD16 C6.1 User&#39;s Guide suggested that, in calculating the radiation
     received by the soil (Equation 8), only net radiation is modulated by
-    bare soil area, (1 - fPAR). In fact, the difference between net
+    bare soil area, \((1 - fPAR)\). In fact, the difference between net
     radiation and the ground heat flux is what is modulated; i.e., the
     correct equation is \(A_{soil} = (1 - fPAR)\times (A - G)\)
 - The MERRA2 longwave radiation field `LWGNT` is defined as the &#34;surface net

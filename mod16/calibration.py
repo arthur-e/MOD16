@@ -40,8 +40,8 @@ a sub-grid of MODIS pixels surrounding a tower:
       air_temperature   -- (T x N) Air temperatures reported at the tower
       latent_heat       -- (T x N) Observed latent heat flux [W m-2]
       site_id           -- (N) Unique identifier for each site, e.g., "US-BZS"
-      validation_mask   -- (T x N) Indicates what site-days are reserved for
-                            use in validating the model only
+      validation_mask   -- (T x N) Indicates what site-days are reserved
+
     MERRA2/
       LWGNT             -- (T x N) Net long-wave radiation, 24-hr mean [W m-2]
       LWGNT_daytime     -- (T x N) ... for daytime hours only
@@ -58,38 +58,30 @@ a sub-grid of MODIS pixels surrounding a tower:
       T10M              -- (T x N) Air temperature at 10-meter height [deg C]
       T10M_daytime      -- (T x N) ... for daytime hours only
       T10M_nighttime    -- (T x N) ... for nighttime hours only
-      Tmin              -- (T x N) Daily minimum air temperature at 10-m
-                            height [deg C]
+      Tmin              -- (T x N) Daily minimum air temperature [deg C]
+
     MODIS/
       MCD43GF_black_sky_sw_albedo
-          -- (T x N x P) Short-wave albedo under black-sky conditions,
-                from MODIS MCD43
+          -- (T x N x P) Short-wave albedo under black-sky conditions
       MOD15A2HGF_LAI
-          -- (T x N x P) Leaf area index in scaled units (10 * [m3 m-3]) from
-                the MODIS MOD15A2HGF product
+          -- (T x N x P) Leaf area index in scaled units (10 * [m3 m-3])
       MOD15A2HGF_LAI_interp
           -- (T x N x P) Daily interpolation of the MOD15A2HGF_LAI field
       MOD15A2HGF_fPAR
-          -- (T x N x P) Fraction of photosynthetically active radiation
-                (fPAR), from the MODIS MOD15A2HGF product [%]
+          -- (T x N x P) Fraction of photosynthetically active radiation [%]
       MOD15A2HGF_fPAR_interp
           -- (T x N x P) Daily interpolation of MOD15A2HGF_fPAR_interp field
 
     coordinates/
-      lng_lat       -- (2 x N) The longitude, latitude coordinates of each
-                        tower site in the FLUXNET/site_id dataset
+      lng_lat       -- (2 x N) Longitude, latitude coordinates of each tower
+
     state/
       PFT           -- (N x P) The plant functional type (PFT) of each pixel
       PFT_dominant  -- (N) The majority PFT at each tower
       elevation_m   -- (N) The elevation in meters above sea level
 
     time            -- (T x 3) The Year, Month, Day of each daily time step
-    weights         -- (N) A number between 0 and 1 used to down-weight
-                        tower sites because they may be too close to another
-
-TODO:
-
-- [ ] Filter out negative ET measurements from flux tower sites?
+    weights         -- (N) A number between 0 and 1 used to down-weight towers
 '''
 
 import datetime
