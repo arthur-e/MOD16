@@ -1,3 +1,6 @@
+[![DOI](https://zenodo.org/badge/698407001.svg)](https://zenodo.org/badge/latestdoi/698407001)
+
+
 MOD16 Evapotranspiration Model
 ==============================
 
@@ -13,15 +16,43 @@ This Python implementation can be used to:
 - Run MOD16 for arbitrary spatial domains (arrays) over arbitrary time steps
 - Calculate the sensitivity of the model to its parameters, based on observed latent heat fluxes
 
+**The version of MOD16 in this Python implementation is a draft release of the algorithm that will be used in MODIS Collection 7 and in VIIRS Collection 2.** There are substantial changes from MODIS MOD16 Collection 6.1, [which are detailed in the module documentation](https://arthur-e.github.io/MOD16/) (under "NOTES").
+
+
+Installation and Tests
+----------------------
+
+It's recommended that you install the package in "editable" mode using `pip`. From the root of the repository:
+
+```sh
+pip install -e .
+```
+
+If you want to install additional libraries needed for calibrating MOD16:
+
+```sh
+pip install -e .[calibration]
+```
+
+Tests can be run by:
+
+```sh
+python tests/tests.py
+```
+
 
 Documentation
 -------------
 
-[You can read the online module documentation here.](https://arthur-e.github.io/MOD16/)
+[You can read the online module documentation here.](https://arthur-e.github.io/MOD16/) Below, an overview of the MOD16 algorithm is provided.
 
 
-Surface Energy Balance
-----------------------
+Algorithm Details
+-----------------
+
+*As described by K. Arthur Endsley, September 2023*
+
+### Surface Energy Balance
 
 Net radiation intercepted by the earth's surface, $R$, can be partitioned into fluxes of sensible heat ($H$), latent heat ($\lambda E$), ground heat ($G$), and the change in heat storage ($\Delta S$):
 
@@ -44,10 +75,7 @@ The individual terms are described in the sections below, but the general idea i
 The flux of latent heat is also termed **evapotranspiration (ET)** because it includes both *evaporated* water and *transpired* water vapor fluxes. Most discussions of modeling ET begin with a version of the equation above, which gets complicated quickly when we try to calculate ET over large areas using weather data. As such, our description of the MOD16 ET model is instead procedural, to aid implementation.
 
 
-The MOD16 Algorithm
--------------------
-
-*As described by K. Arthur Endsley, September 2023*
+### The MOD16 Algorithm
 
 > The evaporation of water is like a commercial transaction in which a wet surface sells water vapour to its environment in exchange for heat...The environment can supply heat by solar radiation, by turbulent transfer from the atmosphere, or by conduction from the soil.
 
@@ -58,6 +86,7 @@ MOD16 is based on the Penman-Monteith (PM) approach to calculating evapotranspir
 Evapotranspiration (ET) is the sum of three components (three sources of latent heat): transpiration, evaporation from wet canopy surfaces, and evaporation from bare soil surfaces. The MOD16 algorithm calculates separate daytime (i.e., sun in the sky) and nighttime quantities for each of these components. We can understand the MOD16 algorithm as a series of steps to calculate each component wherein the input drivers are partitioned into daytime and nighttime values, starting with the calculation of the net radiation received by a surface.
 
 Throughout, unless otherwise specified: temperature is given in degrees Kelvin; pressure is given in Pascals (Pa); resistance is given in seconds per meter.
+
 
 ### Net Radiation Available
 
@@ -356,7 +385,7 @@ $$
 Note that, at nighttime, the denominator of $\lambda E_{\text{trans}}$ simplifies to $(s + \gamma)$, as canopy conductance is assumed to be zero. Also, if $F_{\text{wet}} = 1$, then $\lambda E_{\text{trans}} = 0$.
 
 
-## Total Daily ET and Potential ET
+### Total Daily ET and Potential ET
 
 Total daily evapotranspiration (ET) is the sum of the three components, canopy evaporation ($\lambda E_{\text{canopy}}$), bare soil evaporation ($\lambda E_{\text{soil}}$), and transpiration ($\lambda E_{\text{trans}}$):
 
@@ -381,8 +410,7 @@ Where $\alpha = 1.26$.
 Note that all of the ET values are given in energy units, [W m-2]. If you wish to obtain a water vapor mass flux (units: kg per square meter per second), then divide by the latent heat of vaporization ($\lambda$, units: J per kilogram). Because 1 kg of pure water covers a square meter to 1 mm thickness, the mass flux is also equivalent to millimeters per second.
 
 
-Free Parameters
----------------
+### Free Parameters
 
 | Parameter                  | Description                                                 |
 |:---------------------------|:------------------------------------------------------------|
@@ -397,6 +425,13 @@ Free Parameters
 | $r_{\text{BL,min}}$        | Minimum leaf boundary layer resistance (s m-1)              |
 | $r_{\text{BL,max}}$        | Maximum leaf boundary layer resistance (s m-1)              |
 | $\beta$                    | Soil moisture constraint on potential soil evaporation      |
+
+
+
+Acknowledgments
+---------------
+
+This software was developed under a grant from NASA (80NSSC22K0198).
 
 
 References

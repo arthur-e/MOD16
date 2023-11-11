@@ -28,6 +28,65 @@ A thinned posterior can be exported from the command line:
 
     python calibration.py export-bplut output.csv --burn=1000 --thin=10
 
+**The Cal-Val dataset** is a single HDF5 file that contains all the input
+variables necessary to drive MOD16 as well as the observed latent heat fluxes
+against which the model is calibrated. The HDF5 file specification is as
+follows, where the shape of multidimensional arrays is given in terms of
+T, the number of time steps (days); N, the number of tower sites; and P,
+a sub-grid of MODIS pixels surrounding a tower:
+
+    FLUXNET/
+      SEB               -- (T x N) Surface energy balance, from tower data
+      air_temperature   -- (T x N) Air temperatures reported at the tower
+      latent_heat       -- (T x N) Observed latent heat flux [W m-2]
+      site_id           -- (N) Unique identifier for each site, e.g., "US-BZS"
+      validation_mask   -- (T x N) Indicates what site-days are reserved for
+                            use in validating the model only
+    MERRA2/
+      LWGNT             -- (T x N) Net long-wave radiation, 24-hr mean [W m-2]
+      LWGNT_daytime     -- (T x N) ... for daytime hours only
+      LWGNT_nighttime   -- (T x N) ... for nighttime hours only
+      PS                -- (T x N) Surface air pressure [Pa]
+      PS_daytime        -- (T x N) ... for daytime hours only
+      PS_nighttime      -- (T x N) ... for nighttime hours only
+      QV10M             -- (T x N) Water vapor mixing ratio at 10-meter height
+      QV10M_daytime     -- (T x N) ... for daytime hours only
+      QV10M_nighttime   -- (T x N) ... for nighttime hours only
+      SWGDN             -- (T x N) Down-welling short-wave radiation [W m-2]
+      SWGDN_daytime     -- (T x N) ... for daytime hours only
+      SWGDN_nighttime   -- (T x N) ... for nighttime hours only
+      T10M              -- (T x N) Air temperature at 10-meter height [deg C]
+      T10M_daytime      -- (T x N) ... for daytime hours only
+      T10M_nighttime    -- (T x N) ... for nighttime hours only
+      Tmin              -- (T x N) Daily minimum air temperature at 10-m
+                            height [deg C]
+    MODIS/
+      MCD43GF_black_sky_sw_albedo
+          -- (T x N x P) Short-wave albedo under black-sky conditions,
+                from MODIS MCD43
+      MOD15A2HGF_LAI
+          -- (T x N x P) Leaf area index in scaled units (10 * [m3 m-3]) from
+                the MODIS MOD15A2HGF product
+      MOD15A2HGF_LAI_interp
+          -- (T x N x P) Daily interpolation of the MOD15A2HGF_LAI field
+      MOD15A2HGF_fPAR
+          -- (T x N x P) Fraction of photosynthetically active radiation
+                (fPAR), from the MODIS MOD15A2HGF product [%]
+      MOD15A2HGF_fPAR_interp
+          -- (T x N x P) Daily interpolation of MOD15A2HGF_fPAR_interp field
+
+    coordinates/
+      lng_lat       -- (2 x N) The longitude, latitude coordinates of each
+                        tower site in the FLUXNET/site_id dataset
+    state/
+      PFT           -- (N x P) The plant functional type (PFT) of each pixel
+      PFT_dominant  -- (N) The majority PFT at each tower
+      elevation_m   -- (N) The elevation in meters above sea level
+
+    time            -- (T x 3) The Year, Month, Day of each daily time step
+    weights         -- (N) A number between 0 and 1 used to down-weight
+                        tower sites because they may be too close to another
+
 TODO:
 
 - [ ] Filter out negative ET measurements from flux tower sites?
