@@ -251,7 +251,7 @@ Again 0.622 is the ratio of molecular weights, water vapor to dry air. **Note th
 
 Calculating evaporation from bare soil surfaces requires calculating both potential evaporation (PET) from the unsaturated soil surface and actual evaporation from the saturated soil surface. As with evaporation from wet canopy, we begin with calculating the resistances to water vapor fluxes.
 
-**The total aerodynamic resistance to water vapor,** $r_{\text{total}}$, is given in terms of pre-determined (calibrated) quantities including:
+**The total aerodynamic resistance to water vapor,** $r_{\text{total}}$, was shown by van de Griend & Owe (1994) to be the sum of surface resistance and the aerodynamic resistance to water vapor transport. In MOD16, we assume this sum is equivalent to the boundary-layer resistance, but that it is not constant; instead, there are biome-specific limits on this resistance and the role of VPD in driving changes in the stomatal aperture:
 
 - $r_{\text{BL,max}}$, the maximum boundary-layer resistance;
 - $r_{\text{BL,min}}$, the minimum boundary-layer resistance;
