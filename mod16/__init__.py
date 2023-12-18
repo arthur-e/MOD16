@@ -122,8 +122,8 @@ class MOD16(object):
         (m s-1 LAI-1);
     - `g_cuticular`: Leaf cuticular conductance (m s-1);
     - `csl`: Mean potential stomatal conductance per unit leaf area (m s-1);
-    - `rbl_min`: Minimum leaf boundary layer resistance (s m-1);
-    - `rbl_max`: Maximum leaf boundary layer resistance (s m-1);
+    - `rbl_min`: Minimum atmospheric boundary layer resistance (s m-1);
+    - `rbl_max`: Maximum atmospheric boundary layer resistance (s m-1);
     - `beta`: Factor in soil moisture constraint on potential soil
         evaporation, i.e., (VPD / beta); from Bouchet (1963)
 

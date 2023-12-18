@@ -422,8 +422,8 @@ Note that all of the ET values are given in energy units, [W m-2]. If you wish t
 | $g_{WV}$                   | Leaf cond. to evaporated water per unit LAI (m s-1 LAI-1)   |
 | $g_{\text{cuticular}}$     | Leaf cuticular conductance (m s-1)                          |
 | $C_L$                      | Mean potential stomatal cond. per unit leaf area (m s-1)    |
-| $r_{\text{BL,min}}$        | Minimum leaf boundary layer resistance (s m-1)              |
-| $r_{\text{BL,max}}$        | Maximum leaf boundary layer resistance (s m-1)              |
+| $r_{\text{BL,min}}$        | Minimum atmospheric boundary layer resistance (s m-1)       |
+| $r_{\text{BL,max}}$        | Maximum atmospheric boundary layer resistance (s m-1)       |
 | $\beta$                    | Soil moisture constraint on potential soil evaporation      |
 
 
