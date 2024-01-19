@@ -376,67 +376,74 @@ class CalibrationAPI(object):
         # NOTE: This value was hard-coded in the extant version of MOD16
         if np.isnan(params_dict['beta']):
             params_dict['beta'] = 250
-        model = MOD16(params_dict)
+
+        # Read in driver datasets from the HDF5 file
         with h5py.File(self.hdf5, 'r') as hdf:
             sites = hdf['FLUXNET/site_id'][:].tolist()
             if hasattr(sites[0], 'decode'):
                 sites = [s.decode('utf-8') for s in sites]
             # Get dominant PFT
-            pft_array = hdf['state/PFT'][:]
+            pft_array = hdf[self.config['data']['class_map']][:]
             pft_map = pft_dominant(pft_array, site_list = sites)
             # Blacklist various sites
             blacklist = self.config['data']['sites_blacklisted']
+
+            # Get a binary mask that indicates which tower-days should be used
+            #   to calibrate the current PFT class
             pft_mask = np.logical_and(pft_map == pft, ~np.in1d(sites, blacklist))
-            weights = hdf['weights'][pft_mask]
+            nsteps = hdf['time'].shape[0] # Number of time steps
+            if self.config['data']['classes_are_dynamic']:
+                assert pft_mask.ndim == 2 and pft_mask.shape[0] == nsteps,\
+                    'Configuration setting "classes_are_dynamic" implies the "class_map" should be (T x N x ...) but it is not'
+                weights = hdf['weights'][pft_mask]
+            else:
+                # If using static PFT classes, duplicate them along the time axis
+                pft_mask = pft_mask[np.newaxis,:]\
+                    .repeat(nsteps, axis = 0)
+                weights = hdf['weights'][:][np.newaxis,:]\
+                    .repeat(nsteps, axis = 0)[pft_mask]
+
             # Read in tower observations
-            tower_obs = hdf['FLUXNET/latent_heat'][:][:,pft_mask]
+            tower_obs = hdf['FLUXNET/latent_heat'][:][pft_mask]
             # Read the validation mask; mask out observations that are
             #   reserved for validation
             print('Masking out validation data...')
             mask = hdf['FLUXNET/validation_mask'][pft]
             tower_obs[mask] = np.nan
-            # Read start and end dates and mask data appropriately
-            timestamps = [
-                 f'{y}-{str(m).zfill(2)}-{str(d).zfill(2)}'
-                 for y, m, d in hdf['time'][:].tolist()
-            ]
-            start = self.config['data']['dates']['start']
-            end = self.config['data']['dates']['end']
-            t0 = timestamps.index(start)
-            t1 = timestamps.index(end) + 1
-            tower_obs = tower_obs[t0:t1]
+
             # Read in driver datasets
             print('Loading driver datasets...')
             group = self.config['data']['met_group']
-            lw_net_day = hdf[f'{group}/LWGNT_daytime'][:][t0:t1,pft_mask]
-            lw_net_night = hdf[f'{group}/LWGNT_nighttime'][:][t0:t1,pft_mask]
-            sw_albedo = hdf[self.config['data']['datasets']['albedo']][:][t0:t1,pft_mask]
+            lw_net_day = hdf[f'{group}/LWGNT_daytime'][:][pft_mask]
+            lw_net_night = hdf[f'{group}/LWGNT_nighttime'][:][pft_mask]
+            sw_albedo = hdf[self.config['data']['datasets']['albedo']][:][pft_mask]
             sw_albedo = np.nanmean(sw_albedo, axis = -1)
-            sw_rad_day = hdf[f'{group}/SWGDN_daytime'][:][t0:t1,pft_mask]
-            sw_rad_night = hdf[f'{group}/SWGDN_nighttime'][:][t0:t1,pft_mask]
-            temp_day = hdf[f'{group}/T10M_daytime'][:][t0:t1,pft_mask]
-            temp_night = hdf[f'{group}/T10M_nighttime'][:][t0:t1,pft_mask]
-            tmin = hdf[f'{group}/Tmin'][:][t0:t1,pft_mask]
+            sw_rad_day = hdf[f'{group}/SWGDN_daytime'][:][pft_mask]
+            sw_rad_night = hdf[f'{group}/SWGDN_nighttime'][:][pft_mask]
+            temp_day = hdf[f'{group}/T10M_daytime'][:][pft_mask]
+            temp_night = hdf[f'{group}/T10M_nighttime'][:][pft_mask]
+            tmin = hdf[f'{group}/Tmin'][:][pft_mask]
             # As long as the time series is balanced w.r.t. years (i.e., same
             #   number of records per year), the overall mean is the annual mean
-            temp_annual = hdf[f'{group}/T10M'][:][t0:t1,pft_mask].mean(axis = 0)
+            temp_annual = hdf[f'{group}/T10M'][:][pft_mask].mean(axis = 0)
             vpd_day = MOD16.vpd(
-                hdf[f'{group}/QV10M_daytime'][:][t0:t1,pft_mask],
-                hdf[f'{group}/PS_daytime'][:][t0:t1,pft_mask],
+                hdf[f'{group}/QV10M_daytime'][:][pft_mask],
+                hdf[f'{group}/PS_daytime'][:][pft_mask],
                 temp_day)
             vpd_night = MOD16.vpd(
-                hdf[f'{group}/QV10M_nighttime'][:][t0:t1,pft_mask],
-                hdf[f'{group}/PS_nighttime'][:][t0:t1,pft_mask],
+                hdf[f'{group}/QV10M_nighttime'][:][pft_mask],
+                hdf[f'{group}/PS_nighttime'][:][pft_mask],
                 temp_night)
-            pressure = hdf[f'{group}/PS'][:][t0:t1,pft_mask]
+            pressure = hdf[f'{group}/PS'][:][pft_mask]
             # Read in fPAR, LAI, and convert from (%) to [0,1]
             fpar = np.nanmean(
-                hdf[self.config['data']['datasets']['fPAR']][:][t0:t1,pft_mask], axis = -1)
+                hdf[self.config['data']['datasets']['fPAR']][:][pft_mask], axis = -1)
             lai = np.nanmean(
-                hdf[self.config['data']['datasets']['LAI']][:][t0:t1,pft_mask], axis = -1)
+                hdf[self.config['data']['datasets']['LAI']][:][pft_mask], axis = -1)
             # Convert fPAR from (%) to [0,1] and re-scale LAI; reshape fPAR and LAI
             fpar /= 100
             lai /= 10
+
         # Compile driver datasets
         drivers = [
             lw_net_day, lw_net_night, sw_rad_day, sw_rad_night, sw_albedo,
@@ -448,6 +455,7 @@ class CalibrationAPI(object):
         sampler = MOD16StochasticSampler(
             self.config, MOD16._et, params_dict, backend = backend,
             weights = weights)
+
         if plot_trace or ipdb:
             # This matplotlib setting prevents labels from overplotting
             pyplot.rcParams['figure.constrained_layout.use'] = True
@@ -458,6 +466,7 @@ class CalibrationAPI(object):
             az.plot_trace(trace, var_names = MOD16.required_parameters)
             pyplot.show()
             return
+
         tower_obs = self.clean_observed(tower_obs, drivers)
         # Get (informative) priors for just those parameters that have them
         with open(self.config['optimization']['prior'], 'r') as file:
