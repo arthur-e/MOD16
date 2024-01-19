@@ -86,7 +86,7 @@ a sub-grid of MODIS pixels surrounding a tower:
 '''
 
 import datetime
-import json
+import yaml
 import os
 import numpy as np
 import h5py
@@ -219,9 +219,9 @@ class CalibrationAPI(object):
         config_file = config
         if config_file is None:
             config_file = os.path.join(
-                MOD16_DIR, 'data/MOD16_calibration_config.json')
+                MOD16_DIR, 'data/MOD16_calibration_config.yaml')
         with open(config_file, 'r') as file:
-            self.config = json.load(file)
+            self.config = yaml.safe_load(file)
         self.hdf5 = self.config['data']['file']
 
     def _filter(self, raw: Sequence, size: int):
@@ -461,7 +461,7 @@ class CalibrationAPI(object):
         tower_obs = self.clean_observed(tower_obs, drivers)
         # Get (informative) priors for just those parameters that have them
         with open(self.config['optimization']['prior'], 'r') as file:
-            prior = json.load(file)
+            prior = yaml.safe_load(file)
         prior_params = list(filter(
             lambda p: p in prior.keys(), sampler.required_parameters['ET']))
         prior = dict([
