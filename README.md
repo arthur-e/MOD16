@@ -40,6 +40,8 @@ Tests can be run by:
 python tests/tests.py
 ```
 
+The MOD16 library depends on the [MOD17 library.](https://github.com/arthur-e/MOD17)
+
 
 Documentation
 -------------

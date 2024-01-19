@@ -10,6 +10,12 @@
     "dates": {
       "start": "2000-01-01",
       "end": "2019-12-31"
+    },
+    "met_group": "MERRA2",
+    "datasets": {
+      "albedo": "MODIS/MCD43GF_black_sky_sw_albedo",
+      "fPAR": "MODIS/MOD15A2HGF_fPAR_interp",
+      "LAI": "MODIS/MOD15A2HGF_LAI_interp"
     }
   },
   "optimization": {

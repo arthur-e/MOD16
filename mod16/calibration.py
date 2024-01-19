@@ -382,7 +382,8 @@ class CalibrationAPI(object):
             if hasattr(sites[0], 'decode'):
                 sites = [s.decode('utf-8') for s in sites]
             # Get dominant PFT
-            pft_map = pft_dominant(hdf['state/PFT'][:], site_list = sites)
+            pft_array = hdf['state/PFT'][:]
+            pft_map = pft_dominant(pft_array, site_list = sites)
             # Blacklist various sites
             blacklist = self.config['data']['sites_blacklisted']
             pft_mask = np.logical_and(pft_map == pft, ~np.in1d(sites, blacklist))
@@ -406,38 +407,33 @@ class CalibrationAPI(object):
             tower_obs = tower_obs[t0:t1]
             # Read in driver datasets
             print('Loading driver datasets...')
-            lw_net_day = hdf['MERRA2/LWGNT_daytime'][:][t0:t1,pft_mask]
-            lw_net_night = hdf['MERRA2/LWGNT_nighttime'][:][t0:t1,pft_mask]
-            if self.config['optimization']['platform'] == 'VIIRS':
-                sw_albedo = hdf['VIIRS/VNP43MA3_black_sky_sw_albedo'][:][t0:t1,pft_mask]
-            else:
-                sw_albedo = hdf['MODIS/MCD43GF_black_sky_sw_albedo'][:][t0:t1,pft_mask]
+            group = self.config['data']['met_group']
+            lw_net_day = hdf[f'{group}/LWGNT_daytime'][:][t0:t1,pft_mask]
+            lw_net_night = hdf[f'{group}/LWGNT_nighttime'][:][t0:t1,pft_mask]
+            sw_albedo = hdf[self.config['data']['datasets']['albedo']][:][t0:t1,pft_mask]
             sw_albedo = np.nanmean(sw_albedo, axis = -1)
-            sw_rad_day = hdf['MERRA2/SWGDN_daytime'][:][t0:t1,pft_mask]
-            sw_rad_night = hdf['MERRA2/SWGDN_nighttime'][:][t0:t1,pft_mask]
-            temp_day = hdf['MERRA2/T10M_daytime'][:][t0:t1,pft_mask]
-            temp_night = hdf['MERRA2/T10M_nighttime'][:][t0:t1,pft_mask]
-            tmin = hdf['MERRA2/Tmin'][:][t0:t1,pft_mask]
+            sw_rad_day = hdf[f'{group}/SWGDN_daytime'][:][t0:t1,pft_mask]
+            sw_rad_night = hdf[f'{group}/SWGDN_nighttime'][:][t0:t1,pft_mask]
+            temp_day = hdf[f'{group}/T10M_daytime'][:][t0:t1,pft_mask]
+            temp_night = hdf[f'{group}/T10M_nighttime'][:][t0:t1,pft_mask]
+            tmin = hdf[f'{group}/Tmin'][:][t0:t1,pft_mask]
             # As long as the time series is balanced w.r.t. years (i.e., same
             #   number of records per year), the overall mean is the annual mean
-            temp_annual = hdf['MERRA2/T10M'][:][t0:t1,pft_mask].mean(axis = 0)
+            temp_annual = hdf[f'{group}/T10M'][:][t0:t1,pft_mask].mean(axis = 0)
             vpd_day = MOD16.vpd(
-                hdf['MERRA2/QV10M_daytime'][:][t0:t1,pft_mask],
-                hdf['MERRA2/PS_daytime'][:][t0:t1,pft_mask],
+                hdf[f'{group}/QV10M_daytime'][:][t0:t1,pft_mask],
+                hdf[f'{group}/PS_daytime'][:][t0:t1,pft_mask],
                 temp_day)
             vpd_night = MOD16.vpd(
-                hdf['MERRA2/QV10M_nighttime'][:][t0:t1,pft_mask],
-                hdf['MERRA2/PS_nighttime'][:][t0:t1,pft_mask],
+                hdf[f'{group}/QV10M_nighttime'][:][t0:t1,pft_mask],
+                hdf[f'{group}/PS_nighttime'][:][t0:t1,pft_mask],
                 temp_night)
-            pressure = hdf['MERRA2/PS'][:][t0:t1,pft_mask]
+            pressure = hdf[f'{group}/PS'][:][t0:t1,pft_mask]
             # Read in fPAR, LAI, and convert from (%) to [0,1]
-            prefix = 'MODIS/MOD'
-            if self.config['optimization']['platform'] == 'VIIRS':
-                prefix = 'VIIRS/VNP'
             fpar = np.nanmean(
-                hdf[f'{prefix}15A2HGF_fPAR_interp'][:][t0:t1,pft_mask], axis = -1)
+                hdf[self.config['data']['datasets']['fPAR']][:][t0:t1,pft_mask], axis = -1)
             lai = np.nanmean(
-                hdf[f'{prefix}15A2HGF_LAI_interp'][:][t0:t1,pft_mask], axis = -1)
+                hdf[self.config['data']['datasets']['LAI']][:][t0:t1,pft_mask], axis = -1)
             # Convert fPAR from (%) to [0,1] and re-scale LAI; reshape fPAR and LAI
             fpar /= 100
             lai /= 10
