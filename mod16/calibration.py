@@ -132,15 +132,19 @@ class MOD16StochasticSampler(StochasticSampler):
             g_cuticular = pm.LogNormal(
                 'g_cuticular', **self.prior['g_cuticular'])
             csl =         pm.LogNormal('csl', **self.prior['csl'])
-            rbl_min =     pm.Triangular('rbl_min', **self.prior['rbl_min'])
-            rbl_max =     pm.Triangular('rbl_max', **self.prior['rbl_max'])
-            beta =        pm.Triangular('beta', **self.prior['beta'])
+            rbl_min =     self.params['rbl_min'] #pm.Triangular('rbl_min', **self.prior['rbl_min'])
+            rbl_max =     self.params['rbl_max'] #pm.Triangular('rbl_max', **self.prior['rbl_max'])
+            beta =        self.params['beta'] #pm.Triangular('beta', **self.prior['beta'])
             # (Stochstic) Priors for unknown model parameters
             # Convert model parameters to a tensor vector
             params_list = [
                 tmin_close, tmin_open, vpd_open, vpd_close, gl_sh, gl_wv,
                 g_cuticular, csl, rbl_min, rbl_max, beta
             ]
+            
+            import ipdb
+            ipdb.set_trace()
+            
             params = at.as_tensor_variable(params_list)
             # Key step: Define the log-likelihood as an added potential
             pm.Potential('likelihood', log_likelihood(params))
