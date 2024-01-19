@@ -91,7 +91,7 @@ import os
 import numpy as np
 import h5py
 import pymc as pm
-import aesara.tensor as at
+import pytensor.tensor as pt
 import arviz as az
 import mod16
 from multiprocessing import get_context, set_start_method
@@ -152,6 +152,17 @@ class MOD16StochasticSampler(StochasticSampler):
         Creates a new ET model based on the prior distribution. Model can be
         re-compiled multiple times, e.g., for cross validation.
 
+        There are two attributes that are set on the sampler when it is
+        initialized that could be helpful here:
+
+            self.priors
+            self.bounds
+
+        `self.priors` is a dict with a key for each parameter that has
+        informative priors. For parameters with a non-informative (Uniform)
+        prior, `self.bounds` is a similar dict (with a key for each parameter)
+        that describes the lower and upper bounds of the Uniform prior.
+
         Parameters
         ----------
         observed : Sequence
@@ -178,21 +189,21 @@ class MOD16StochasticSampler(StochasticSampler):
             tmin_open = self.params['tmin_open']
             vpd_open = self.params['vpd_open']
             vpd_close = self.params['vpd_close']
-            gl_sh =       pm.Triangular('gl_sh', **self.prior['gl_sh'])
-            gl_wv =       pm.Triangular('gl_wv', **self.prior['gl_wv'])
+            gl_sh =       pm.LogNormal('gl_sh', **self.prior['gl_sh'])
+            gl_wv =       pm.LogNormal('gl_wv', **self.prior['gl_wv'])
             g_cuticular = pm.LogNormal(
                 'g_cuticular', **self.prior['g_cuticular'])
             csl =         pm.LogNormal('csl', **self.prior['csl'])
-            rbl_min =     pm.Triangular('rbl_min', **self.prior['rbl_min'])
-            rbl_max =     pm.Triangular('rbl_max', **self.prior['rbl_max'])
-            beta =        pm.Triangular('beta', **self.prior['beta'])
+            rbl_min =     pm.Uniform('rbl_min', **self.bounds['rbl_min'])
+            rbl_max =     pm.Uniform('rbl_max', **self.bounds['rbl_max'])
+            beta =        pm.Uniform('beta', **self.bounds['beta'])
             # (Stochstic) Priors for unknown model parameters
             # Convert model parameters to a tensor vector
             params_list = [
                 tmin_close, tmin_open, vpd_open, vpd_close, gl_sh, gl_wv,
                 g_cuticular, csl, rbl_min, rbl_max, beta
             ]
-            params = at.as_tensor_variable(params_list)
+            params = pt.as_tensor_variable(params_list)
             # Key step: Define the log-likelihood as an added potential
             pm.Potential('likelihood', log_likelihood(params))
         return model
