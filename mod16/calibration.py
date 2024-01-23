@@ -4,11 +4,6 @@ flux tower network. The model calibration is based on Markov-Chain Monte
 Carlo (MCMC). Example use:
 
     python calibration.py tune --pft=1
-    python calibration.py tune --pft=1 --config=MOD16_calibration_config.json
-
-The default configuration file provided in the repository,
-`mod16/data/MOD16_calibration_config.json`, should be copied and modified to
-suit your needs.
 
 The general calibration protocol used here involves:
 
@@ -32,15 +27,71 @@ eliminate autocorrelation, e.g., in Python:
 A thinned posterior can be exported from the command line:
 
     python calibration.py export-bplut output.csv --burn=1000 --thin=10
+
+**The Cal-Val dataset** is a single HDF5 file that contains all the input
+variables necessary to drive MOD16 as well as the observed latent heat fluxes
+against which the model is calibrated. The HDF5 file specification is as
+follows, where the shape of multidimensional arrays is given in terms of
+T, the number of time steps (days); N, the number of tower sites; and P,
+a sub-grid of MODIS pixels surrounding a tower:
+
+
+    FLUXNET/
+      SEB               -- (T x N) Surface energy balance, from tower data
+      air_temperature   -- (T x N) Air temperatures reported at the tower
+      latent_heat       -- (T x N) Observed latent heat flux [W m-2]
+      site_id           -- (N) Unique identifier for each site, e.g., "US-BZS"
+      validation_mask   -- (T x N) Indicates what site-days are reserved
+
+    MERRA2/
+      LWGNT             -- (T x N) Net long-wave radiation, 24-hr mean [W m-2]
+      LWGNT_daytime     -- (T x N) ... for daytime hours only
+      LWGNT_nighttime   -- (T x N) ... for nighttime hours only
+      PS                -- (T x N) Surface air pressure [Pa]
+      PS_daytime        -- (T x N) ... for daytime hours only
+      PS_nighttime      -- (T x N) ... for nighttime hours only
+      QV10M             -- (T x N) Water vapor mixing ratio at 10-meter height
+      QV10M_daytime     -- (T x N) ... for daytime hours only
+      QV10M_nighttime   -- (T x N) ... for nighttime hours only
+      SWGDN             -- (T x N) Down-welling short-wave radiation [W m-2]
+      SWGDN_daytime     -- (T x N) ... for daytime hours only
+      SWGDN_nighttime   -- (T x N) ... for nighttime hours only
+      T10M              -- (T x N) Air temperature at 10-meter height [deg C]
+      T10M_daytime      -- (T x N) ... for daytime hours only
+      T10M_nighttime    -- (T x N) ... for nighttime hours only
+      Tmin              -- (T x N) Daily minimum air temperature [deg C]
+
+    MODIS/
+      MCD43GF_black_sky_sw_albedo
+          -- (T x N x P) Short-wave albedo under black-sky conditions
+      MOD15A2HGF_LAI
+          -- (T x N x P) Leaf area index in scaled units (10 * [m3 m-3])
+      MOD15A2HGF_LAI_interp
+          -- (T x N x P) Daily interpolation of the MOD15A2HGF_LAI field
+      MOD15A2HGF_fPAR
+          -- (T x N x P) Fraction of photosynthetically active radiation [%]
+      MOD15A2HGF_fPAR_interp
+          -- (T x N x P) Daily interpolation of MOD15A2HGF_fPAR_interp field
+
+    coordinates/
+      lng_lat       -- (2 x N) Longitude, latitude coordinates of each tower
+
+    state/
+      PFT           -- (N x P) The plant functional type (PFT) of each pixel
+      PFT_dominant  -- (N) The majority PFT at each tower
+      elevation_m   -- (N) The elevation in meters above sea level
+
+    time            -- (T x 3) The Year, Month, Day of each daily time step
+    weights         -- (N) A number between 0 and 1 used to down-weight towers
 '''
 
 import datetime
-import json
+import yaml
 import os
 import numpy as np
 import h5py
 import pymc as pm
-import aesara.tensor as at
+import pytensor.tensor as pt
 import arviz as az
 import mod16
 from multiprocessing import get_context, set_start_method
@@ -101,6 +152,17 @@ class MOD16StochasticSampler(StochasticSampler):
         Creates a new ET model based on the prior distribution. Model can be
         re-compiled multiple times, e.g., for cross validation.
 
+        There are two attributes that are set on the sampler when it is
+        initialized that could be helpful here:
+
+            self.priors
+            self.bounds
+
+        `self.priors` is a dict with a key for each parameter that has
+        informative priors. For parameters with a non-informative (Uniform)
+        prior, `self.bounds` is a similar dict (with a key for each parameter)
+        that describes the lower and upper bounds of the Uniform prior.
+
         Parameters
         ----------
         observed : Sequence
@@ -127,21 +189,21 @@ class MOD16StochasticSampler(StochasticSampler):
             tmin_open = self.params['tmin_open']
             vpd_open = self.params['vpd_open']
             vpd_close = self.params['vpd_close']
-            gl_sh =       pm.Triangular('gl_sh', **self.prior['gl_sh'])
-            gl_wv =       pm.Triangular('gl_wv', **self.prior['gl_wv'])
+            gl_sh =       pm.LogNormal('gl_sh', **self.prior['gl_sh'])
+            gl_wv =       pm.LogNormal('gl_wv', **self.prior['gl_wv'])
             g_cuticular = pm.LogNormal(
                 'g_cuticular', **self.prior['g_cuticular'])
             csl =         pm.LogNormal('csl', **self.prior['csl'])
-            rbl_min =     pm.Triangular('rbl_min', **self.prior['rbl_min'])
-            rbl_max =     pm.Triangular('rbl_max', **self.prior['rbl_max'])
-            beta =        pm.Triangular('beta', **self.prior['beta'])
+            rbl_min =     pm.Uniform('rbl_min', **self.bounds['rbl_min'])
+            rbl_max =     pm.Uniform('rbl_max', **self.bounds['rbl_max'])
+            beta =        pm.Uniform('beta', **self.bounds['beta'])
             # (Stochstic) Priors for unknown model parameters
             # Convert model parameters to a tensor vector
             params_list = [
                 tmin_close, tmin_open, vpd_open, vpd_close, gl_sh, gl_wv,
                 g_cuticular, csl, rbl_min, rbl_max, beta
             ]
-            params = at.as_tensor_variable(params_list)
+            params = pt.as_tensor_variable(params_list)
             # Key step: Define the log-likelihood as an added potential
             pm.Potential('likelihood', log_likelihood(params))
         return model
@@ -157,9 +219,9 @@ class CalibrationAPI(object):
         config_file = config
         if config_file is None:
             config_file = os.path.join(
-                MOD16_DIR, 'data/MOD16_calibration_config.json')
+                MOD16_DIR, 'data/MOD16_calibration_config.yaml')
         with open(config_file, 'r') as file:
-            self.config = json.load(file)
+            self.config = yaml.safe_load(file)
         self.hdf5 = self.config['data']['file']
 
     def _filter(self, raw: Sequence, size: int):
@@ -314,71 +376,74 @@ class CalibrationAPI(object):
         # NOTE: This value was hard-coded in the extant version of MOD16
         if np.isnan(params_dict['beta']):
             params_dict['beta'] = 250
-        model = MOD16(params_dict)
+
+        # Read in driver datasets from the HDF5 file
         with h5py.File(self.hdf5, 'r') as hdf:
             sites = hdf['FLUXNET/site_id'][:].tolist()
             if hasattr(sites[0], 'decode'):
                 sites = [s.decode('utf-8') for s in sites]
             # Get dominant PFT
-            pft_map = pft_dominant(hdf['state/PFT'][:], site_list = sites)
+            pft_array = hdf[self.config['data']['class_map']][:]
+            pft_map = pft_dominant(pft_array, site_list = sites)
             # Blacklist various sites
             blacklist = self.config['data']['sites_blacklisted']
+
+            # Get a binary mask that indicates which tower-days should be used
+            #   to calibrate the current PFT class
             pft_mask = np.logical_and(pft_map == pft, ~np.in1d(sites, blacklist))
-            weights = hdf['weights'][pft_mask]
+            nsteps = hdf['time'].shape[0] # Number of time steps
+            if self.config['data']['classes_are_dynamic']:
+                assert pft_mask.ndim == 2 and pft_mask.shape[0] == nsteps,\
+                    'Configuration setting "classes_are_dynamic" implies the "class_map" should be (T x N x ...) but it is not'
+                weights = hdf['weights'][pft_mask]
+            else:
+                # If using static PFT classes, duplicate them along the time axis
+                pft_mask = pft_mask[np.newaxis,:]\
+                    .repeat(nsteps, axis = 0)
+                weights = hdf['weights'][:][np.newaxis,:]\
+                    .repeat(nsteps, axis = 0)[pft_mask]
+
             # Read in tower observations
-            tower_obs = hdf['FLUXNET/latent_heat'][:][:,pft_mask]
+            tower_obs = hdf['FLUXNET/latent_heat'][:][pft_mask]
             # Read the validation mask; mask out observations that are
             #   reserved for validation
             print('Masking out validation data...')
             mask = hdf['FLUXNET/validation_mask'][pft]
             tower_obs[mask] = np.nan
-            # Read start and end dates and mask data appropriately
-            timestamps = [
-                 f'{y}-{str(m).zfill(2)}-{str(d).zfill(2)}'
-                 for y, m, d in hdf['time'][:].tolist()
-            ]
-            start = self.config['data']['dates']['start']
-            end = self.config['data']['dates']['end']
-            t0 = timestamps.index(start)
-            t1 = timestamps.index(end) + 1
-            tower_obs = tower_obs[t0:t1]
+
             # Read in driver datasets
             print('Loading driver datasets...')
-            lw_net_day = hdf['MERRA2/LWGNT_daytime'][:][t0:t1,pft_mask]
-            lw_net_night = hdf['MERRA2/LWGNT_nighttime'][:][t0:t1,pft_mask]
-            if self.config['optimization']['platform'] == 'VIIRS':
-                sw_albedo = hdf['VIIRS/VNP43MA3_black_sky_sw_albedo'][:][t0:t1,pft_mask]
-            else:
-                sw_albedo = hdf['MODIS/MCD43GF_black_sky_sw_albedo'][:][t0:t1,pft_mask]
+            group = self.config['data']['met_group']
+            lw_net_day = hdf[f'{group}/LWGNT_daytime'][:][pft_mask]
+            lw_net_night = hdf[f'{group}/LWGNT_nighttime'][:][pft_mask]
+            sw_albedo = hdf[self.config['data']['datasets']['albedo']][:][pft_mask]
             sw_albedo = np.nanmean(sw_albedo, axis = -1)
-            sw_rad_day = hdf['MERRA2/SWGDN_daytime'][:][t0:t1,pft_mask]
-            sw_rad_night = hdf['MERRA2/SWGDN_nighttime'][:][t0:t1,pft_mask]
-            temp_day = hdf['MERRA2/T10M_daytime'][:][t0:t1,pft_mask]
-            temp_night = hdf['MERRA2/T10M_nighttime'][:][t0:t1,pft_mask]
-            tmin = hdf['MERRA2/Tmin'][:][t0:t1,pft_mask]
+            sw_rad_day = hdf[f'{group}/SWGDN_daytime'][:][pft_mask]
+            sw_rad_night = hdf[f'{group}/SWGDN_nighttime'][:][pft_mask]
+            temp_day = hdf[f'{group}/T10M_daytime'][:][pft_mask]
+            temp_night = hdf[f'{group}/T10M_nighttime'][:][pft_mask]
+            tmin = hdf[f'{group}/Tmin'][:][pft_mask]
             # As long as the time series is balanced w.r.t. years (i.e., same
             #   number of records per year), the overall mean is the annual mean
-            temp_annual = hdf['MERRA2/T10M'][:][t0:t1,pft_mask].mean(axis = 0)
+            temp_annual = hdf[f'{group}/T10M'][:][pft_mask].mean(axis = 0)
             vpd_day = MOD16.vpd(
-                hdf['MERRA2/QV10M_daytime'][:][t0:t1,pft_mask],
-                hdf['MERRA2/PS_daytime'][:][t0:t1,pft_mask],
+                hdf[f'{group}/QV10M_daytime'][:][pft_mask],
+                hdf[f'{group}/PS_daytime'][:][pft_mask],
                 temp_day)
             vpd_night = MOD16.vpd(
-                hdf['MERRA2/QV10M_nighttime'][:][t0:t1,pft_mask],
-                hdf['MERRA2/PS_nighttime'][:][t0:t1,pft_mask],
+                hdf[f'{group}/QV10M_nighttime'][:][pft_mask],
+                hdf[f'{group}/PS_nighttime'][:][pft_mask],
                 temp_night)
-            pressure = hdf['MERRA2/PS'][:][t0:t1,pft_mask]
+            pressure = hdf[f'{group}/PS'][:][pft_mask]
             # Read in fPAR, LAI, and convert from (%) to [0,1]
-            prefix = 'MODIS/MOD'
-            if self.config['optimization']['platform'] == 'VIIRS':
-                prefix = 'VIIRS/VNP'
             fpar = np.nanmean(
-                hdf[f'{prefix}15A2HGF_fPAR_interp'][:][t0:t1,pft_mask], axis = -1)
+                hdf[self.config['data']['datasets']['fPAR']][:][pft_mask], axis = -1)
             lai = np.nanmean(
-                hdf[f'{prefix}15A2HGF_LAI_interp'][:][t0:t1,pft_mask], axis = -1)
+                hdf[self.config['data']['datasets']['LAI']][:][pft_mask], axis = -1)
             # Convert fPAR from (%) to [0,1] and re-scale LAI; reshape fPAR and LAI
             fpar /= 100
             lai /= 10
+
         # Compile driver datasets
         drivers = [
             lw_net_day, lw_net_night, sw_rad_day, sw_rad_night, sw_albedo,
@@ -390,6 +455,7 @@ class CalibrationAPI(object):
         sampler = MOD16StochasticSampler(
             self.config, MOD16._et, params_dict, backend = backend,
             weights = weights)
+
         if plot_trace or ipdb:
             # This matplotlib setting prevents labels from overplotting
             pyplot.rcParams['figure.constrained_layout.use'] = True
@@ -400,10 +466,11 @@ class CalibrationAPI(object):
             az.plot_trace(trace, var_names = MOD16.required_parameters)
             pyplot.show()
             return
+
         tower_obs = self.clean_observed(tower_obs, drivers)
         # Get (informative) priors for just those parameters that have them
         with open(self.config['optimization']['prior'], 'r') as file:
-            prior = json.load(file)
+            prior = yaml.safe_load(file)
         prior_params = list(filter(
             lambda p: p in prior.keys(), sampler.required_parameters['ET']))
         prior = dict([

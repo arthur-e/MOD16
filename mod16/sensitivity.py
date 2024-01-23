@@ -20,14 +20,14 @@ with open(os.path.join(MOD16_DIR, 'data/MOD16_calibration_config.json'), 'r') as
 BOUNDS = {
     "tmin_close": [-35, 0],
     "tmin_open": [0, 25],
-    "vpd_open": [0, 1500],
-    "vpd_close": [1500, 8000],
-    "gl_sh": [0.01, 0.12],
-    "gl_wv": [0.01, 0.12],
-    "g_cuticular": [1e-6, 1e-3],
-    "csl": [0.001, 0.1],
-    "rbl_min": [10, 80],
-    "rbl_max": [80, 150],
+    "vpd_open": [0, 1000],
+    "vpd_close": [1000, 8000],
+    "gl_sh": [0.001, 0.2],
+    "gl_wv": [0.001, 0.2],
+    "g_cuticular": [1e-7, 1e-2],
+    "csl": [0.0001, 0.1],
+    "rbl_min": [10, 99],
+    "rbl_max": [100, 1000],
     "beta": [0, 1000]
 }
 
