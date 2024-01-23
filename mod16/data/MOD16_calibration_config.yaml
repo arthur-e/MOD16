@@ -1,0 +1,41 @@
+---
+BPLUT:
+  ET: "/usr/local/dev/MOD16/mod16/data/MOD16_BPLUT_CX.X_05deg_MCD43B_Albedo_MERRA.csv"
+data:
+  file: "/anx_lagr4/MODIS_VIIRS/calibration/VIIRS_MOD16_tower_site_latent_heat_and_drivers_v4.h5"
+  class_map: state/PFT # HDF5 field name for PFT map
+  # If a time-varying PFT map is used, this should be true and the corresponding
+  #   "class_map" array (see above) should be a (T x N) array
+  classes_are_dynamic: false
+  target_observable: FLUXNET/latent_heat # HDF5 field name
+  sites_blacklisted:
+  - US-HRA
+  - US-A10
+  # The name of the HDF5 group that contains surface meteorology data
+  met_group: MERRA2
+  # The name of the HDF5 datasets for albedo, fPAR, LAI, etc.
+  datasets:
+    albedo: MODIS/MCD43GF_black_sky_sw_albedo
+    fPAR: MODIS/MOD15A2HGF_fPAR_interp
+    LAI: MODIS/MOD15A2HGF_LAI_interp
+optimization:
+  platform: MODIS
+  backend_template: "/home/arthur.endsley/20231218_MOD16_%s_calibration_PFT%d.nc4"
+  prior: "/usr/local/dev/MOD16/mod16/data/MOD16_BPLUT_prior_20231218.yaml"
+  chains: 3
+  draws: 1000
+  tune: scaling
+  scaling: 0.001
+  objective: RMSD
+  bounds: # These are only use if a Uniform prior is specified
+    tmin_close: [-35, 0]
+    tmin_open: [0, 25]
+    vpd_open: [0, 1000]
+    vpd_close: [1000, 8000]
+    gl_sh: [0.001, 0.2]
+    gl_wv: [0.001, 0.2]
+    g_cuticular: [1.0e-7, 0.01]
+    csl: [0.0001, 0.1]
+    rbl_min: [10, 99]
+    rbl_max: [100, 1000]
+    beta: [0, 1000]

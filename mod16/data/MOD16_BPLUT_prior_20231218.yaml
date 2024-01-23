@@ -1,0 +1,17 @@
+---
+description: g_cuticular and csl priors based on TRY database observations; all others
+  on Zhang et al. (2019, Water Resources Research, Table 3) so-called optimal parameters
+# NOTE that the tilde ~ below is a NULL; it should be used in the first
+#   position (where Python starts counting, at 0) when there is no PFT 0
+gl_sh:
+  mu: [~, -2.41, -4.25, -2.41, -4.25, -3.45, -3.91, -3.91, -3.45, -3.45, -3.22, ~, -3.45]
+  sigma: [~, 0.1, 0.1, 0.1, 0.1, 0.71, 0.1, 0.1, 0.71, 0.71, 0.1, ~, 0.71]
+gl_wv:
+  mu: [~, -2.41, -4.25, -2.41, -4.25, -3.45, -3.91, -3.91, -3.45, -3.45, -3.22, ~, -3.45]
+  sigma: [~, 0.1, 0.1, 0.1, 0.1, 0.71, 0.1, 0.1, 0.71, 0.71, 0.1, ~, 0.71]
+g_cuticular:
+  mu: [~, -10.2, -10.75, -10.12, -10.08, -10.38, -10.42, -10.42, -10.19, -10.19, -9.57, ~, -8.79]
+  sigma: [~, 1.02, 1.14, 0.89, 0.82, 1.05, 1.04, 1.04, 1.44, 1.44, 1.26, ~, 0.26]
+csl:
+  mu: [~, -5.5, -5.5, -5.5, -5.5, -5.5, -5.5, -5.5, -5.5, -5.5, -5.11, ~, -4.29]
+  sigma: [~, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.89, ~, 0.65]
