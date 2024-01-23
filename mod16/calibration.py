@@ -3,7 +3,7 @@ Calibration of MOD16 against a representative, global eddy covariance (EC)
 flux tower network. The model calibration is based on Markov-Chain Monte
 Carlo (MCMC). Example use:
 
-    python calibration.py tune --pft=1
+    python calibration.py tune --pft=1 --config=<filename>
 
 The general calibration protocol used here involves:
 
@@ -204,6 +204,8 @@ class MOD16StochasticSampler(StochasticSampler):
                 tmin_close, tmin_open, vpd_open, vpd_close, gl_sh, gl_wv,
                 g_cuticular, csl, rbl_min, rbl_max, beta
             ]
+            
+            
             params = pt.as_tensor_variable(params_list)
 
             # Key step: Define the log-likelihood as an added potential
@@ -386,18 +388,32 @@ class CalibrationAPI(object):
                 sites = [s.decode('utf-8') for s in sites]
             # Get dominant PFT
             pft_array = hdf[self.config['data']['class_map']][:]
-            pft_map = pft_dominant(pft_array, site_list = sites)
+            
+            
+            # pft_map = pft_dominant(pft_array, site_list = sites)
+            pft_map = pft_array.copy()
+            
+            
             # Blacklist various sites
             blacklist = self.config['data']['sites_blacklisted']
 
             # Get a binary mask that indicates which tower-days should be used
             #   to calibrate the current PFT class
+            
+            #import ipdb
+            #ipdb.set_trace()
+            
             pft_mask = np.logical_and(pft_map == pft, ~np.in1d(sites, blacklist))
             nsteps = hdf['time'].shape[0] # Number of time steps
             if self.config['data']['classes_are_dynamic']:
                 assert pft_mask.ndim == 2 and pft_mask.shape[0] == nsteps,\
                     'Configuration setting "classes_are_dynamic" implies the "class_map" should be (T x N x ...) but it is not'
-                weights = hdf['weights'][pft_mask]
+                
+                
+                #weights = hdf['weights'][pft_mask]
+                weights = hdf['weights'][:].swapaxes(0,1).repeat(7670, axis=0)[pft_mask]
+                
+                
             else:
                 # If using static PFT classes, duplicate them along the time axis
                 pft_mask = pft_mask[np.newaxis,:]\
