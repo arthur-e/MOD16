@@ -382,26 +382,45 @@ class CalibrationAPI(object):
             sites = hdf['FLUXNET/site_id'][:].tolist()
             if hasattr(sites[0], 'decode'):
                 sites = [s.decode('utf-8') for s in sites]
-            # Get dominant PFT
-            pft_array = hdf[self.config['data']['class_map']][:]
-            pft_map = pft_dominant(pft_array, site_list = sites)
-            # Blacklist various sites
+            # In case some tower sites should not be used
             blacklist = self.config['data']['sites_blacklisted']
+            # Get dominant PFT across a potentially heterogenous sub-grid,
+            #   centered on the eddy covariance flux tower, UNLESS we have a
+            #   dynamic land-cover map, in which case it is assumed
+            #   (required) that there is only one PFT value per site
+            pft_array = hdf[self.config['data']['class_map']][:]
+            if self.config['data']['classes_are_dynamic']:
+                pft_map = pft_array.copy()
+                # Also, ensure the blacklist matches the shape of this mask;
+                #   i.e., blacklisted sites should NEVER be used
+                if blacklist is not None:
+                    if blacklist.ndim == 1:
+                        blacklist[None,:].repeat(pft_map.shape[0], axis = 0)
+            else:
+                # For a static PFT map, sub-site land-cover heterogeneity is
+                #   allowed; get the dominant (single) PFT at each site
+                pft_map = pft_dominant(pft_array, site_list = sites)
+                # But do create a (T x N) selection mask
+                pft_mask = pft_mask[np.newaxis,:].repeat(nsteps, axis = 0)
 
             # Get a binary mask that indicates which tower-days should be used
             #   to calibrate the current PFT class
-            pft_mask = np.logical_and(pft_map == pft, ~np.in1d(sites, blacklist))
+            if blacklist is not None:
+                pft_mask = np.logical_and(
+                    pft_map == pft, ~np.in1d(sites, blacklist))
+            else:
+                pft_mask = pft_map == pft
             nsteps = hdf['time'].shape[0] # Number of time steps
             if self.config['data']['classes_are_dynamic']:
                 assert pft_mask.ndim == 2 and pft_mask.shape[0] == nsteps,\
-                    'Configuration setting "classes_are_dynamic" implies the "class_map" should be (T x N x ...) but it is not'
-                weights = hdf['weights'][pft_mask]
-            else:
-                # If using static PFT classes, duplicate them along the time axis
-                pft_mask = pft_mask[np.newaxis,:]\
-                    .repeat(nsteps, axis = 0)
-                weights = hdf['weights'][:][np.newaxis,:]\
-                    .repeat(nsteps, axis = 0)[pft_mask]
+                    'Configuration setting "classes_are_dynamic" implies the "class_map" should be (T x N) but it is not'
+
+            # Get tower weights, for when towers are too close together
+            weights = hdf['weights']
+            # If only a single value is given for each site, repeat the weight
+            #   along the time axis
+            if weights.ndim == 1:
+                weights = weights[None,:].repeat(nsteps, axis = 0)[pft_mask]
 
             # Read in tower observations
             tower_obs = hdf['FLUXNET/latent_heat'][:][pft_mask]
