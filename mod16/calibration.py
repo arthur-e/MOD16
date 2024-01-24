@@ -26,7 +26,7 @@ eliminate autocorrelation, e.g., in Python:
 
 A thinned posterior can be exported from the command line:
 
-    python calibration.py export-bplut output.csv --burn=1000 --thin=10
+    python calibration.py export-posterior output.csv --burn=1000 --thin=10
 
 **The Cal-Val dataset** is a single HDF5 file that contains all the input
 variables necessary to drive MOD16 as well as the observed latent heat fluxes
@@ -39,11 +39,11 @@ a sub-grid of MODIS pixels surrounding a tower:
     FLUXNET/
       SEB               -- (T x N) Surface energy balance, from tower data
       air_temperature   -- (T x N) Air temperatures reported at the tower
-      latent_heat       -- (T x N) Observed latent heat flux [W m-2]
+      *latent_heat      -- (T x N) Observed latent heat flux [W m-2]
       site_id           -- (N) Unique identifier for each site, e.g., "US-BZS"
       validation_mask   -- (T x N) Indicates what site-days are reserved
 
-    MERRA2/
+    *MERRA2/
       LWGNT             -- (T x N) Net long-wave radiation, 24-hr mean [W m-2]
       LWGNT_daytime     -- (T x N) ... for daytime hours only
       LWGNT_nighttime   -- (T x N) ... for nighttime hours only
@@ -61,28 +61,28 @@ a sub-grid of MODIS pixels surrounding a tower:
       T10M_nighttime    -- (T x N) ... for nighttime hours only
       Tmin              -- (T x N) Daily minimum air temperature [deg C]
 
-    MODIS/
-      MCD43GF_black_sky_sw_albedo
+    *MODIS/
+      *MCD43GF_black_sky_sw_albedo
           -- (T x N x P) Short-wave albedo under black-sky conditions
-      MOD15A2HGF_LAI
+      *MOD15A2HGF_LAI
           -- (T x N x P) Leaf area index in scaled units (10 * [m3 m-3])
-      MOD15A2HGF_LAI_interp
-          -- (T x N x P) Daily interpolation of the MOD15A2HGF_LAI field
-      MOD15A2HGF_fPAR
+      *MOD15A2HGF_fPAR
           -- (T x N x P) Fraction of photosynthetically active radiation [%]
-      MOD15A2HGF_fPAR_interp
-          -- (T x N x P) Daily interpolation of MOD15A2HGF_fPAR_interp field
 
     coordinates/
       lng_lat       -- (2 x N) Longitude, latitude coordinates of each tower
 
     state/
-      PFT           -- (N x P) The plant functional type (PFT) of each pixel
-      PFT_dominant  -- (N) The majority PFT at each tower
+      *PFT          -- (N x P) The plant functional type (PFT) of each pixel
       elevation_m   -- (N) The elevation in meters above sea level
 
     time            -- (T x 3) The Year, Month, Day of each daily time step
     weights         -- (N) A number between 0 and 1 used to down-weight towers
+
+
+NOTE: A star, `*`, indicates that this dataset or group's name can be changed
+in the configuration file. All others are currently required to match this
+specification exactly.
 '''
 
 import datetime
@@ -194,10 +194,9 @@ class MOD16StochasticSampler(StochasticSampler):
             g_cuticular = pm.LogNormal(
                 'g_cuticular', **self.prior['g_cuticular'])
             csl =         pm.LogNormal('csl', **self.prior['csl'])
-            rbl_min =     pm.Uniform('rbl_min', **self.bounds['rbl_min'])
-            rbl_max =     pm.Uniform('rbl_max', **self.bounds['rbl_max'])
-            beta =        pm.Uniform('beta', **self.bounds['beta'])
-
+            rbl_min =     pm.Uniform('rbl_min', **self.prior['rbl_min'])
+            rbl_max =     pm.Uniform('rbl_max', **self.prior['rbl_max'])
+            beta =        pm.Uniform('beta', **self.prior['beta'])
             # (Stochstic) Priors for unknown model parameters
             # Convert model parameters to a tensor vector
             params_list = [
@@ -212,8 +211,8 @@ class MOD16StochasticSampler(StochasticSampler):
 
 class CalibrationAPI(object):
     '''
-    Convenience class for calibrating the MOD17 GPP and NPP models. Meant to
-    be used with `fire.Fire()`.
+    Convenience class for calibrating the MOD16 ET model. Meant to be used
+    with `fire.Fire()`.
     '''
 
     def __init__(self, config = None):
@@ -221,6 +220,7 @@ class CalibrationAPI(object):
         if config_file is None:
             config_file = os.path.join(
                 MOD16_DIR, 'data/MOD16_calibration_config.yaml')
+        print(f'Using configuration file: "{config_file}"')
         with open(config_file, 'r') as file:
             self.config = yaml.safe_load(file)
         self.hdf5 = self.config['data']['file']
@@ -266,7 +266,7 @@ class CalibrationAPI(object):
         Parameters
         ----------
         model : str
-            The name of the model ("GPP" or "NPP")
+            The name of the model (only "ET" is supported)
         param : str
             The model parameter to export
         output_path : str
@@ -365,8 +365,6 @@ class CalibrationAPI(object):
         module, including [run()](https://arthur-e.github.io/MOD17/calibration.html#mod17.calibration.StochasticSampler).
         '''
         assert pft in PFT_VALID, f'Invalid PFT: {pft}'
-        # Set var_names to tell ArviZ to plot only the free parameters
-        kwargs.update({'var_names': MOD16.required_parameters[4:]})
         # Pass configuration parameters to MOD16StochasticSampler.run()
         for key in ('chains', 'draws', 'tune', 'scaling'):
             if key in self.config['optimization'].keys():
@@ -383,7 +381,8 @@ class CalibrationAPI(object):
             sites = hdf['FLUXNET/site_id'][:].tolist()
             if hasattr(sites[0], 'decode'):
                 sites = [s.decode('utf-8') for s in sites]
-
+            # Number of time steps
+            nsteps = hdf['time'].shape[0]
             # In case some tower sites should not be used
             blacklist = self.config['data']['sites_blacklisted']
             # Get dominant PFT across a potentially heterogenous sub-grid,
@@ -403,7 +402,7 @@ class CalibrationAPI(object):
                 #   allowed; get the dominant (single) PFT at each site
                 pft_map = pft_dominant(pft_array, site_list = sites)
                 # But do create a (T x N) selection mask
-                pft_mask = pft_mask[np.newaxis,:].repeat(nsteps, axis = 0)
+                pft_map = pft_map[np.newaxis,:].repeat(nsteps, axis = 0)
 
             # Get a binary mask that indicates which tower-days should be used
             #   to calibrate the current PFT class
@@ -412,13 +411,12 @@ class CalibrationAPI(object):
                     pft_map == pft, ~np.in1d(sites, blacklist))
             else:
                 pft_mask = pft_map == pft
-            nsteps = hdf['time'].shape[0] # Number of time steps
             if self.config['data']['classes_are_dynamic']:
                 assert pft_mask.ndim == 2 and pft_mask.shape[0] == nsteps,\
                     'Configuration setting "classes_are_dynamic" implies the "class_map" should be (T x N) but it is not'
 
             # Get tower weights, for when towers are too close together
-            weights = hdf['weights']
+            weights = hdf['weights'][:]
             # If only a single value is given for each site, repeat the weight
             #   along the time axis
             if weights.ndim == 1:
@@ -432,7 +430,7 @@ class CalibrationAPI(object):
             mask = hdf['FLUXNET/validation_mask'][pft]
             tower_obs[mask] = np.nan
 
-            # Read in driver datasets
+            # Read in driver datasets0
             print('Loading driver datasets...')
             group = self.config['data']['met_group']
             lw_net_day = hdf[f'{group}/LWGNT_daytime'][:][pft_mask]
@@ -498,6 +496,11 @@ class CalibrationAPI(object):
             (p, dict([(k, v[pft]) for k, v in prior[p].items()]))
             for p in prior_params
         ])
+        # Set var_names to tell ArviZ to plot only the free parameters; i.e.,
+        #   those with priors
+        var_names = list(filter(
+            lambda x: x in prior.keys(), MOD16.required_parameters))
+        kwargs.update({'var_names': var_names})
         sampler.run(
             tower_obs, drivers, prior = prior, save_fig = save_fig, **kwargs)
 
