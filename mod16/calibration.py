@@ -32,8 +32,9 @@ A thinned posterior can be exported from the command line:
 variables necessary to drive MOD16 as well as the observed latent heat fluxes
 against which the model is calibrated. The HDF5 file specification is as
 follows, where the shape of multidimensional arrays is given in terms of
-T, the number of time steps (days); N, the number of tower sites; and P,
-a sub-grid of MODIS pixels surrounding a tower:
+T, the number of time steps (days); N, the number of tower sites; L, the
+number of land-cover types (PFTs); and P, a sub-grid of MODIS pixels
+surrounding a tower:
 
 
     FLUXNET/
@@ -41,7 +42,7 @@ a sub-grid of MODIS pixels surrounding a tower:
       air_temperature   -- (T x N) Air temperatures reported at the tower
       *latent_heat      -- (T x N) Observed latent heat flux [W m-2]
       site_id           -- (N) Unique identifier for each site, e.g., "US-BZS"
-      validation_mask   -- (T x N) Indicates what site-days are reserved
+      validation_mask   -- (L x T x N) Indicates what site-days are reserved
 
     *MERRA2/
       LWGNT             -- (T x N) Net long-wave radiation, 24-hr mean [W m-2]
@@ -339,10 +340,21 @@ class CalibrationAPI(object):
             dataset.attrs['description'] = 'CalibrationAPI.export_posterior() on {ts}'
 
     def tune(
-            self, pft: int, plot_trace: bool = False, ipdb: bool = False,
-            save_fig: bool = False, **kwargs):
+            self, pft: int, plot_trace: bool = False, k_folds: int = 1,
+            ipdb: bool = False, save_fig: bool = False, **kwargs):
         '''
-        Run the MOD16 ET calibration.
+        Run the MOD16 ET calibration. If k-folds cross-validation is used,
+        the model is calibrated on $k$ random subsets of the data and a
+        series of file is created, e.g., as:
+
+            MOD17_NPP_calibration_PFT1.h5
+            MOD17_NPP-k1_calibration_PFT1.nc4
+            MOD17_NPP-k2_calibration_PFT1.nc4
+            ...
+
+        Where each `.nc4` file is a standard `arviz` backend and the `.h5`
+        indicates which indices from the NPP observations vector, after
+        removing NaNs, were excluded (i.e., the indices of the test data).
 
         Parameters
         ----------
@@ -351,6 +363,9 @@ class CalibrationAPI(object):
         plot_trace : bool
             True to plot the trace for a previous calibration run; this will
             also NOT start a new calibration (Default: False)
+        k_folds : int
+            Number of folds to use in k-folds cross-validation; defaults to
+            k=1, i.e., no cross-validation is performed.
         ipdb : bool
             True to drop the user into an ipdb prompt, prior to and instead of
             running calibration
@@ -395,7 +410,8 @@ class CalibrationAPI(object):
                 # Also, ensure the blacklist matches the shape of this mask;
                 #   i.e., blacklisted sites should NEVER be used
                 if blacklist is not None:
-                    if blacklist.ndim == 1:
+                    if len(blacklist) > 0:
+                        blacklist = np.array(blacklist)
                         blacklist[None,:].repeat(pft_map.shape[0], axis = 0)
             else:
                 # For a static PFT map, sub-site land-cover heterogeneity is
@@ -436,7 +452,6 @@ class CalibrationAPI(object):
             lw_net_day = hdf[f'{group}/LWGNT_daytime'][:][pft_mask]
             lw_net_night = hdf[f'{group}/LWGNT_nighttime'][:][pft_mask]
             sw_albedo = hdf[self.config['data']['datasets']['albedo']][:][pft_mask]
-            sw_albedo = np.nanmean(sw_albedo, axis = -1)
             sw_rad_day = hdf[f'{group}/SWGDN_daytime'][:][pft_mask]
             sw_rad_night = hdf[f'{group}/SWGDN_nighttime'][:][pft_mask]
             temp_day = hdf[f'{group}/T10M_daytime'][:][pft_mask]
@@ -455,10 +470,15 @@ class CalibrationAPI(object):
                 temp_night)
             pressure = hdf[f'{group}/PS'][:][pft_mask]
             # Read in fPAR, LAI, and convert from (%) to [0,1]
-            fpar = np.nanmean(
-                hdf[self.config['data']['datasets']['fPAR']][:][pft_mask], axis = -1)
-            lai = np.nanmean(
-                hdf[self.config['data']['datasets']['LAI']][:][pft_mask], axis = -1)
+            fpar = hdf[self.config['data']['datasets']['fPAR']][:][pft_mask]
+            lai = hdf[self.config['data']['datasets']['LAI']][:][pft_mask]
+            # If a heterogeneous sub-grid is used at each tower (i.e., there
+            #   is a third axis to these datasets), then average over that
+            #   sub-grid
+            if sw_albedo.ndim == 3 and fpar.ndim == 3 and lai.ndim == 3:
+                sw_albedo = np.nanmean(sw_albedo, axis = -1)
+                fpar = np.nanmean(fpar, axis = -1)
+                lai = np.nanmean(lai, axis = -1)
             # Convert fPAR from (%) to [0,1] and re-scale LAI; reshape fPAR and LAI
             fpar /= 100
             lai /= 10
@@ -469,40 +489,98 @@ class CalibrationAPI(object):
             temp_day, temp_night, temp_annual, tmin, vpd_day, vpd_night,
             pressure, fpar, lai
         ]
-        print('Initializing sampler...')
-        backend = self.config['optimization']['backend_template'] % ('ET', pft)
-        sampler = MOD16StochasticSampler(
-            self.config, MOD16._et, params_dict, backend = backend,
-            weights = weights)
 
-        if plot_trace or ipdb:
-            # This matplotlib setting prevents labels from overplotting
-            pyplot.rcParams['figure.constrained_layout.use'] = True
-            trace = sampler.get_trace()
-            if ipdb:
-                import ipdb
-                ipdb.set_trace()
-            az.plot_trace(trace, var_names = MOD16.required_parameters)
-            pyplot.show()
-            return
+        if k_folds > 1:
+            print(f'NOTE: Using k-folds CV with k={k_folds}...')
+            # Back-up the original (complete) datasets; we do this so we can
+            #   simply mask out the test samples (1/k), after restoring the
+            #   original datasets
+            _drivers = [d.copy() for d in drivers]
+            _tower_obs = tower_obs.copy()
+            _weights = weights.copy()
+            # Randomize the indices of the NPP data
+            indices = np.arange(0, tower_obs.size)
+            np.random.shuffle(indices)
+            # Get the starting and ending index of each fold
+            fold_idx = np.array([indices.size // k_folds] * k_folds) * np.arange(0, k_folds)
+            fold_idx = list(map(list, zip(fold_idx, fold_idx + indices.size // k_folds)))
+            # Ensure that the entire dataset is used; i.e., if each fold takes
+            #   slices of the indices from A to B, ensure that the last fold's
+            #   B is the final (maximum) index of the sequence
+            fold_idx[-1][-1] = indices.max()
+            idx_test = [indices[start:end] for start, end in fold_idx]
 
-        tower_obs = self.clean_observed(tower_obs, drivers)
-        # Get (informative) priors for just those parameters that have them
-        with open(self.config['optimization']['prior'], 'r') as file:
-            prior = yaml.safe_load(file)
-        prior_params = list(filter(
-            lambda p: p in prior.keys(), sampler.required_parameters['ET']))
-        prior = dict([
-            (p, dict([(k, v[pft]) for k, v in prior[p].items()]))
-            for p in prior_params
-        ])
-        # Set var_names to tell ArviZ to plot only the free parameters; i.e.,
-        #   those with priors
-        var_names = list(filter(
-            lambda x: x in prior.keys(), MOD16.required_parameters))
-        kwargs.update({'var_names': var_names})
-        sampler.run(
-            tower_obs, drivers, prior = prior, save_fig = save_fig, **kwargs)
+        # Loop over each fold (or the entire dataset, if num. folds == 1)
+        for k, fold in enumerate(range(1, k_folds + 1)):
+            backend = self.config['optimization']['backend_template'] % ('ET', pft)
+            if k_folds > 1 and fold == 1:
+                # Create an HDF5 file with the same name as the (original)
+                #   netCDF4 back-end, store the test indices
+                with h5py.File(backend.replace('nc4', 'h5'), 'w') as hdf:
+                    out = list(idx_test)
+                    size = indices.size // k_folds
+                    try:
+                        out = np.stack(out)
+                    except ValueError:
+                        size = max((o.size for o in out))
+                        for i in range(0, len(out)):
+                            out[i] = np.concatenate((out[i], [np.nan] * (size - out[i].size)))
+                    hdf.create_dataset(
+                        'test_indices', (k_folds, size), np.int32, np.stack(out))
+                # Restore the original tower dataset
+                if fold > 1:
+                    tower_obs = _tower_obs.copy()
+                    weights = _weights.copy()
+                # Set to NaN all the test indices
+                idx = idx_test[k]
+                tower_obs[idx] = np.nan
+                # Same for drivers, after restoring from the original
+                drivers = [
+                    d.copy()[~np.isnan(tower_obs)] if d.ndim > 0 else d.copy()
+                    for d in _drivers
+                ]
+                weights = weights[~np.isnan(tower_obs)] # NOTE: Do first
+                tower_obs = tower_obs[~np.isnan(tower_obs)]
+            # Use a different naming scheme for the backend
+            if k_folds > 1:
+                backend = self.config['optimization']['backend_template'] % (f'ET-k{fold}', pft)
+
+            print('Initializing sampler...')
+            sampler = MOD16StochasticSampler(
+                self.config, MOD16._et, params_dict, backend = backend,
+                weights = weights)
+
+            # Either: Enter diagnostic mode or run the sampler
+            if plot_trace or ipdb:
+                # This matplotlib setting prevents labels from overplotting
+                pyplot.rcParams['figure.constrained_layout.use'] = True
+                trace = sampler.get_trace()
+                if ipdb:
+                    import ipdb
+                    ipdb.set_trace()
+                az.plot_trace(trace, var_names = MOD16.required_parameters)
+                pyplot.show()
+                return
+
+            # Clean the tower observations, run the sampler
+            tower_obs = self.clean_observed(tower_obs, drivers)
+            # Get (informative) priors for just those parameters that have them
+            with open(self.config['optimization']['prior'], 'r') as file:
+                prior = yaml.safe_load(file)
+            prior_params = list(filter(
+                lambda p: p in prior.keys(), sampler.required_parameters['ET']))
+            prior = dict([
+                (p, dict([(k, v[pft]) for k, v in prior[p].items()]))
+                for p in prior_params
+            ])
+            # Set var_names to tell ArviZ to plot only the free parameters; i.e.,
+            #   those with priors
+            var_names = list(filter(
+                lambda x: x in prior.keys(), MOD16.required_parameters))
+            kwargs.update({'var_names': var_names})
+            sampler.run( # Only show the trace plot if not using k-folds
+                tower_obs, drivers, prior = prior, save_fig = save_fig,
+                show_fig = (k_folds == 1), **kwargs)
 
 
 if __name__ == '__main__':

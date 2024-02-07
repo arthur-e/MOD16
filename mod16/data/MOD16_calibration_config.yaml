@@ -2,15 +2,20 @@
 BPLUT:
   ET: "/usr/local/dev/MOD16/mod16/data/MOD16_BPLUT_CX.X_05deg_MCD43B_Albedo_MERRA.csv"
 data:
-  file: "/anx_lagr4/MODIS_VIIRS/calibration/VIIRS_MOD16_tower_site_latent_heat_and_drivers_v4.h5"
+  file: "/anx_lagr4/MODIS_VIIRS/calibration/VIIRS_MOD16_tower_site_latent_heat_and_drivers_v5.h5"
   class_map: state/PFT # HDF5 field name for PFT map
   # If a time-varying PFT map is used, this should be true and the corresponding
   #   "class_map" array (see above) should be a (T x N) array
   classes_are_dynamic: false
   target_observable: FLUXNET/latent_heat # HDF5 field name
-  sites_blacklisted:
-  - US-HRA
-  - US-A10
+  sites_blacklisted: [
+    "CA-DB2", "CA-Obs", "DK-Fou", "MX-PMm", "PR-xGU", "PR-xLA",
+    "US-ASL", "US-HRA", "US-HRC", "US-ICh", "US-MC1", "US-MVF",
+    "US-PFb", "US-PFc", "US-PFd", "US-PFe", "US-PFg", "US-PFh",
+    "US-PFi", "US-PFj", "US-PFk", "US-PFL", "US-PFm", "US-PFn",
+    "US-PFp", "US-PFq", "US-PFr", "US-PFs", "US-PFt", "US-xLE",
+    "US-xMB", "US-xRN", "US-xSC", "US-xSR"
+  ]
   # The name of the HDF5 group that contains surface meteorology data
   met_group: MERRA2
   # The name of the HDF5 datasets for albedo, fPAR, LAI, etc.
