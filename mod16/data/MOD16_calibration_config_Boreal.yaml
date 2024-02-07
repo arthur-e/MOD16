@@ -1,0 +1,26 @@
+---
+BPLUT:
+  ET: "/usr/local/dev/MOD16/mod16/data/MOD16_BPLUT_CX.X_05deg_MCD43B_Albedo_MERRA.csv"
+data:
+  file: "/anx_lagr4/MODIS_VIIRS/above_et_drivers_v1.h5"
+  class_map: state/PFT # HDF5 field name for PFT map
+  # If a time-varying PFT map is used, this should be true and the corresponding
+  #   "class_map" array (see above) should be a (T x N) array
+  classes_are_dynamic: true
+  target_observable: FLUXNET/latent_heat # HDF5 field name
+  sites_blacklisted:
+  # The name of the HDF5 group that contains surface meteorology data
+  met_group: MERRA2
+  # The name of the HDF5 datasets for albedo, fPAR, LAI, etc.
+  datasets:
+    albedo: MODIS/MCD43A3_black_sky_sw_albedo
+    fPAR: HISTARFM/FPAR
+    LAI: HISTARFM/LAI
+optimization:
+  backend_template: "/home/arthur.endsley/20240207_MOD16-Boreal_%s_calibration_PFT%d.nc4"
+  prior: "/usr/local/dev/MOD16/mod16/data/MOD16_BPLUT_prior_20231218.yaml"
+  chains: 3
+  draws: 1000
+  tune: scaling
+  scaling: 0.001
+  objective: RMSD
