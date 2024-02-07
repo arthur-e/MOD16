@@ -234,164 +234,8 @@ class CalibrationAPI(object):
                 lambda x: signal.filtfilt(window, np.ones(1), x), 0, raw)
         return raw # Or, revert to the raw data
 
-    def clean_observed(
-            self, raw: Sequence, drivers: Sequence, protocol: str = 'ET',
-            filter_length: int = 2) -> Sequence:
-        '''
-        Cleans observed tower flux data according to a prescribed protocol.
-
-        Parameters
-        ----------
-        raw : Sequence
-        drivers : Sequence
-        protocol : str
-        filter_length : int
-            The window size for the smoothing filter, applied to the observed
-            data
-
-        Returns
-        -------
-        Sequence
-        '''
-        # Read in the observed data and apply smoothing filter; then mask out
-        #   negative latent heat observations
-        obs = self._filter(raw, filter_length)
-        return np.where(obs < 0, np.nan, obs)
-
-    def export_posterior(
-            self, model: str, param: str, output_path: str, thin: int = 10,
-            burn: int = 1000, k_folds: int = 1):
-        '''
-        Exports posterior distribution for a parameter, for each PFT to HDF5.
-
-        Parameters
-        ----------
-        model : str
-            The name of the model (only "ET" is supported)
-        param : str
-            The model parameter to export
-        output_path : str
-            The output HDF5 file path
-        thin : int
-            Thinning rate
-        burn : int
-            The burn-in (i.e., first N samples to discard)
-        k_folds : int
-            The number of k-folds used in cross-calibration/validation;
-            if more than one (default), the folds for each PFT will be
-            combined into a single HDF5 file
-        '''
-        params_dict = restore_bplut(self.config['BPLUT'][model])
-        bplut = params_dict.copy()
-        # Filter the parameters to just those for the PFT of interest
-        post = []
-        for pft in PFT_VALID:
-            params = dict([(k, v[pft]) for k, v in params_dict.items()])
-            backend = self.config['optimization']['backend_template'] %\
-                (model, pft)
-            post_by_fold = []
-            for fold in range(1, k_folds + 1):
-                if k_folds > 1:
-                    backend = self.config['optimization']['backend_template'] %\
-                        (f'{model}-k{fold}', pft)
-                # NOTE: This value was hard-coded in the extant version of MOD16
-                if 'beta' not in params:
-                    params['beta'] = 250
-                sampler = MOD16StochasticSampler(
-                    self.config, getattr(MOD16, '_%s' % model.lower()), params,
-                    backend = backend)
-                trace = sampler.get_trace()
-                fit = trace.sel(draw = slice(burn, None, thin))['posterior']
-                if param in fit:
-                    post_by_fold.append(
-                        az.extract_dataset(fit, combined = True)[param].values)
-                else:
-                    # In case there is, e.g., a parameter that takes on a
-                    #   constant value for a specific PFT
-                    if k_folds > 1:
-                        post_by_fold.append(
-                            np.ones((1, post[-1].shape[-1])) * np.nan)
-                    else:
-                        a_key = list(fit.keys())[0]
-                        post_by_fold.append(
-                            np.ones(fit[a_key].values.shape) * np.nan)
-            if k_folds > 1:
-                post.append(np.vstack(post_by_fold))
-            else:
-                post.extend(post_by_fold)
-        # If not every PFT's posterior has the same number of samples (e.g.,
-        #   when one set of chains was run longer than another)...
-        if not all([p.shape == post[0].shape for p in post]):
-            max_len = max([p.shape for p in post])[0]
-            # ...Reshape all posteriors to match the greatest sample size
-            import ipdb
-            ipdb.set_trace()#FIXME
-            post = [
-                np.pad(
-                    p.astype(np.float32), (0, max_len - p.size),
-                    mode = 'constant', constant_values = (np.nan,))
-                for p in post
-            ]
-        with h5py.File(output_path, 'a') as hdf:
-            post = np.stack(post)
-            ts = datetime.date.today().strftime('%Y-%m-%d') # Today's date
-            dataset = hdf.create_dataset(
-                f'{param}_posterior', post.shape, np.float32, post)
-            dataset.attrs['description'] = 'CalibrationAPI.export_posterior() on {ts}'
-
-    def tune(
-            self, pft: int, plot_trace: bool = False, k_folds: int = 1,
-            ipdb: bool = False, save_fig: bool = False, **kwargs):
-        '''
-        Run the MOD16 ET calibration. If k-folds cross-validation is used,
-        the model is calibrated on $k$ random subsets of the data and a
-        series of file is created, e.g., as:
-
-            MOD17_NPP_calibration_PFT1.h5
-            MOD17_NPP-k1_calibration_PFT1.nc4
-            MOD17_NPP-k2_calibration_PFT1.nc4
-            ...
-
-        Where each `.nc4` file is a standard `arviz` backend and the `.h5`
-        indicates which indices from the NPP observations vector, after
-        removing NaNs, were excluded (i.e., the indices of the test data).
-
-        Parameters
-        ----------
-        pft : int
-            The Plant Functional Type (PFT) to calibrate
-        plot_trace : bool
-            True to plot the trace for a previous calibration run; this will
-            also NOT start a new calibration (Default: False)
-        k_folds : int
-            Number of folds to use in k-folds cross-validation; defaults to
-            k=1, i.e., no cross-validation is performed.
-        ipdb : bool
-            True to drop the user into an ipdb prompt, prior to and instead of
-            running calibration
-        save_fig : bool
-            True to save figures to files instead of showing them
-            (Default: False)
-        **kwargs
-            Additional keyword arguments passed to
-            `MOD16StochasticSampler.run()`
-
-        NOTE that `MOD16StochasticSampler` inherits methods from the `mod17`
-        module, including [run()](https://arthur-e.github.io/MOD17/calibration.html#mod17.calibration.StochasticSampler).
-        '''
-        assert pft in PFT_VALID, f'Invalid PFT: {pft}'
-        # Pass configuration parameters to MOD16StochasticSampler.run()
-        for key in ('chains', 'draws', 'tune', 'scaling'):
-            if key in self.config['optimization'].keys():
-                kwargs[key] = self.config['optimization'][key]
-        # Filter the parameters to just those for the PFT of interest
-        params_dict = restore_bplut(self.config['BPLUT']['ET'])
-        params_dict = dict([(k, v[pft]) for k, v in params_dict.items()])
-        # NOTE: This value was hard-coded in the extant version of MOD16
-        if np.isnan(params_dict['beta']):
-            params_dict['beta'] = 250
-
-        # Read in driver datasets from the HDF5 file
+    def _load_data(self, pft: int):
+        'Read in driver datasets from the HDF5 file'
         with h5py.File(self.hdf5, 'r') as hdf:
             sites = hdf['FLUXNET/site_id'][:].tolist()
             if hasattr(sites[0], 'decode'):
@@ -489,6 +333,164 @@ class CalibrationAPI(object):
             temp_day, temp_night, temp_annual, tmin, vpd_day, vpd_night,
             pressure, fpar, lai
         ]
+        return (tower_obs, drivers, weights)
+
+    def clean_observed(
+            self, raw: Sequence, drivers: Sequence, protocol: str = 'ET',
+            filter_length: int = 2) -> Sequence:
+        '''
+        Cleans observed tower flux data according to a prescribed protocol.
+
+        Parameters
+        ----------
+        raw : Sequence
+        drivers : Sequence
+        protocol : str
+        filter_length : int
+            The window size for the smoothing filter, applied to the observed
+            data
+
+        Returns
+        -------
+        Sequence
+        '''
+        # Read in the observed data and apply smoothing filter; then mask out
+        #   negative latent heat observations
+        obs = self._filter(raw, filter_length)
+        return np.where(obs < 0, np.nan, obs)
+
+    def export_posterior(
+            self, model: str, param: str, output_path: str, thin: int = 10,
+            burn: int = 1000, k_folds: int = 1):
+        '''
+        Exports posterior distribution for a parameter, for each PFT to HDF5.
+
+        Parameters
+        ----------
+        model : str
+            The name of the model (only "ET" is supported)
+        param : str
+            The model parameter to export
+        output_path : str
+            The output HDF5 file path
+        thin : int
+            Thinning rate
+        burn : int
+            The burn-in (i.e., first N samples to discard)
+        k_folds : int
+            The number of k-folds used in cross-calibration/validation;
+            if more than one (default), the folds for each PFT will be
+            combined into a single HDF5 file
+        '''
+        params_dict = restore_bplut(self.config['BPLUT'][model])
+        bplut = params_dict.copy()
+        # Filter the parameters to just those for the PFT of interest
+        post = []
+        for pft in PFT_VALID:
+            params = dict([(k, v[pft]) for k, v in params_dict.items()])
+            backend = self.config['optimization']['backend_template'] %\
+                (model, pft)
+            post_by_fold = []
+            for fold in range(1, k_folds + 1):
+                if k_folds > 1:
+                    backend = self.config['optimization']['backend_template'] %\
+                        (f'{model}-k{fold}', pft)
+                # NOTE: This value was hard-coded in the extant version of MOD16
+                if 'beta' not in params:
+                    params['beta'] = 250
+                sampler = MOD16StochasticSampler(
+                    self.config, getattr(MOD16, '_%s' % model.lower()), params,
+                    backend = backend)
+                trace = sampler.get_trace()
+                fit = trace.sel(draw = slice(burn, None, thin))['posterior']
+                if param in fit:
+                    post_by_fold.append(
+                        az.extract_dataset(fit, combined = True)[param].values)
+                else:
+                    # In case there is, e.g., a parameter that takes on a
+                    #   constant value for a specific PFT
+                    if k_folds > 1:
+                        post_by_fold.append(
+                            np.ones((1, post[-1].shape[-1])) * np.nan)
+                    else:
+                        a_key = list(fit.keys())[0]
+                        post_by_fold.append(
+                            np.ones(fit[a_key].values.shape) * np.nan)
+            if k_folds > 1:
+                post.append(np.vstack(post_by_fold))
+            else:
+                post.extend(post_by_fold)
+        # If not every PFT's posterior has the same number of samples (e.g.,
+        #   when one set of chains was run longer than another)...
+        if not all([p.shape == post[0].shape for p in post]):
+            max_len = max([p.shape for p in post])[0]
+            # ...Reshape all posteriors to match the greatest sample size
+            post = [
+                np.pad(
+                    p.astype(np.float32), (0, max_len - p.size),
+                    mode = 'constant', constant_values = (np.nan,))
+                for p in post
+            ]
+        with h5py.File(output_path, 'a') as hdf:
+            post = np.stack(post)
+            ts = datetime.date.today().strftime('%Y-%m-%d') # Today's date
+            dataset = hdf.create_dataset(
+                f'{param}_posterior', post.shape, np.float32, post)
+            dataset.attrs['description'] = 'CalibrationAPI.export_posterior() on {ts}'
+
+    def tune(
+            self, pft: int, plot_trace: bool = False, k_folds: int = 1,
+            ipdb: bool = False, save_fig: bool = False, **kwargs):
+        '''
+        Run the MOD16 ET calibration. If k-folds cross-validation is used,
+        the model is calibrated on $k$ random subsets of the data and a
+        series of file is created, e.g., as:
+
+            MOD17_NPP_calibration_PFT1.h5
+            MOD17_NPP_calibration_PFT1-k1.nc4
+            MOD17_NPP_calibration_PFT1-k2.nc4
+            ...
+
+        Where each `.nc4` file is a standard `arviz` backend and the `.h5`
+        indicates which indices from the observations vector, after removing
+        NaNs, were excluded (i.e., the indices of the test data).
+
+        Parameters
+        ----------
+        pft : int
+            The Plant Functional Type (PFT) to calibrate
+        plot_trace : bool
+            True to plot the trace for a previous calibration run; this will
+            also NOT start a new calibration (Default: False)
+        k_folds : int
+            Number of folds to use in k-folds cross-validation; defaults to
+            k=1, i.e., no cross-validation is performed.
+        ipdb : bool
+            True to drop the user into an ipdb prompt, prior to and instead of
+            running calibration
+        save_fig : bool
+            True to save figures to files instead of showing them
+            (Default: False)
+        **kwargs
+            Additional keyword arguments passed to
+            `MOD16StochasticSampler.run()`
+
+        NOTE that `MOD16StochasticSampler` inherits methods from the `mod17`
+        module, including [run()](https://arthur-e.github.io/MOD17/calibration.html#mod17.calibration.StochasticSampler).
+        '''
+        assert pft in PFT_VALID, f'Invalid PFT: {pft}'
+        # Pass configuration parameters to MOD16StochasticSampler.run()
+        for key in ('chains', 'draws', 'tune', 'scaling'):
+            if key in self.config['optimization'].keys():
+                kwargs[key] = self.config['optimization'][key]
+        # Filter the parameters to just those for the PFT of interest
+        params_dict = restore_bplut(self.config['BPLUT']['ET'])
+        params_dict = dict([(k, v[pft]) for k, v in params_dict.items()])
+        # NOTE: This value was hard-coded in the extant version of MOD16
+        if np.isnan(params_dict['beta']):
+            params_dict['beta'] = 250
+
+        tower_obs, drivers, weights = self._load_data(pft)
 
         if k_folds > 1:
             print(f'NOTE: Using k-folds CV with k={k_folds}...')
@@ -543,7 +545,7 @@ class CalibrationAPI(object):
                 tower_obs = tower_obs[~np.isnan(tower_obs)]
             # Use a different naming scheme for the backend
             if k_folds > 1:
-                backend = self.config['optimization']['backend_template'] % (f'ET-k{fold}', pft)
+                backend = backend[:backend.rfind('.')] + f'-k{fold}' + backend[backend.rfind('.'):]
 
             print('Initializing sampler...')
             sampler = MOD16StochasticSampler(
@@ -557,7 +559,7 @@ class CalibrationAPI(object):
                 trace = sampler.get_trace()
                 if ipdb:
                     import ipdb
-                    ipdb.set_trace()
+                    ipdb.set_trace()#FIXME
                 az.plot_trace(trace, var_names = MOD16.required_parameters)
                 pyplot.show()
                 return
