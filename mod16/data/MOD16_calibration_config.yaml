@@ -1,8 +1,9 @@
 ---
 BPLUT:
   ET: "/usr/local/dev/MOD16/mod16/data/MOD16_BPLUT_CX.X_05deg_MCD43B_Albedo_MERRA.csv"
+  valid_PFT: [1,2,3,4,5,6,7,8,9,10,12]
 data:
-  file: "/anx_lagr4/MODIS_VIIRS/calibration/VIIRS_MOD16_tower_site_latent_heat_and_drivers_v5.h5"
+  file: "/anx_lagr4/MODIS_VIIRS/calibration/VIIRS_MOD16_tower_site_latent_heat_and_drivers_v4.h5"
   class_map: state/PFT # HDF5 field name for PFT map
   # If a time-varying PFT map is used, this should be true and the corresponding
   #   "class_map" array (see above) should be a (T x N) array
@@ -24,7 +25,8 @@ data:
     fPAR: MODIS/MOD15A2HGF_fPAR_interp
     LAI: MODIS/MOD15A2HGF_LAI_interp
 optimization:
-  backend_template: "/home/arthur.endsley/20231218_MOD16_%s_calibration_PFT%d.nc4"
+  platform: MODIS
+  backend_template: "/home/arthur/20231218_MOD16_%s_calibration_PFT%d.nc4"
   prior: "/usr/local/dev/MOD16/mod16/data/MOD16_BPLUT_prior_20231218.yaml"
   chains: 3
   draws: 1000

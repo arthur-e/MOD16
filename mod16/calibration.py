@@ -110,7 +110,6 @@ from scipy import signal
 from matplotlib import pyplot
 from mod16 import MOD16
 from mod16.utils import restore_bplut, pft_dominant
-from mod17 import PFT_VALID
 from mod17.calibration import BlackBoxLikelihood, StochasticSampler
 
 MOD16_DIR = os.path.dirname(mod16.__file__)
@@ -327,7 +326,7 @@ class CalibrationAPI(object):
             # If a heterogeneous sub-grid is used at each tower (i.e., there
             #   is a third axis to these datasets), then average over that
             #   sub-grid
-            if sw_albedo.ndim == 3 and fpar.ndim == 3 and lai.ndim == 3:
+            if sw_albedo.ndim == 2 and fpar.ndim == 2 and lai.ndim == 2:
                 sw_albedo = np.nanmean(sw_albedo, axis = -1)
                 fpar = np.nanmean(fpar, axis = -1)
                 lai = np.nanmean(lai, axis = -1)
