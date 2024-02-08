@@ -3,7 +3,11 @@ Calibration of MOD16 against a representative, global eddy covariance (EC)
 flux tower network. The model calibration is based on Markov-Chain Monte
 Carlo (MCMC). Example use:
 
-    python calibration.py tune --pft=1 --config=<filename>
+    # For a single run with the configured number of chains
+    python calibration.py tune --pft=1 --config="my_config.yaml"
+
+    # For a 3-folds cross-validation
+    python calibration.py tune --pft=1 --config="my_config.yaml" --k-folds=3
 
 The general calibration protocol used here involves:
 
@@ -20,13 +24,17 @@ tuning on `lambda` (default) instead, e.g.:
 Once a good mixture is obtained, it is necessary to prune the samples to
 eliminate autocorrelation, e.g., in Python:
 
-    sampler = MOD16StochasticSampler(...)
-    sampler.plot_autocorr(burn = 1000, thin = 10)
-    trace = sampler.get_trace(burn = 1000, thin = 10)
+    python calibration.py plot-autocorr --pft=1 --burn=1000 --thin=10
 
-A thinned posterior can be exported from the command line:
+A thinned posterior can be exported from the command line, e.g.:
 
-    python calibration.py export-posterior output.csv --burn=1000 --thin=10
+    python calibration.py export-posterior ET <parameter_name>
+        output.h5 --burn=1000 --thin=10
+
+NOTE: If using k-folds cross-validation, add the following option to any
+command, where K is the number of folds:
+
+    --k-folds=K
 
 **The Cal-Val dataset** is a single HDF5 file that contains all the input
 variables necessary to drive MOD16 as well as the observed latent heat fluxes
@@ -388,13 +396,12 @@ class CalibrationAPI(object):
         post = []
         for pft in PFT_VALID:
             params = dict([(k, v[pft]) for k, v in params_dict.items()])
-            backend = self.config['optimization']['backend_template'] %\
-                (model, pft)
             post_by_fold = []
             for fold in range(1, k_folds + 1):
+                backend = self.config['optimization']['backend_template'] %\
+                    (model, pft)
                 if k_folds > 1:
-                    backend = self.config['optimization']['backend_template'] %\
-                        (f'{model}-k{fold}', pft)
+                    backend = backend[:backend.rfind('.')] + f'-k{fold}' + backend[backend.rfind('.'):]
                 # NOTE: This value was hard-coded in the extant version of MOD16
                 if 'beta' not in params:
                     params['beta'] = 250
@@ -437,6 +444,23 @@ class CalibrationAPI(object):
             dataset = hdf.create_dataset(
                 f'{param}_posterior', post.shape, np.float32, post)
             dataset.attrs['description'] = 'CalibrationAPI.export_posterior() on {ts}'
+
+    def plot_autocorr(self, pft: int, k_folds: int = 1, **kwargs):
+        # Filter the parameters to just those for the PFT of interest
+        params_dict = restore_bplut(self.config['BPLUT']['ET'])
+        params_dict = dict([(k, v[pft]) for k, v in params_dict.items()])
+        backend = self.config['optimization']['backend_template'] % ('ET', pft)
+        # Use a different naming scheme for the backend
+        if k_folds > 1:
+            for fold in range(1, k_folds + 1):
+                sampler = MOD16StochasticSampler(
+                    self.config, MOD16._et, params_dict,
+                    backend = backend[:backend.rfind('.')] + f'-k{fold}' + backend[backend.rfind('.'):])
+                sampler.plot_autocorr(**kwargs, title = f'Fold {fold} of {k_folds}')
+        else:
+            sampler = MOD16StochasticSampler(
+                self.config, MOD16._et, params_dict, backend = backend)
+            sampler.plot_autocorr(**kwargs)
 
     def tune(
             self, pft: int, plot_trace: bool = False, k_folds: int = 1,
