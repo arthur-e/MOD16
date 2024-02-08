@@ -11,7 +11,8 @@ Carlo (MCMC). Example use:
 
 The general calibration protocol used here involves:
 
-1. Check how well the chain(s) are mixing by running short:
+1. Check how well the chain(s) are mixing by running short, e.g., only 5000
+draws from the posterior:
 `python calibration.py tune 1 --draws=5000`
 2. If any chain is "sticky," run a short chain while tuning the jump scale:
 `python calibration.py tune 1 --tune=scaling --draws=5000`
@@ -20,6 +21,9 @@ different jump scales to try and achieve the same (optimal) mixing when
 tuning on `lambda` (default) instead, e.g.:
 `python calibration.py tune 1 --scaling=1e-2 --draws=5000`
 4. When the right jump scale is found, run a chain at the desired length.
+
+Instead of changing `draws` and `scaling` at the command line, as above, you
+could change these parameters in the configuration file.
 
 Once a good mixture is obtained, it is necessary to prune the samples to
 eliminate autocorrelation, e.g., in Python:
@@ -169,7 +173,8 @@ class MOD16StochasticSampler(StochasticSampler):
         `self.priors` is a dict with a key for each parameter that has
         informative priors. For parameters with a non-informative (Uniform)
         prior, `self.bounds` is a similar dict (with a key for each parameter)
-        that describes the lower and upper bounds of the Uniform prior.
+        that describes the lower and upper bounds of the Uniform prior, but
+        this is deprecated.
 
         Parameters
         ----------
@@ -220,7 +225,17 @@ class MOD16StochasticSampler(StochasticSampler):
 class CalibrationAPI(object):
     '''
     Convenience class for calibrating the MOD16 ET model. Meant to be used
-    with `fire.Fire()`.
+    at the command line, in combination with the option to specify a
+    configuration file:
+
+        --config=my_configuration.yaml
+
+    For example, to run calibration for PFT 1, you would write:
+
+        python calibration.py tune --pft=1 --config=my_configuration.yaml
+
+    If `--config` is not provided, the default configuration file,
+    `mod16/MOD16_calibration_config.yaml` will be used.
     '''
 
     def __init__(self, config = None):
@@ -347,6 +362,7 @@ class CalibrationAPI(object):
             filter_length: int = 2) -> Sequence:
         '''
         Cleans observed tower flux data according to a prescribed protocol.
+        NOT intended to be called from the command line.
 
         Parameters
         ----------
@@ -445,6 +461,14 @@ class CalibrationAPI(object):
             dataset.attrs['description'] = 'CalibrationAPI.export_posterior() on {ts}'
 
     def plot_autocorr(self, pft: int, k_folds: int = 1, **kwargs):
+        '''
+        Plot the autocorrelation in the trace for each parameter.
+
+        Parameters
+        ----------
+        pft : int
+            The numeric PFT code
+        '''
         # Filter the parameters to just those for the PFT of interest
         params_dict = restore_bplut(self.config['BPLUT']['ET'])
         params_dict = dict([(k, v[pft]) for k, v in params_dict.items()])
@@ -469,9 +493,9 @@ class CalibrationAPI(object):
         the model is calibrated on $k$ random subsets of the data and a
         series of file is created, e.g., as:
 
-            MOD17_NPP_calibration_PFT1.h5
-            MOD17_NPP_calibration_PFT1-k1.nc4
-            MOD17_NPP_calibration_PFT1-k2.nc4
+            MOD16_ET_calibration_PFT1.h5
+            MOD16_ET_calibration_PFT1-k1.nc4
+            MOD16_ET_calibration_PFT1-k2.nc4
             ...
 
         Where each `.nc4` file is a standard `arviz` backend and the `.h5`
