@@ -4,6 +4,7 @@ BPLUT:
 data:
   file: "/anx_lagr4/MODIS_VIIRS/above_et_drivers_v1.h5"
   class_map: state/PFT # HDF5 field name for PFT map
+  classes: [1,2,3,4,5,6,7,8,9,10,12] # The unique and valid PFT codes
   # If a time-varying PFT map is used, this should be true and the corresponding
   #   "class_map" array (see above) should be a (T x N) array
   classes_are_dynamic: true

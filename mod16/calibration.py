@@ -409,7 +409,7 @@ class CalibrationAPI(object):
         bplut = params_dict.copy()
         # Filter the parameters to just those for the PFT of interest
         post = []
-        for pft in PFT_VALID:
+        for pft in self.config['data']['classes']:
             params = dict([(k, v[pft]) for k, v in params_dict.items()])
             post_by_fold = []
             for fold in range(1, k_folds + 1):
@@ -525,7 +525,7 @@ class CalibrationAPI(object):
         NOTE that `MOD16StochasticSampler` inherits methods from the `mod17`
         module, including [run()](https://arthur-e.github.io/MOD17/calibration.html#mod17.calibration.StochasticSampler).
         '''
-        assert pft in PFT_VALID, f'Invalid PFT: {pft}'
+        assert pft in self.config['data']['classes'], f'Invalid PFT: {pft}'
         # Pass configuration parameters to MOD16StochasticSampler.run()
         for key in ('chains', 'draws', 'tune', 'scaling'):
             if key in self.config['optimization'].keys():
