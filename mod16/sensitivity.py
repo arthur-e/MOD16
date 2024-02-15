@@ -2,6 +2,7 @@
 '''
 
 import json
+import yaml
 import os
 import numpy as np
 import h5py
@@ -15,8 +16,8 @@ from SALib.analyze import sobol
 
 OUTPUT_TPL = '/home/arthur/Workspace/NTSG/projects/Y2021_MODIS-VIIRS/data/MOD16_sensitivity_%s_analysis.json'
 MOD16_DIR = os.path.dirname(mod16.__file__)
-with open(os.path.join(MOD16_DIR, 'data/MOD16_calibration_config.json'), 'r') as file:
-    CONFIG = json.load(file)
+with open(os.path.join(MOD16_DIR, 'data/MOD16_calibration_config.yaml'), 'r') as file:
+    CONFIG = yaml.safe_load(file)
 BOUNDS = {
     "tmin_close": [-35, 0],
     "tmin_open": [0, 25],

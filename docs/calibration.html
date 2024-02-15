@@ -28,11 +28,16 @@ flux tower network. The model calibration is based on Markov-Chain Monte
 <p>Calibration of MOD16 against a representative, global eddy covariance (EC)
 flux tower network. The model calibration is based on Markov-Chain Monte
 Carlo (MCMC). Example use:</p>
-<pre><code>python calibration.py tune --pft=1
+<pre><code># For a single run with the configured number of chains
+python calibration.py tune --pft=1 --config="my_config.yaml"
+
+# For a 3-folds cross-validation
+python calibration.py tune --pft=1 --config="my_config.yaml" --k-folds=3
 </code></pre>
 <p>The general calibration protocol used here involves:</p>
 <ol>
-<li>Check how well the chain(s) are mixing by running short:
+<li>Check how well the chain(s) are mixing by running short, e.g., only 5000
+draws from the posterior:
 <code>python calibration.py tune 1 --draws=5000</code></li>
 <li>If any chain is "sticky," run a short chain while tuning the jump scale:
 <code>python calibration.py tune 1 --tune=scaling --draws=5000</code></li>
@@ -42,69 +47,154 @@ tuning on <code>lambda</code> (default) instead, e.g.:
 <code>python calibration.py tune 1 --scaling=1e-2 --draws=5000</code></li>
 <li>When the right jump scale is found, run a chain at the desired length.</li>
 </ol>
+<p>Instead of changing <code>draws</code> and <code>scaling</code> at the command line, as above, you
+could change these parameters in the configuration file.</p>
 <p>Once a good mixture is obtained, it is necessary to prune the samples to
 eliminate autocorrelation, e.g., in Python:</p>
-<pre><code>sampler = MOD16StochasticSampler(...)
-sampler.plot_autocorr(burn = 1000, thin = 10)
-trace = sampler.get_trace(burn = 1000, thin = 10)
+<pre><code>python calibration.py plot-autocorr --pft=1 --burn=1000 --thin=10
 </code></pre>
-<p>A thinned posterior can be exported from the command line:</p>
-<pre><code>python calibration.py export-bplut output.csv --burn=1000 --thin=10
+<p>A thinned posterior can be exported from the command line, e.g.:</p>
+<pre><code>python calibration.py export-posterior ET &lt;parameter_name&gt;
+    output.h5 --burn=1000 --thin=10
+</code></pre>
+<p>NOTE: If using k-folds cross-validation, add the following option to any
+command, where K is the number of folds:</p>
+<pre><code>--k-folds=K
 </code></pre>
 <p><strong>The Cal-Val dataset</strong> is a single HDF5 file that contains all the input
 variables necessary to drive MOD16 as well as the observed latent heat fluxes
 against which the model is calibrated. The HDF5 file specification is as
 follows, where the shape of multidimensional arrays is given in terms of
-T, the number of time steps (days); N, the number of tower sites; and P,
-a sub-grid of MODIS pixels surrounding a tower:</p>
+T, the number of time steps (days); N, the number of tower sites; L, the
+number of land-cover types (PFTs); and P, a sub-grid of MODIS pixels
+surrounding a tower:</p>
 <pre><code>FLUXNET/
   SEB               -- (T x N) Surface energy balance, from tower data
   air_temperature   -- (T x N) Air temperatures reported at the tower
-  latent_heat       -- (T x N) Observed latent heat flux [W m-2]
+  *latent_heat      -- (T x N) Observed latent heat flux [W m-2]
   site_id           -- (N) Unique identifier for each site, e.g., "US-BZS"
-  validation_mask   -- (T x N) Indicates what site-days are reserved
-
-MERRA2/
-  LWGNT             -- (T x N) Net long-wave radiation, 24-hr mean [W m-2]
-  LWGNT_daytime     -- (T x N) ... for daytime hours only
-  LWGNT_nighttime   -- (T x N) ... for nighttime hours only
-  PS                -- (T x N) Surface air pressure [Pa]
-  PS_daytime        -- (T x N) ... for daytime hours only
-  PS_nighttime      -- (T x N) ... for nighttime hours only
-  QV10M             -- (T x N) Water vapor mixing ratio at 10-meter height
-  QV10M_daytime     -- (T x N) ... for daytime hours only
-  QV10M_nighttime   -- (T x N) ... for nighttime hours only
-  SWGDN             -- (T x N) Down-welling short-wave radiation [W m-2]
-  SWGDN_daytime     -- (T x N) ... for daytime hours only
-  SWGDN_nighttime   -- (T x N) ... for nighttime hours only
-  T10M              -- (T x N) Air temperature at 10-meter height [deg C]
-  T10M_daytime      -- (T x N) ... for daytime hours only
-  T10M_nighttime    -- (T x N) ... for nighttime hours only
-  Tmin              -- (T x N) Daily minimum air temperature [deg C]
-
+</code></pre>
+<p>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD
+validation_mask
+&ndash; (T x N) Indicates what site-days are reserved</p>
+<pre><code>MERRA2/
+</code></pre>
+<p>=======
+validation_mask
+&ndash; (L x T x N) Indicates what site-days are reserved</p>
+<pre><code>*MERRA2/
+</code></pre>
+<blockquote>
+<blockquote>
+<blockquote>
+<blockquote>
+<blockquote>
+<blockquote>
+<blockquote>
+<p>master
+LWGNT
+&ndash; (T x N) Net long-wave radiation, 24-hr mean [W m-2]
+LWGNT_daytime
+&ndash; (T x N) &hellip; for daytime hours only
+LWGNT_nighttime
+&ndash; (T x N) &hellip; for nighttime hours only
+PS
+&ndash; (T x N) Surface air pressure [Pa]
+PS_daytime
+&ndash; (T x N) &hellip; for daytime hours only
+PS_nighttime
+&ndash; (T x N) &hellip; for nighttime hours only
+QV10M
+&ndash; (T x N) Water vapor mixing ratio at 10-meter height
+QV10M_daytime
+&ndash; (T x N) &hellip; for daytime hours only
+QV10M_nighttime
+&ndash; (T x N) &hellip; for nighttime hours only
+SWGDN
+&ndash; (T x N) Down-welling short-wave radiation [W m-2]
+SWGDN_daytime
+&ndash; (T x N) &hellip; for daytime hours only
+SWGDN_nighttime
+&ndash; (T x N) &hellip; for nighttime hours only
+T10M
+&ndash; (T x N) Air temperature at 10-meter height [deg C]
+T10M_daytime
+&ndash; (T x N) &hellip; for daytime hours only
+T10M_nighttime
+&ndash; (T x N) &hellip; for nighttime hours only
+Tmin
+&ndash; (T x N) Daily minimum air temperature [deg C]</p>
+</blockquote>
+</blockquote>
+</blockquote>
+</blockquote>
+</blockquote>
+</blockquote>
+</blockquote>
+<p>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD
 MODIS/
-  MCD43GF_black_sky_sw_albedo
-      -- (T x N x P) Short-wave albedo under black-sky conditions
-  MOD15A2HGF_LAI
-      -- (T x N x P) Leaf area index in scaled units (10 * [m3 m-3])
-  MOD15A2HGF_LAI_interp
-      -- (T x N x P) Daily interpolation of the MOD15A2HGF_LAI field
-  MOD15A2HGF_fPAR
-      -- (T x N x P) Fraction of photosynthetically active radiation [%]
-  MOD15A2HGF_fPAR_interp
-      -- (T x N x P) Daily interpolation of MOD15A2HGF_fPAR_interp field
-
-coordinates/
+MCD43GF_black_sky_sw_albedo
+&ndash; (T x N x P) Short-wave albedo under black-sky conditions
+MOD15A2HGF_LAI
+&ndash; (T x N x P) Leaf area index in scaled units (10 * [m3 m-3])
+MOD15A2HGF_LAI_interp
+&ndash; (T x N x P) Daily interpolation of the MOD15A2HGF_LAI field
+MOD15A2HGF_fPAR
+&ndash; (T x N x P) Fraction of photosynthetically active radiation [%]
+MOD15A2HGF_fPAR_interp
+&ndash; (T x N x P) Daily interpolation of MOD15A2HGF_fPAR_interp field
+=======
+<em>MODIS/
+</em>MCD43GF_black_sky_sw_albedo
+&ndash; (T x N x P) Short-wave albedo under black-sky conditions
+<em>MOD15A2HGF_LAI
+&ndash; (T x N x P) Leaf area index in scaled units (10 * [m3 m-3])
+</em>MOD15A2HGF_fPAR
+&ndash; (T x N x P) Fraction of photosynthetically active radiation [%]</p>
+<blockquote>
+<blockquote>
+<blockquote>
+<blockquote>
+<blockquote>
+<blockquote>
+<blockquote>
+<p>master</p>
+</blockquote>
+</blockquote>
+</blockquote>
+</blockquote>
+</blockquote>
+</blockquote>
+</blockquote>
+<pre><code>coordinates/
   lng_lat       -- (2 x N) Longitude, latitude coordinates of each tower
 
 state/
-  PFT           -- (N x P) The plant functional type (PFT) of each pixel
-  PFT_dominant  -- (N) The majority PFT at each tower
+  *PFT          -- (N x P) The plant functional type (PFT) of each pixel
   elevation_m   -- (N) The elevation in meters above sea level
 
 time            -- (T x 3) The Year, Month, Day of each daily time step
 weights         -- (N) A number between 0 and 1 used to down-weight towers
 </code></pre>
+<h1 id="head">&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD</h1>
+<p>NOTE: A star, <code>*</code>, indicates that this dataset or group's name can be changed
+in the configuration file. All others are currently required to match this
+specification exactly.</p>
+<blockquote>
+<blockquote>
+<blockquote>
+<blockquote>
+<blockquote>
+<blockquote>
+<blockquote>
+<p>master</p>
+</blockquote>
+</blockquote>
+</blockquote>
+</blockquote>
+</blockquote>
+</blockquote>
+</blockquote>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -114,11 +204,16 @@ Calibration of MOD16 against a representative, global eddy covariance (EC)
 flux tower network. The model calibration is based on Markov-Chain Monte
 Carlo (MCMC). Example use:
 
-    python calibration.py tune --pft=1
+    # For a single run with the configured number of chains
+    python calibration.py tune --pft=1 --config=&#34;my_config.yaml&#34;
+
+    # For a 3-folds cross-validation
+    python calibration.py tune --pft=1 --config=&#34;my_config.yaml&#34; --k-folds=3
 
 The general calibration protocol used here involves:
 
-1. Check how well the chain(s) are mixing by running short:
+1. Check how well the chain(s) are mixing by running short, e.g., only 5000
+draws from the posterior:
 `python calibration.py tune 1 --draws=5000`
 2. If any chain is &#34;sticky,&#34; run a short chain while tuning the jump scale:
 `python calibration.py tune 1 --tune=scaling --draws=5000`
@@ -128,32 +223,47 @@ tuning on `lambda` (default) instead, e.g.:
 `python calibration.py tune 1 --scaling=1e-2 --draws=5000`
 4. When the right jump scale is found, run a chain at the desired length.
 
+Instead of changing `draws` and `scaling` at the command line, as above, you
+could change these parameters in the configuration file.
+
 Once a good mixture is obtained, it is necessary to prune the samples to
 eliminate autocorrelation, e.g., in Python:
 
-    sampler = MOD16StochasticSampler(...)
-    sampler.plot_autocorr(burn = 1000, thin = 10)
-    trace = sampler.get_trace(burn = 1000, thin = 10)
+    python calibration.py plot-autocorr --pft=1 --burn=1000 --thin=10
 
-A thinned posterior can be exported from the command line:
+A thinned posterior can be exported from the command line, e.g.:
 
-    python calibration.py export-bplut output.csv --burn=1000 --thin=10
+    python calibration.py export-posterior ET &lt;parameter_name&gt;
+        output.h5 --burn=1000 --thin=10
+
+NOTE: If using k-folds cross-validation, add the following option to any
+command, where K is the number of folds:
+
+    --k-folds=K
 
 **The Cal-Val dataset** is a single HDF5 file that contains all the input
 variables necessary to drive MOD16 as well as the observed latent heat fluxes
 against which the model is calibrated. The HDF5 file specification is as
 follows, where the shape of multidimensional arrays is given in terms of
-T, the number of time steps (days); N, the number of tower sites; and P,
-a sub-grid of MODIS pixels surrounding a tower:
+T, the number of time steps (days); N, the number of tower sites; L, the
+number of land-cover types (PFTs); and P, a sub-grid of MODIS pixels
+surrounding a tower:
+
 
     FLUXNET/
       SEB               -- (T x N) Surface energy balance, from tower data
       air_temperature   -- (T x N) Air temperatures reported at the tower
-      latent_heat       -- (T x N) Observed latent heat flux [W m-2]
+      *latent_heat      -- (T x N) Observed latent heat flux [W m-2]
       site_id           -- (N) Unique identifier for each site, e.g., &#34;US-BZS&#34;
+&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD
       validation_mask   -- (T x N) Indicates what site-days are reserved
 
     MERRA2/
+=======
+      validation_mask   -- (L x T x N) Indicates what site-days are reserved
+
+    *MERRA2/
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; master
       LWGNT             -- (T x N) Net long-wave radiation, 24-hr mean [W m-2]
       LWGNT_daytime     -- (T x N) ... for daytime hours only
       LWGNT_nighttime   -- (T x N) ... for nighttime hours only
@@ -171,6 +281,7 @@ a sub-grid of MODIS pixels surrounding a tower:
       T10M_nighttime    -- (T x N) ... for nighttime hours only
       Tmin              -- (T x N) Daily minimum air temperature [deg C]
 
+&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD
     MODIS/
       MCD43GF_black_sky_sw_albedo
           -- (T x N x P) Short-wave albedo under black-sky conditions
@@ -182,26 +293,42 @@ a sub-grid of MODIS pixels surrounding a tower:
           -- (T x N x P) Fraction of photosynthetically active radiation [%]
       MOD15A2HGF_fPAR_interp
           -- (T x N x P) Daily interpolation of MOD15A2HGF_fPAR_interp field
+=======
+    *MODIS/
+      *MCD43GF_black_sky_sw_albedo
+          -- (T x N x P) Short-wave albedo under black-sky conditions
+      *MOD15A2HGF_LAI
+          -- (T x N x P) Leaf area index in scaled units (10 * [m3 m-3])
+      *MOD15A2HGF_fPAR
+          -- (T x N x P) Fraction of photosynthetically active radiation [%]
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; master
 
     coordinates/
       lng_lat       -- (2 x N) Longitude, latitude coordinates of each tower
 
     state/
-      PFT           -- (N x P) The plant functional type (PFT) of each pixel
-      PFT_dominant  -- (N) The majority PFT at each tower
+      *PFT          -- (N x P) The plant functional type (PFT) of each pixel
       elevation_m   -- (N) The elevation in meters above sea level
 
     time            -- (T x 3) The Year, Month, Day of each daily time step
     weights         -- (N) A number between 0 and 1 used to down-weight towers
+&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD
+=======
+
+
+NOTE: A star, `*`, indicates that this dataset or group&#39;s name can be changed
+in the configuration file. All others are currently required to match this
+specification exactly.
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; master
 &#39;&#39;&#39;
 
 import datetime
-import json
+import yaml
 import os
 import numpy as np
 import h5py
 import pymc as pm
-import aesara.tensor as at
+import pytensor.tensor as pt
 import arviz as az
 import mod16
 from multiprocessing import get_context, set_start_method
@@ -211,7 +338,6 @@ from scipy import signal
 from matplotlib import pyplot
 from mod16 import MOD16
 from mod16.utils import restore_bplut, pft_dominant
-from mod17 import PFT_VALID
 from mod17.calibration import BlackBoxLikelihood, StochasticSampler
 
 MOD16_DIR = os.path.dirname(mod16.__file__)
@@ -262,6 +388,18 @@ class MOD16StochasticSampler(StochasticSampler):
         Creates a new ET model based on the prior distribution. Model can be
         re-compiled multiple times, e.g., for cross validation.
 
+        There are two attributes that are set on the sampler when it is
+        initialized that could be helpful here:
+
+            self.priors
+            self.bounds
+
+        `self.priors` is a dict with a key for each parameter that has
+        informative priors. For parameters with a non-informative (Uniform)
+        prior, `self.bounds` is a similar dict (with a key for each parameter)
+        that describes the lower and upper bounds of the Uniform prior, but
+        this is deprecated.
+
         Parameters
         ----------
         observed : Sequence
@@ -288,21 +426,21 @@ class MOD16StochasticSampler(StochasticSampler):
             tmin_open = self.params[&#39;tmin_open&#39;]
             vpd_open = self.params[&#39;vpd_open&#39;]
             vpd_close = self.params[&#39;vpd_close&#39;]
-            gl_sh =       pm.Triangular(&#39;gl_sh&#39;, **self.prior[&#39;gl_sh&#39;])
-            gl_wv =       pm.Triangular(&#39;gl_wv&#39;, **self.prior[&#39;gl_wv&#39;])
+            gl_sh =       pm.LogNormal(&#39;gl_sh&#39;, **self.prior[&#39;gl_sh&#39;])
+            gl_wv =       pm.LogNormal(&#39;gl_wv&#39;, **self.prior[&#39;gl_wv&#39;])
             g_cuticular = pm.LogNormal(
                 &#39;g_cuticular&#39;, **self.prior[&#39;g_cuticular&#39;])
             csl =         pm.LogNormal(&#39;csl&#39;, **self.prior[&#39;csl&#39;])
-            rbl_min =     pm.Triangular(&#39;rbl_min&#39;, **self.prior[&#39;rbl_min&#39;])
-            rbl_max =     pm.Triangular(&#39;rbl_max&#39;, **self.prior[&#39;rbl_max&#39;])
-            beta =        pm.Triangular(&#39;beta&#39;, **self.prior[&#39;beta&#39;])
+            rbl_min =     pm.Uniform(&#39;rbl_min&#39;, **self.prior[&#39;rbl_min&#39;])
+            rbl_max =     pm.Uniform(&#39;rbl_max&#39;, **self.prior[&#39;rbl_max&#39;])
+            beta =        pm.Uniform(&#39;beta&#39;, **self.prior[&#39;beta&#39;])
             # (Stochstic) Priors for unknown model parameters
             # Convert model parameters to a tensor vector
             params_list = [
                 tmin_close, tmin_open, vpd_open, vpd_close, gl_sh, gl_wv,
                 g_cuticular, csl, rbl_min, rbl_max, beta
             ]
-            params = at.as_tensor_variable(params_list)
+            params = pt.as_tensor_variable(params_list)
             # Key step: Define the log-likelihood as an added potential
             pm.Potential(&#39;likelihood&#39;, log_likelihood(params))
         return model
@@ -310,17 +448,28 @@ class MOD16StochasticSampler(StochasticSampler):
 
 class CalibrationAPI(object):
     &#39;&#39;&#39;
-    Convenience class for calibrating the MOD17 GPP and NPP models. Meant to
-    be used with `fire.Fire()`.
+    Convenience class for calibrating the MOD16 ET model. Meant to be used
+    at the command line, in combination with the option to specify a
+    configuration file:
+
+        --config=my_configuration.yaml
+
+    For example, to run calibration for PFT 1, you would write:
+
+        python calibration.py tune --pft=1 --config=my_configuration.yaml
+
+    If `--config` is not provided, the default configuration file,
+    `mod16/MOD16_calibration_config.yaml` will be used.
     &#39;&#39;&#39;
 
     def __init__(self, config = None):
         config_file = config
         if config_file is None:
             config_file = os.path.join(
-                MOD16_DIR, &#39;data/MOD16_calibration_config.json&#39;)
+                MOD16_DIR, &#39;data/MOD16_calibration_config.yaml&#39;)
+        print(f&#39;Using configuration file: &#34;{config_file}&#34;&#39;)
         with open(config_file, &#39;r&#39;) as file:
-            self.config = json.load(file)
+            self.config = yaml.safe_load(file)
         self.hdf5 = self.config[&#39;data&#39;][&#39;file&#39;]
 
     def _filter(self, raw: Sequence, size: int):
@@ -331,11 +480,113 @@ class CalibrationAPI(object):
                 lambda x: signal.filtfilt(window, np.ones(1), x), 0, raw)
         return raw # Or, revert to the raw data
 
+    def _load_data(self, pft: int):
+        &#39;Read in driver datasets from the HDF5 file&#39;
+        with h5py.File(self.hdf5, &#39;r&#39;) as hdf:
+            sites = hdf[&#39;FLUXNET/site_id&#39;][:].tolist()
+            if hasattr(sites[0], &#39;decode&#39;):
+                sites = [s.decode(&#39;utf-8&#39;) for s in sites]
+            # Number of time steps
+            nsteps = hdf[&#39;time&#39;].shape[0]
+            # In case some tower sites should not be used
+            blacklist = self.config[&#39;data&#39;][&#39;sites_blacklisted&#39;]
+            # Get dominant PFT across a potentially heterogenous sub-grid,
+            #   centered on the eddy covariance flux tower, UNLESS we have a
+            #   dynamic land-cover map, in which case it is assumed
+            #   (required) that there is only one PFT value per site
+            pft_array = hdf[self.config[&#39;data&#39;][&#39;class_map&#39;]][:]
+            if self.config[&#39;data&#39;][&#39;classes_are_dynamic&#39;]:
+                pft_map = pft_array.copy()
+                # Also, ensure the blacklist matches the shape of this mask;
+                #   i.e., blacklisted sites should NEVER be used
+                if blacklist is not None:
+                    if len(blacklist) &gt; 0:
+                        blacklist = np.array(blacklist)
+                        blacklist[None,:].repeat(pft_map.shape[0], axis = 0)
+            else:
+                # For a static PFT map, sub-site land-cover heterogeneity is
+                #   allowed; get the dominant (single) PFT at each site
+                pft_map = pft_dominant(pft_array, site_list = sites)
+                # But do create a (T x N) selection mask
+                pft_map = pft_map[np.newaxis,:].repeat(nsteps, axis = 0)
+
+            # Get a binary mask that indicates which tower-days should be used
+            #   to calibrate the current PFT class
+            if blacklist is not None:
+                pft_mask = np.logical_and(
+                    pft_map == pft, ~np.in1d(sites, blacklist))
+            else:
+                pft_mask = pft_map == pft
+            if self.config[&#39;data&#39;][&#39;classes_are_dynamic&#39;]:
+                assert pft_mask.ndim == 2 and pft_mask.shape[0] == nsteps,\
+                    &#39;Configuration setting &#34;classes_are_dynamic&#34; implies the &#34;class_map&#34; should be (T x N) but it is not&#39;
+
+            # Get tower weights, for when towers are too close together
+            weights = hdf[&#39;weights&#39;][:]
+            # If only a single value is given for each site, repeat the weight
+            #   along the time axis
+            if weights.ndim == 1:
+                weights = weights[None,:].repeat(nsteps, axis = 0)[pft_mask]
+
+            # Read in tower observations
+            tower_obs = hdf[&#39;FLUXNET/latent_heat&#39;][:][pft_mask]
+            # Read the validation mask; mask out observations that are
+            #   reserved for validation
+            print(&#39;Masking out validation data...&#39;)
+            mask = hdf[&#39;FLUXNET/validation_mask&#39;][pft]
+            tower_obs[mask] = np.nan
+
+            # Read in driver datasets0
+            print(&#39;Loading driver datasets...&#39;)
+            group = self.config[&#39;data&#39;][&#39;met_group&#39;]
+            lw_net_day = hdf[f&#39;{group}/LWGNT_daytime&#39;][:][pft_mask]
+            lw_net_night = hdf[f&#39;{group}/LWGNT_nighttime&#39;][:][pft_mask]
+            sw_albedo = hdf[self.config[&#39;data&#39;][&#39;datasets&#39;][&#39;albedo&#39;]][:][pft_mask]
+            sw_rad_day = hdf[f&#39;{group}/SWGDN_daytime&#39;][:][pft_mask]
+            sw_rad_night = hdf[f&#39;{group}/SWGDN_nighttime&#39;][:][pft_mask]
+            temp_day = hdf[f&#39;{group}/T10M_daytime&#39;][:][pft_mask]
+            temp_night = hdf[f&#39;{group}/T10M_nighttime&#39;][:][pft_mask]
+            tmin = hdf[f&#39;{group}/Tmin&#39;][:][pft_mask]
+            # As long as the time series is balanced w.r.t. years (i.e., same
+            #   number of records per year), the overall mean is the annual mean
+            temp_annual = hdf[f&#39;{group}/T10M&#39;][:][pft_mask].mean(axis = 0)
+            vpd_day = MOD16.vpd(
+                hdf[f&#39;{group}/QV10M_daytime&#39;][:][pft_mask],
+                hdf[f&#39;{group}/PS_daytime&#39;][:][pft_mask],
+                temp_day)
+            vpd_night = MOD16.vpd(
+                hdf[f&#39;{group}/QV10M_nighttime&#39;][:][pft_mask],
+                hdf[f&#39;{group}/PS_nighttime&#39;][:][pft_mask],
+                temp_night)
+            pressure = hdf[f&#39;{group}/PS&#39;][:][pft_mask]
+            # Read in fPAR, LAI, and convert from (%) to [0,1]
+            fpar = hdf[self.config[&#39;data&#39;][&#39;datasets&#39;][&#39;fPAR&#39;]][:][pft_mask]
+            lai = hdf[self.config[&#39;data&#39;][&#39;datasets&#39;][&#39;LAI&#39;]][:][pft_mask]
+            # If a heterogeneous sub-grid is used at each tower (i.e., there
+            #   is a third axis to these datasets), then average over that
+            #   sub-grid
+            if sw_albedo.ndim == 2 and fpar.ndim == 2 and lai.ndim == 2:
+                sw_albedo = np.nanmean(sw_albedo, axis = -1)
+                fpar = np.nanmean(fpar, axis = -1)
+                lai = np.nanmean(lai, axis = -1)
+            # Convert fPAR from (%) to [0,1] and re-scale LAI; reshape fPAR and LAI
+            fpar /= 100
+            lai /= 10
+
+        # Compile driver datasets
+        drivers = [
+            lw_net_day, lw_net_night, sw_rad_day, sw_rad_night, sw_albedo,
+            temp_day, temp_night, temp_annual, tmin, vpd_day, vpd_night,
+            pressure, fpar, lai
+        ]
+        return (tower_obs, drivers, weights)
+
     def clean_observed(
             self, raw: Sequence, drivers: Sequence, protocol: str = &#39;ET&#39;,
             filter_length: int = 2) -&gt; Sequence:
         &#39;&#39;&#39;
         Cleans observed tower flux data according to a prescribed protocol.
+        NOT intended to be called from the command line.
 
         Parameters
         ----------
@@ -364,7 +615,7 @@ class CalibrationAPI(object):
         Parameters
         ----------
         model : str
-            The name of the model (&#34;GPP&#34; or &#34;NPP&#34;)
+            The name of the model (only &#34;ET&#34; is supported)
         param : str
             The model parameter to export
         output_path : str
@@ -382,15 +633,14 @@ class CalibrationAPI(object):
         bplut = params_dict.copy()
         # Filter the parameters to just those for the PFT of interest
         post = []
-        for pft in PFT_VALID:
+        for pft in self.config[&#39;data&#39;][&#39;classes&#39;]:
             params = dict([(k, v[pft]) for k, v in params_dict.items()])
-            backend = self.config[&#39;optimization&#39;][&#39;backend_template&#39;] %\
-                (model, pft)
             post_by_fold = []
             for fold in range(1, k_folds + 1):
+                backend = self.config[&#39;optimization&#39;][&#39;backend_template&#39;] %\
+                    (model, pft)
                 if k_folds &gt; 1:
-                    backend = self.config[&#39;optimization&#39;][&#39;backend_template&#39;] %\
-                        (f&#39;{model}-k{fold}&#39;, pft)
+                    backend = backend[:backend.rfind(&#39;.&#39;)] + f&#39;-k{fold}&#39; + backend[backend.rfind(&#39;.&#39;):]
                 # NOTE: This value was hard-coded in the extant version of MOD16
                 if &#39;beta&#39; not in params:
                     params[&#39;beta&#39;] = 250
@@ -421,8 +671,6 @@ class CalibrationAPI(object):
         if not all([p.shape == post[0].shape for p in post]):
             max_len = max([p.shape for p in post])[0]
             # ...Reshape all posteriors to match the greatest sample size
-            import ipdb
-            ipdb.set_trace()#FIXME
             post = [
                 np.pad(
                     p.astype(np.float32), (0, max_len - p.size),
@@ -436,11 +684,47 @@ class CalibrationAPI(object):
                 f&#39;{param}_posterior&#39;, post.shape, np.float32, post)
             dataset.attrs[&#39;description&#39;] = &#39;CalibrationAPI.export_posterior() on {ts}&#39;
 
-    def tune(
-            self, pft: int, plot_trace: bool = False, ipdb: bool = False,
-            save_fig: bool = False, **kwargs):
+    def plot_autocorr(self, pft: int, k_folds: int = 1, **kwargs):
         &#39;&#39;&#39;
-        Run the MOD16 ET calibration.
+        Plot the autocorrelation in the trace for each parameter.
+
+        Parameters
+        ----------
+        pft : int
+            The numeric PFT code
+        &#39;&#39;&#39;
+        # Filter the parameters to just those for the PFT of interest
+        params_dict = restore_bplut(self.config[&#39;BPLUT&#39;][&#39;ET&#39;])
+        params_dict = dict([(k, v[pft]) for k, v in params_dict.items()])
+        backend = self.config[&#39;optimization&#39;][&#39;backend_template&#39;] % (&#39;ET&#39;, pft)
+        # Use a different naming scheme for the backend
+        if k_folds &gt; 1:
+            for fold in range(1, k_folds + 1):
+                sampler = MOD16StochasticSampler(
+                    self.config, MOD16._et, params_dict,
+                    backend = backend[:backend.rfind(&#39;.&#39;)] + f&#39;-k{fold}&#39; + backend[backend.rfind(&#39;.&#39;):])
+                sampler.plot_autocorr(**kwargs, title = f&#39;Fold {fold} of {k_folds}&#39;)
+        else:
+            sampler = MOD16StochasticSampler(
+                self.config, MOD16._et, params_dict, backend = backend)
+            sampler.plot_autocorr(**kwargs)
+
+    def tune(
+            self, pft: int, plot_trace: bool = False, k_folds: int = 1,
+            ipdb: bool = False, save_fig: bool = False, **kwargs):
+        &#39;&#39;&#39;
+        Run the MOD16 ET calibration. If k-folds cross-validation is used,
+        the model is calibrated on $k$ random subsets of the data and a
+        series of file is created, e.g., as:
+
+            MOD16_ET_calibration_PFT1.h5
+            MOD16_ET_calibration_PFT1-k1.nc4
+            MOD16_ET_calibration_PFT1-k2.nc4
+            ...
+
+        Where each `.nc4` file is a standard `arviz` backend and the `.h5`
+        indicates which indices from the observations vector, after removing
+        NaNs, were excluded (i.e., the indices of the test data).
 
         Parameters
         ----------
@@ -449,6 +733,9 @@ class CalibrationAPI(object):
         plot_trace : bool
             True to plot the trace for a previous calibration run; this will
             also NOT start a new calibration (Default: False)
+        k_folds : int
+            Number of folds to use in k-folds cross-validation; defaults to
+            k=1, i.e., no cross-validation is performed.
         ipdb : bool
             True to drop the user into an ipdb prompt, prior to and instead of
             running calibration
@@ -462,9 +749,7 @@ class CalibrationAPI(object):
         NOTE that `MOD16StochasticSampler` inherits methods from the `mod17`
         module, including [run()](https://arthur-e.github.io/MOD17/calibration.html#mod17.calibration.StochasticSampler).
         &#39;&#39;&#39;
-        assert pft in PFT_VALID, f&#39;Invalid PFT: {pft}&#39;
-        # Set var_names to tell ArviZ to plot only the free parameters
-        kwargs.update({&#39;var_names&#39;: MOD16.required_parameters[4:]})
+        assert pft in self.config[&#39;data&#39;][&#39;classes&#39;], f&#39;Invalid PFT: {pft}&#39;
         # Pass configuration parameters to MOD16StochasticSampler.run()
         for key in (&#39;chains&#39;, &#39;draws&#39;, &#39;tune&#39;, &#39;scaling&#39;):
             if key in self.config[&#39;optimization&#39;].keys():
@@ -475,104 +760,100 @@ class CalibrationAPI(object):
         # NOTE: This value was hard-coded in the extant version of MOD16
         if np.isnan(params_dict[&#39;beta&#39;]):
             params_dict[&#39;beta&#39;] = 250
-        model = MOD16(params_dict)
-        with h5py.File(self.hdf5, &#39;r&#39;) as hdf:
-            sites = hdf[&#39;FLUXNET/site_id&#39;][:].tolist()
-            if hasattr(sites[0], &#39;decode&#39;):
-                sites = [s.decode(&#39;utf-8&#39;) for s in sites]
-            # Get dominant PFT
-            pft_map = pft_dominant(hdf[&#39;state/PFT&#39;][:], site_list = sites)
-            # Blacklist various sites
-            blacklist = self.config[&#39;data&#39;][&#39;sites_blacklisted&#39;]
-            pft_mask = np.logical_and(pft_map == pft, ~np.in1d(sites, blacklist))
-            weights = hdf[&#39;weights&#39;][pft_mask]
-            # Read in tower observations
-            tower_obs = hdf[&#39;FLUXNET/latent_heat&#39;][:][:,pft_mask]
-            # Read the validation mask; mask out observations that are
-            #   reserved for validation
-            print(&#39;Masking out validation data...&#39;)
-            mask = hdf[&#39;FLUXNET/validation_mask&#39;][pft]
-            tower_obs[mask] = np.nan
-            # Read start and end dates and mask data appropriately
-            timestamps = [
-                 f&#39;{y}-{str(m).zfill(2)}-{str(d).zfill(2)}&#39;
-                 for y, m, d in hdf[&#39;time&#39;][:].tolist()
-            ]
-            start = self.config[&#39;data&#39;][&#39;dates&#39;][&#39;start&#39;]
-            end = self.config[&#39;data&#39;][&#39;dates&#39;][&#39;end&#39;]
-            t0 = timestamps.index(start)
-            t1 = timestamps.index(end) + 1
-            tower_obs = tower_obs[t0:t1]
-            # Read in driver datasets
-            print(&#39;Loading driver datasets...&#39;)
-            lw_net_day = hdf[&#39;MERRA2/LWGNT_daytime&#39;][:][t0:t1,pft_mask]
-            lw_net_night = hdf[&#39;MERRA2/LWGNT_nighttime&#39;][:][t0:t1,pft_mask]
-            if self.config[&#39;optimization&#39;][&#39;platform&#39;] == &#39;VIIRS&#39;:
-                sw_albedo = hdf[&#39;VIIRS/VNP43MA3_black_sky_sw_albedo&#39;][:][t0:t1,pft_mask]
-            else:
-                sw_albedo = hdf[&#39;MODIS/MCD43GF_black_sky_sw_albedo&#39;][:][t0:t1,pft_mask]
-            sw_albedo = np.nanmean(sw_albedo, axis = -1)
-            sw_rad_day = hdf[&#39;MERRA2/SWGDN_daytime&#39;][:][t0:t1,pft_mask]
-            sw_rad_night = hdf[&#39;MERRA2/SWGDN_nighttime&#39;][:][t0:t1,pft_mask]
-            temp_day = hdf[&#39;MERRA2/T10M_daytime&#39;][:][t0:t1,pft_mask]
-            temp_night = hdf[&#39;MERRA2/T10M_nighttime&#39;][:][t0:t1,pft_mask]
-            tmin = hdf[&#39;MERRA2/Tmin&#39;][:][t0:t1,pft_mask]
-            # As long as the time series is balanced w.r.t. years (i.e., same
-            #   number of records per year), the overall mean is the annual mean
-            temp_annual = hdf[&#39;MERRA2/T10M&#39;][:][t0:t1,pft_mask].mean(axis = 0)
-            vpd_day = MOD16.vpd(
-                hdf[&#39;MERRA2/QV10M_daytime&#39;][:][t0:t1,pft_mask],
-                hdf[&#39;MERRA2/PS_daytime&#39;][:][t0:t1,pft_mask],
-                temp_day)
-            vpd_night = MOD16.vpd(
-                hdf[&#39;MERRA2/QV10M_nighttime&#39;][:][t0:t1,pft_mask],
-                hdf[&#39;MERRA2/PS_nighttime&#39;][:][t0:t1,pft_mask],
-                temp_night)
-            pressure = hdf[&#39;MERRA2/PS&#39;][:][t0:t1,pft_mask]
-            # Read in fPAR, LAI, and convert from (%) to [0,1]
-            prefix = &#39;MODIS/MOD&#39;
-            if self.config[&#39;optimization&#39;][&#39;platform&#39;] == &#39;VIIRS&#39;:
-                prefix = &#39;VIIRS/VNP&#39;
-            fpar = np.nanmean(
-                hdf[f&#39;{prefix}15A2HGF_fPAR_interp&#39;][:][t0:t1,pft_mask], axis = -1)
-            lai = np.nanmean(
-                hdf[f&#39;{prefix}15A2HGF_LAI_interp&#39;][:][t0:t1,pft_mask], axis = -1)
-            # Convert fPAR from (%) to [0,1] and re-scale LAI; reshape fPAR and LAI
-            fpar /= 100
-            lai /= 10
-        # Compile driver datasets
-        drivers = [
-            lw_net_day, lw_net_night, sw_rad_day, sw_rad_night, sw_albedo,
-            temp_day, temp_night, temp_annual, tmin, vpd_day, vpd_night,
-            pressure, fpar, lai
-        ]
-        print(&#39;Initializing sampler...&#39;)
-        backend = self.config[&#39;optimization&#39;][&#39;backend_template&#39;] % (&#39;ET&#39;, pft)
-        sampler = MOD16StochasticSampler(
-            self.config, MOD16._et, params_dict, backend = backend,
-            weights = weights)
-        if plot_trace or ipdb:
-            # This matplotlib setting prevents labels from overplotting
-            pyplot.rcParams[&#39;figure.constrained_layout.use&#39;] = True
-            trace = sampler.get_trace()
-            if ipdb:
-                import ipdb
-                ipdb.set_trace()
-            az.plot_trace(trace, var_names = MOD16.required_parameters)
-            pyplot.show()
-            return
-        tower_obs = self.clean_observed(tower_obs, drivers)
-        # Get (informative) priors for just those parameters that have them
-        with open(self.config[&#39;optimization&#39;][&#39;prior&#39;], &#39;r&#39;) as file:
-            prior = json.load(file)
-        prior_params = list(filter(
-            lambda p: p in prior.keys(), sampler.required_parameters[&#39;ET&#39;]))
-        prior = dict([
-            (p, dict([(k, v[pft]) for k, v in prior[p].items()]))
-            for p in prior_params
-        ])
-        sampler.run(
-            tower_obs, drivers, prior = prior, save_fig = save_fig, **kwargs)
+
+        tower_obs, drivers, weights = self._load_data(pft)
+
+        if k_folds &gt; 1:
+            print(f&#39;NOTE: Using k-folds CV with k={k_folds}...&#39;)
+            # Back-up the original (complete) datasets; we do this so we can
+            #   simply mask out the test samples (1/k), after restoring the
+            #   original datasets
+            _drivers = [d.copy() for d in drivers]
+            _tower_obs = tower_obs.copy()
+            _weights = weights.copy()
+            # Randomize the indices of the NPP data
+            indices = np.arange(0, tower_obs.size)
+            np.random.shuffle(indices)
+            # Get the starting and ending index of each fold
+            fold_idx = np.array([indices.size // k_folds] * k_folds) * np.arange(0, k_folds)
+            fold_idx = list(map(list, zip(fold_idx, fold_idx + indices.size // k_folds)))
+            # Ensure that the entire dataset is used; i.e., if each fold takes
+            #   slices of the indices from A to B, ensure that the last fold&#39;s
+            #   B is the final (maximum) index of the sequence
+            fold_idx[-1][-1] = indices.max()
+            idx_test = [indices[start:end] for start, end in fold_idx]
+
+        # Loop over each fold (or the entire dataset, if num. folds == 1)
+        for k, fold in enumerate(range(1, k_folds + 1)):
+            backend = self.config[&#39;optimization&#39;][&#39;backend_template&#39;] % (&#39;ET&#39;, pft)
+            if k_folds &gt; 1 and fold == 1:
+                # Create an HDF5 file with the same name as the (original)
+                #   netCDF4 back-end, store the test indices
+                with h5py.File(backend.replace(&#39;nc4&#39;, &#39;h5&#39;), &#39;w&#39;) as hdf:
+                    out = list(idx_test)
+                    size = indices.size // k_folds
+                    try:
+                        out = np.stack(out)
+                    except ValueError:
+                        size = max((o.size for o in out))
+                        for i in range(0, len(out)):
+                            out[i] = np.concatenate((out[i], [np.nan] * (size - out[i].size)))
+                    hdf.create_dataset(
+                        &#39;test_indices&#39;, (k_folds, size), np.int32, np.stack(out))
+                # Restore the original tower dataset
+                if fold &gt; 1:
+                    tower_obs = _tower_obs.copy()
+                    weights = _weights.copy()
+                # Set to NaN all the test indices
+                idx = idx_test[k]
+                tower_obs[idx] = np.nan
+                # Same for drivers, after restoring from the original
+                drivers = [
+                    d.copy()[~np.isnan(tower_obs)] if d.ndim &gt; 0 else d.copy()
+                    for d in _drivers
+                ]
+                weights = weights[~np.isnan(tower_obs)] # NOTE: Do first
+                tower_obs = tower_obs[~np.isnan(tower_obs)]
+            # Use a different naming scheme for the backend
+            if k_folds &gt; 1:
+                backend = backend[:backend.rfind(&#39;.&#39;)] + f&#39;-k{fold}&#39; + backend[backend.rfind(&#39;.&#39;):]
+
+            print(&#39;Initializing sampler...&#39;)
+            sampler = MOD16StochasticSampler(
+                self.config, MOD16._et, params_dict, backend = backend,
+                weights = weights)
+
+            # Either: Enter diagnostic mode or run the sampler
+            if plot_trace or ipdb:
+                # This matplotlib setting prevents labels from overplotting
+                pyplot.rcParams[&#39;figure.constrained_layout.use&#39;] = True
+                trace = sampler.get_trace()
+                if ipdb:
+                    import ipdb
+                    ipdb.set_trace()#FIXME
+                az.plot_trace(trace, var_names = MOD16.required_parameters)
+                pyplot.show()
+                return
+
+            # Clean the tower observations, run the sampler
+            tower_obs = self.clean_observed(tower_obs, drivers)
+            # Get (informative) priors for just those parameters that have them
+            with open(self.config[&#39;optimization&#39;][&#39;prior&#39;], &#39;r&#39;) as file:
+                prior = yaml.safe_load(file)
+            prior_params = list(filter(
+                lambda p: p in prior.keys(), sampler.required_parameters[&#39;ET&#39;]))
+            prior = dict([
+                (p, dict([(k, v[pft]) for k, v in prior[p].items()]))
+                for p in prior_params
+            ])
+            # Set var_names to tell ArviZ to plot only the free parameters; i.e.,
+            #   those with priors
+            var_names = list(filter(
+                lambda x: x in prior.keys(), MOD16.required_parameters))
+            kwargs.update({&#39;var_names&#39;: var_names})
+            sampler.run( # Only show the trace plot if not using k-folds
+                tower_obs, drivers, prior = prior, save_fig = save_fig,
+                show_fig = (k_folds == 1), **kwargs)
 
 
 if __name__ == &#39;__main__&#39;:
@@ -597,25 +878,44 @@ if __name__ == &#39;__main__&#39;:
 <span>(</span><span>config=None)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Convenience class for calibrating the MOD17 GPP and NPP models. Meant to
-be used with <code>fire.Fire()</code>.</p></div>
+<div class="desc"><p>Convenience class for calibrating the MOD16 ET model. Meant to be used
+at the command line, in combination with the option to specify a
+configuration file:</p>
+<pre><code>--config=my_configuration.yaml
+</code></pre>
+<p>For example, to run calibration for PFT 1, you would write:</p>
+<pre><code>python calibration.py tune --pft=1 --config=my_configuration.yaml
+</code></pre>
+<p>If <code>--config</code> is not provided, the default configuration file,
+<code>mod16/MOD16_calibration_config.yaml</code> will be used.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class CalibrationAPI(object):
     &#39;&#39;&#39;
-    Convenience class for calibrating the MOD17 GPP and NPP models. Meant to
-    be used with `fire.Fire()`.
+    Convenience class for calibrating the MOD16 ET model. Meant to be used
+    at the command line, in combination with the option to specify a
+    configuration file:
+
+        --config=my_configuration.yaml
+
+    For example, to run calibration for PFT 1, you would write:
+
+        python calibration.py tune --pft=1 --config=my_configuration.yaml
+
+    If `--config` is not provided, the default configuration file,
+    `mod16/MOD16_calibration_config.yaml` will be used.
     &#39;&#39;&#39;
 
     def __init__(self, config = None):
         config_file = config
         if config_file is None:
             config_file = os.path.join(
-                MOD16_DIR, &#39;data/MOD16_calibration_config.json&#39;)
+                MOD16_DIR, &#39;data/MOD16_calibration_config.yaml&#39;)
+        print(f&#39;Using configuration file: &#34;{config_file}&#34;&#39;)
         with open(config_file, &#39;r&#39;) as file:
-            self.config = json.load(file)
+            self.config = yaml.safe_load(file)
         self.hdf5 = self.config[&#39;data&#39;][&#39;file&#39;]
 
     def _filter(self, raw: Sequence, size: int):
@@ -626,11 +926,113 @@ be used with <code>fire.Fire()</code>.</p></div>
                 lambda x: signal.filtfilt(window, np.ones(1), x), 0, raw)
         return raw # Or, revert to the raw data
 
+    def _load_data(self, pft: int):
+        &#39;Read in driver datasets from the HDF5 file&#39;
+        with h5py.File(self.hdf5, &#39;r&#39;) as hdf:
+            sites = hdf[&#39;FLUXNET/site_id&#39;][:].tolist()
+            if hasattr(sites[0], &#39;decode&#39;):
+                sites = [s.decode(&#39;utf-8&#39;) for s in sites]
+            # Number of time steps
+            nsteps = hdf[&#39;time&#39;].shape[0]
+            # In case some tower sites should not be used
+            blacklist = self.config[&#39;data&#39;][&#39;sites_blacklisted&#39;]
+            # Get dominant PFT across a potentially heterogenous sub-grid,
+            #   centered on the eddy covariance flux tower, UNLESS we have a
+            #   dynamic land-cover map, in which case it is assumed
+            #   (required) that there is only one PFT value per site
+            pft_array = hdf[self.config[&#39;data&#39;][&#39;class_map&#39;]][:]
+            if self.config[&#39;data&#39;][&#39;classes_are_dynamic&#39;]:
+                pft_map = pft_array.copy()
+                # Also, ensure the blacklist matches the shape of this mask;
+                #   i.e., blacklisted sites should NEVER be used
+                if blacklist is not None:
+                    if len(blacklist) &gt; 0:
+                        blacklist = np.array(blacklist)
+                        blacklist[None,:].repeat(pft_map.shape[0], axis = 0)
+            else:
+                # For a static PFT map, sub-site land-cover heterogeneity is
+                #   allowed; get the dominant (single) PFT at each site
+                pft_map = pft_dominant(pft_array, site_list = sites)
+                # But do create a (T x N) selection mask
+                pft_map = pft_map[np.newaxis,:].repeat(nsteps, axis = 0)
+
+            # Get a binary mask that indicates which tower-days should be used
+            #   to calibrate the current PFT class
+            if blacklist is not None:
+                pft_mask = np.logical_and(
+                    pft_map == pft, ~np.in1d(sites, blacklist))
+            else:
+                pft_mask = pft_map == pft
+            if self.config[&#39;data&#39;][&#39;classes_are_dynamic&#39;]:
+                assert pft_mask.ndim == 2 and pft_mask.shape[0] == nsteps,\
+                    &#39;Configuration setting &#34;classes_are_dynamic&#34; implies the &#34;class_map&#34; should be (T x N) but it is not&#39;
+
+            # Get tower weights, for when towers are too close together
+            weights = hdf[&#39;weights&#39;][:]
+            # If only a single value is given for each site, repeat the weight
+            #   along the time axis
+            if weights.ndim == 1:
+                weights = weights[None,:].repeat(nsteps, axis = 0)[pft_mask]
+
+            # Read in tower observations
+            tower_obs = hdf[&#39;FLUXNET/latent_heat&#39;][:][pft_mask]
+            # Read the validation mask; mask out observations that are
+            #   reserved for validation
+            print(&#39;Masking out validation data...&#39;)
+            mask = hdf[&#39;FLUXNET/validation_mask&#39;][pft]
+            tower_obs[mask] = np.nan
+
+            # Read in driver datasets0
+            print(&#39;Loading driver datasets...&#39;)
+            group = self.config[&#39;data&#39;][&#39;met_group&#39;]
+            lw_net_day = hdf[f&#39;{group}/LWGNT_daytime&#39;][:][pft_mask]
+            lw_net_night = hdf[f&#39;{group}/LWGNT_nighttime&#39;][:][pft_mask]
+            sw_albedo = hdf[self.config[&#39;data&#39;][&#39;datasets&#39;][&#39;albedo&#39;]][:][pft_mask]
+            sw_rad_day = hdf[f&#39;{group}/SWGDN_daytime&#39;][:][pft_mask]
+            sw_rad_night = hdf[f&#39;{group}/SWGDN_nighttime&#39;][:][pft_mask]
+            temp_day = hdf[f&#39;{group}/T10M_daytime&#39;][:][pft_mask]
+            temp_night = hdf[f&#39;{group}/T10M_nighttime&#39;][:][pft_mask]
+            tmin = hdf[f&#39;{group}/Tmin&#39;][:][pft_mask]
+            # As long as the time series is balanced w.r.t. years (i.e., same
+            #   number of records per year), the overall mean is the annual mean
+            temp_annual = hdf[f&#39;{group}/T10M&#39;][:][pft_mask].mean(axis = 0)
+            vpd_day = MOD16.vpd(
+                hdf[f&#39;{group}/QV10M_daytime&#39;][:][pft_mask],
+                hdf[f&#39;{group}/PS_daytime&#39;][:][pft_mask],
+                temp_day)
+            vpd_night = MOD16.vpd(
+                hdf[f&#39;{group}/QV10M_nighttime&#39;][:][pft_mask],
+                hdf[f&#39;{group}/PS_nighttime&#39;][:][pft_mask],
+                temp_night)
+            pressure = hdf[f&#39;{group}/PS&#39;][:][pft_mask]
+            # Read in fPAR, LAI, and convert from (%) to [0,1]
+            fpar = hdf[self.config[&#39;data&#39;][&#39;datasets&#39;][&#39;fPAR&#39;]][:][pft_mask]
+            lai = hdf[self.config[&#39;data&#39;][&#39;datasets&#39;][&#39;LAI&#39;]][:][pft_mask]
+            # If a heterogeneous sub-grid is used at each tower (i.e., there
+            #   is a third axis to these datasets), then average over that
+            #   sub-grid
+            if sw_albedo.ndim == 2 and fpar.ndim == 2 and lai.ndim == 2:
+                sw_albedo = np.nanmean(sw_albedo, axis = -1)
+                fpar = np.nanmean(fpar, axis = -1)
+                lai = np.nanmean(lai, axis = -1)
+            # Convert fPAR from (%) to [0,1] and re-scale LAI; reshape fPAR and LAI
+            fpar /= 100
+            lai /= 10
+
+        # Compile driver datasets
+        drivers = [
+            lw_net_day, lw_net_night, sw_rad_day, sw_rad_night, sw_albedo,
+            temp_day, temp_night, temp_annual, tmin, vpd_day, vpd_night,
+            pressure, fpar, lai
+        ]
+        return (tower_obs, drivers, weights)
+
     def clean_observed(
             self, raw: Sequence, drivers: Sequence, protocol: str = &#39;ET&#39;,
             filter_length: int = 2) -&gt; Sequence:
         &#39;&#39;&#39;
         Cleans observed tower flux data according to a prescribed protocol.
+        NOT intended to be called from the command line.
 
         Parameters
         ----------
@@ -659,7 +1061,7 @@ be used with <code>fire.Fire()</code>.</p></div>
         Parameters
         ----------
         model : str
-            The name of the model (&#34;GPP&#34; or &#34;NPP&#34;)
+            The name of the model (only &#34;ET&#34; is supported)
         param : str
             The model parameter to export
         output_path : str
@@ -677,15 +1079,14 @@ be used with <code>fire.Fire()</code>.</p></div>
         bplut = params_dict.copy()
         # Filter the parameters to just those for the PFT of interest
         post = []
-        for pft in PFT_VALID:
+        for pft in self.config[&#39;data&#39;][&#39;classes&#39;]:
             params = dict([(k, v[pft]) for k, v in params_dict.items()])
-            backend = self.config[&#39;optimization&#39;][&#39;backend_template&#39;] %\
-                (model, pft)
             post_by_fold = []
             for fold in range(1, k_folds + 1):
+                backend = self.config[&#39;optimization&#39;][&#39;backend_template&#39;] %\
+                    (model, pft)
                 if k_folds &gt; 1:
-                    backend = self.config[&#39;optimization&#39;][&#39;backend_template&#39;] %\
-                        (f&#39;{model}-k{fold}&#39;, pft)
+                    backend = backend[:backend.rfind(&#39;.&#39;)] + f&#39;-k{fold}&#39; + backend[backend.rfind(&#39;.&#39;):]
                 # NOTE: This value was hard-coded in the extant version of MOD16
                 if &#39;beta&#39; not in params:
                     params[&#39;beta&#39;] = 250
@@ -716,8 +1117,6 @@ be used with <code>fire.Fire()</code>.</p></div>
         if not all([p.shape == post[0].shape for p in post]):
             max_len = max([p.shape for p in post])[0]
             # ...Reshape all posteriors to match the greatest sample size
-            import ipdb
-            ipdb.set_trace()#FIXME
             post = [
                 np.pad(
                     p.astype(np.float32), (0, max_len - p.size),
@@ -731,11 +1130,47 @@ be used with <code>fire.Fire()</code>.</p></div>
                 f&#39;{param}_posterior&#39;, post.shape, np.float32, post)
             dataset.attrs[&#39;description&#39;] = &#39;CalibrationAPI.export_posterior() on {ts}&#39;
 
-    def tune(
-            self, pft: int, plot_trace: bool = False, ipdb: bool = False,
-            save_fig: bool = False, **kwargs):
+    def plot_autocorr(self, pft: int, k_folds: int = 1, **kwargs):
         &#39;&#39;&#39;
-        Run the MOD16 ET calibration.
+        Plot the autocorrelation in the trace for each parameter.
+
+        Parameters
+        ----------
+        pft : int
+            The numeric PFT code
+        &#39;&#39;&#39;
+        # Filter the parameters to just those for the PFT of interest
+        params_dict = restore_bplut(self.config[&#39;BPLUT&#39;][&#39;ET&#39;])
+        params_dict = dict([(k, v[pft]) for k, v in params_dict.items()])
+        backend = self.config[&#39;optimization&#39;][&#39;backend_template&#39;] % (&#39;ET&#39;, pft)
+        # Use a different naming scheme for the backend
+        if k_folds &gt; 1:
+            for fold in range(1, k_folds + 1):
+                sampler = MOD16StochasticSampler(
+                    self.config, MOD16._et, params_dict,
+                    backend = backend[:backend.rfind(&#39;.&#39;)] + f&#39;-k{fold}&#39; + backend[backend.rfind(&#39;.&#39;):])
+                sampler.plot_autocorr(**kwargs, title = f&#39;Fold {fold} of {k_folds}&#39;)
+        else:
+            sampler = MOD16StochasticSampler(
+                self.config, MOD16._et, params_dict, backend = backend)
+            sampler.plot_autocorr(**kwargs)
+
+    def tune(
+            self, pft: int, plot_trace: bool = False, k_folds: int = 1,
+            ipdb: bool = False, save_fig: bool = False, **kwargs):
+        &#39;&#39;&#39;
+        Run the MOD16 ET calibration. If k-folds cross-validation is used,
+        the model is calibrated on $k$ random subsets of the data and a
+        series of file is created, e.g., as:
+
+            MOD16_ET_calibration_PFT1.h5
+            MOD16_ET_calibration_PFT1-k1.nc4
+            MOD16_ET_calibration_PFT1-k2.nc4
+            ...
+
+        Where each `.nc4` file is a standard `arviz` backend and the `.h5`
+        indicates which indices from the observations vector, after removing
+        NaNs, were excluded (i.e., the indices of the test data).
 
         Parameters
         ----------
@@ -744,6 +1179,9 @@ be used with <code>fire.Fire()</code>.</p></div>
         plot_trace : bool
             True to plot the trace for a previous calibration run; this will
             also NOT start a new calibration (Default: False)
+        k_folds : int
+            Number of folds to use in k-folds cross-validation; defaults to
+            k=1, i.e., no cross-validation is performed.
         ipdb : bool
             True to drop the user into an ipdb prompt, prior to and instead of
             running calibration
@@ -757,9 +1195,7 @@ be used with <code>fire.Fire()</code>.</p></div>
         NOTE that `MOD16StochasticSampler` inherits methods from the `mod17`
         module, including [run()](https://arthur-e.github.io/MOD17/calibration.html#mod17.calibration.StochasticSampler).
         &#39;&#39;&#39;
-        assert pft in PFT_VALID, f&#39;Invalid PFT: {pft}&#39;
-        # Set var_names to tell ArviZ to plot only the free parameters
-        kwargs.update({&#39;var_names&#39;: MOD16.required_parameters[4:]})
+        assert pft in self.config[&#39;data&#39;][&#39;classes&#39;], f&#39;Invalid PFT: {pft}&#39;
         # Pass configuration parameters to MOD16StochasticSampler.run()
         for key in (&#39;chains&#39;, &#39;draws&#39;, &#39;tune&#39;, &#39;scaling&#39;):
             if key in self.config[&#39;optimization&#39;].keys():
@@ -770,104 +1206,100 @@ be used with <code>fire.Fire()</code>.</p></div>
         # NOTE: This value was hard-coded in the extant version of MOD16
         if np.isnan(params_dict[&#39;beta&#39;]):
             params_dict[&#39;beta&#39;] = 250
-        model = MOD16(params_dict)
-        with h5py.File(self.hdf5, &#39;r&#39;) as hdf:
-            sites = hdf[&#39;FLUXNET/site_id&#39;][:].tolist()
-            if hasattr(sites[0], &#39;decode&#39;):
-                sites = [s.decode(&#39;utf-8&#39;) for s in sites]
-            # Get dominant PFT
-            pft_map = pft_dominant(hdf[&#39;state/PFT&#39;][:], site_list = sites)
-            # Blacklist various sites
-            blacklist = self.config[&#39;data&#39;][&#39;sites_blacklisted&#39;]
-            pft_mask = np.logical_and(pft_map == pft, ~np.in1d(sites, blacklist))
-            weights = hdf[&#39;weights&#39;][pft_mask]
-            # Read in tower observations
-            tower_obs = hdf[&#39;FLUXNET/latent_heat&#39;][:][:,pft_mask]
-            # Read the validation mask; mask out observations that are
-            #   reserved for validation
-            print(&#39;Masking out validation data...&#39;)
-            mask = hdf[&#39;FLUXNET/validation_mask&#39;][pft]
-            tower_obs[mask] = np.nan
-            # Read start and end dates and mask data appropriately
-            timestamps = [
-                 f&#39;{y}-{str(m).zfill(2)}-{str(d).zfill(2)}&#39;
-                 for y, m, d in hdf[&#39;time&#39;][:].tolist()
-            ]
-            start = self.config[&#39;data&#39;][&#39;dates&#39;][&#39;start&#39;]
-            end = self.config[&#39;data&#39;][&#39;dates&#39;][&#39;end&#39;]
-            t0 = timestamps.index(start)
-            t1 = timestamps.index(end) + 1
-            tower_obs = tower_obs[t0:t1]
-            # Read in driver datasets
-            print(&#39;Loading driver datasets...&#39;)
-            lw_net_day = hdf[&#39;MERRA2/LWGNT_daytime&#39;][:][t0:t1,pft_mask]
-            lw_net_night = hdf[&#39;MERRA2/LWGNT_nighttime&#39;][:][t0:t1,pft_mask]
-            if self.config[&#39;optimization&#39;][&#39;platform&#39;] == &#39;VIIRS&#39;:
-                sw_albedo = hdf[&#39;VIIRS/VNP43MA3_black_sky_sw_albedo&#39;][:][t0:t1,pft_mask]
-            else:
-                sw_albedo = hdf[&#39;MODIS/MCD43GF_black_sky_sw_albedo&#39;][:][t0:t1,pft_mask]
-            sw_albedo = np.nanmean(sw_albedo, axis = -1)
-            sw_rad_day = hdf[&#39;MERRA2/SWGDN_daytime&#39;][:][t0:t1,pft_mask]
-            sw_rad_night = hdf[&#39;MERRA2/SWGDN_nighttime&#39;][:][t0:t1,pft_mask]
-            temp_day = hdf[&#39;MERRA2/T10M_daytime&#39;][:][t0:t1,pft_mask]
-            temp_night = hdf[&#39;MERRA2/T10M_nighttime&#39;][:][t0:t1,pft_mask]
-            tmin = hdf[&#39;MERRA2/Tmin&#39;][:][t0:t1,pft_mask]
-            # As long as the time series is balanced w.r.t. years (i.e., same
-            #   number of records per year), the overall mean is the annual mean
-            temp_annual = hdf[&#39;MERRA2/T10M&#39;][:][t0:t1,pft_mask].mean(axis = 0)
-            vpd_day = MOD16.vpd(
-                hdf[&#39;MERRA2/QV10M_daytime&#39;][:][t0:t1,pft_mask],
-                hdf[&#39;MERRA2/PS_daytime&#39;][:][t0:t1,pft_mask],
-                temp_day)
-            vpd_night = MOD16.vpd(
-                hdf[&#39;MERRA2/QV10M_nighttime&#39;][:][t0:t1,pft_mask],
-                hdf[&#39;MERRA2/PS_nighttime&#39;][:][t0:t1,pft_mask],
-                temp_night)
-            pressure = hdf[&#39;MERRA2/PS&#39;][:][t0:t1,pft_mask]
-            # Read in fPAR, LAI, and convert from (%) to [0,1]
-            prefix = &#39;MODIS/MOD&#39;
-            if self.config[&#39;optimization&#39;][&#39;platform&#39;] == &#39;VIIRS&#39;:
-                prefix = &#39;VIIRS/VNP&#39;
-            fpar = np.nanmean(
-                hdf[f&#39;{prefix}15A2HGF_fPAR_interp&#39;][:][t0:t1,pft_mask], axis = -1)
-            lai = np.nanmean(
-                hdf[f&#39;{prefix}15A2HGF_LAI_interp&#39;][:][t0:t1,pft_mask], axis = -1)
-            # Convert fPAR from (%) to [0,1] and re-scale LAI; reshape fPAR and LAI
-            fpar /= 100
-            lai /= 10
-        # Compile driver datasets
-        drivers = [
-            lw_net_day, lw_net_night, sw_rad_day, sw_rad_night, sw_albedo,
-            temp_day, temp_night, temp_annual, tmin, vpd_day, vpd_night,
-            pressure, fpar, lai
-        ]
-        print(&#39;Initializing sampler...&#39;)
-        backend = self.config[&#39;optimization&#39;][&#39;backend_template&#39;] % (&#39;ET&#39;, pft)
-        sampler = MOD16StochasticSampler(
-            self.config, MOD16._et, params_dict, backend = backend,
-            weights = weights)
-        if plot_trace or ipdb:
-            # This matplotlib setting prevents labels from overplotting
-            pyplot.rcParams[&#39;figure.constrained_layout.use&#39;] = True
-            trace = sampler.get_trace()
-            if ipdb:
-                import ipdb
-                ipdb.set_trace()
-            az.plot_trace(trace, var_names = MOD16.required_parameters)
-            pyplot.show()
-            return
-        tower_obs = self.clean_observed(tower_obs, drivers)
-        # Get (informative) priors for just those parameters that have them
-        with open(self.config[&#39;optimization&#39;][&#39;prior&#39;], &#39;r&#39;) as file:
-            prior = json.load(file)
-        prior_params = list(filter(
-            lambda p: p in prior.keys(), sampler.required_parameters[&#39;ET&#39;]))
-        prior = dict([
-            (p, dict([(k, v[pft]) for k, v in prior[p].items()]))
-            for p in prior_params
-        ])
-        sampler.run(
-            tower_obs, drivers, prior = prior, save_fig = save_fig, **kwargs)</code></pre>
+
+        tower_obs, drivers, weights = self._load_data(pft)
+
+        if k_folds &gt; 1:
+            print(f&#39;NOTE: Using k-folds CV with k={k_folds}...&#39;)
+            # Back-up the original (complete) datasets; we do this so we can
+            #   simply mask out the test samples (1/k), after restoring the
+            #   original datasets
+            _drivers = [d.copy() for d in drivers]
+            _tower_obs = tower_obs.copy()
+            _weights = weights.copy()
+            # Randomize the indices of the NPP data
+            indices = np.arange(0, tower_obs.size)
+            np.random.shuffle(indices)
+            # Get the starting and ending index of each fold
+            fold_idx = np.array([indices.size // k_folds] * k_folds) * np.arange(0, k_folds)
+            fold_idx = list(map(list, zip(fold_idx, fold_idx + indices.size // k_folds)))
+            # Ensure that the entire dataset is used; i.e., if each fold takes
+            #   slices of the indices from A to B, ensure that the last fold&#39;s
+            #   B is the final (maximum) index of the sequence
+            fold_idx[-1][-1] = indices.max()
+            idx_test = [indices[start:end] for start, end in fold_idx]
+
+        # Loop over each fold (or the entire dataset, if num. folds == 1)
+        for k, fold in enumerate(range(1, k_folds + 1)):
+            backend = self.config[&#39;optimization&#39;][&#39;backend_template&#39;] % (&#39;ET&#39;, pft)
+            if k_folds &gt; 1 and fold == 1:
+                # Create an HDF5 file with the same name as the (original)
+                #   netCDF4 back-end, store the test indices
+                with h5py.File(backend.replace(&#39;nc4&#39;, &#39;h5&#39;), &#39;w&#39;) as hdf:
+                    out = list(idx_test)
+                    size = indices.size // k_folds
+                    try:
+                        out = np.stack(out)
+                    except ValueError:
+                        size = max((o.size for o in out))
+                        for i in range(0, len(out)):
+                            out[i] = np.concatenate((out[i], [np.nan] * (size - out[i].size)))
+                    hdf.create_dataset(
+                        &#39;test_indices&#39;, (k_folds, size), np.int32, np.stack(out))
+                # Restore the original tower dataset
+                if fold &gt; 1:
+                    tower_obs = _tower_obs.copy()
+                    weights = _weights.copy()
+                # Set to NaN all the test indices
+                idx = idx_test[k]
+                tower_obs[idx] = np.nan
+                # Same for drivers, after restoring from the original
+                drivers = [
+                    d.copy()[~np.isnan(tower_obs)] if d.ndim &gt; 0 else d.copy()
+                    for d in _drivers
+                ]
+                weights = weights[~np.isnan(tower_obs)] # NOTE: Do first
+                tower_obs = tower_obs[~np.isnan(tower_obs)]
+            # Use a different naming scheme for the backend
+            if k_folds &gt; 1:
+                backend = backend[:backend.rfind(&#39;.&#39;)] + f&#39;-k{fold}&#39; + backend[backend.rfind(&#39;.&#39;):]
+
+            print(&#39;Initializing sampler...&#39;)
+            sampler = MOD16StochasticSampler(
+                self.config, MOD16._et, params_dict, backend = backend,
+                weights = weights)
+
+            # Either: Enter diagnostic mode or run the sampler
+            if plot_trace or ipdb:
+                # This matplotlib setting prevents labels from overplotting
+                pyplot.rcParams[&#39;figure.constrained_layout.use&#39;] = True
+                trace = sampler.get_trace()
+                if ipdb:
+                    import ipdb
+                    ipdb.set_trace()#FIXME
+                az.plot_trace(trace, var_names = MOD16.required_parameters)
+                pyplot.show()
+                return
+
+            # Clean the tower observations, run the sampler
+            tower_obs = self.clean_observed(tower_obs, drivers)
+            # Get (informative) priors for just those parameters that have them
+            with open(self.config[&#39;optimization&#39;][&#39;prior&#39;], &#39;r&#39;) as file:
+                prior = yaml.safe_load(file)
+            prior_params = list(filter(
+                lambda p: p in prior.keys(), sampler.required_parameters[&#39;ET&#39;]))
+            prior = dict([
+                (p, dict([(k, v[pft]) for k, v in prior[p].items()]))
+                for p in prior_params
+            ])
+            # Set var_names to tell ArviZ to plot only the free parameters; i.e.,
+            #   those with priors
+            var_names = list(filter(
+                lambda x: x in prior.keys(), MOD16.required_parameters))
+            kwargs.update({&#39;var_names&#39;: var_names})
+            sampler.run( # Only show the trace plot if not using k-folds
+                tower_obs, drivers, prior = prior, save_fig = save_fig,
+                show_fig = (k_folds == 1), **kwargs)</code></pre>
 </details>
 <h3>Methods</h3>
 <dl>
@@ -875,7 +1307,8 @@ be used with <code>fire.Fire()</code>.</p></div>
 <span>def <span class="ident">clean_observed</span></span>(<span>self, raw: Sequence, drivers: Sequence, protocol: str = 'ET', filter_length: int = 2) ‑> Sequence</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Cleans observed tower flux data according to a prescribed protocol.</p>
+<div class="desc"><p>Cleans observed tower flux data according to a prescribed protocol.
+NOT intended to be called from the command line.</p>
 <h2 id="parameters">Parameters</h2>
 <dl>
 <dt><strong><code>raw</code></strong> :&ensp;<code>Sequence</code></dt>
@@ -902,6 +1335,7 @@ data</dd>
         filter_length: int = 2) -&gt; Sequence:
     &#39;&#39;&#39;
     Cleans observed tower flux data according to a prescribed protocol.
+    NOT intended to be called from the command line.
 
     Parameters
     ----------
@@ -930,7 +1364,7 @@ data</dd>
 <h2 id="parameters">Parameters</h2>
 <dl>
 <dt><strong><code>model</code></strong> :&ensp;<code>str</code></dt>
-<dd>The name of the model ("GPP" or "NPP")</dd>
+<dd>The name of the model (only "ET" is supported)</dd>
 <dt><strong><code>param</code></strong> :&ensp;<code>str</code></dt>
 <dd>The model parameter to export</dd>
 <dt><strong><code>output_path</code></strong> :&ensp;<code>str</code></dt>
@@ -957,7 +1391,7 @@ combined into a single HDF5 file</dd>
     Parameters
     ----------
     model : str
-        The name of the model (&#34;GPP&#34; or &#34;NPP&#34;)
+        The name of the model (only &#34;ET&#34; is supported)
     param : str
         The model parameter to export
     output_path : str
@@ -975,15 +1409,14 @@ combined into a single HDF5 file</dd>
     bplut = params_dict.copy()
     # Filter the parameters to just those for the PFT of interest
     post = []
-    for pft in PFT_VALID:
+    for pft in self.config[&#39;data&#39;][&#39;classes&#39;]:
         params = dict([(k, v[pft]) for k, v in params_dict.items()])
-        backend = self.config[&#39;optimization&#39;][&#39;backend_template&#39;] %\
-            (model, pft)
         post_by_fold = []
         for fold in range(1, k_folds + 1):
+            backend = self.config[&#39;optimization&#39;][&#39;backend_template&#39;] %\
+                (model, pft)
             if k_folds &gt; 1:
-                backend = self.config[&#39;optimization&#39;][&#39;backend_template&#39;] %\
-                    (f&#39;{model}-k{fold}&#39;, pft)
+                backend = backend[:backend.rfind(&#39;.&#39;)] + f&#39;-k{fold}&#39; + backend[backend.rfind(&#39;.&#39;):]
             # NOTE: This value was hard-coded in the extant version of MOD16
             if &#39;beta&#39; not in params:
                 params[&#39;beta&#39;] = 250
@@ -1014,8 +1447,6 @@ combined into a single HDF5 file</dd>
     if not all([p.shape == post[0].shape for p in post]):
         max_len = max([p.shape for p in post])[0]
         # ...Reshape all posteriors to match the greatest sample size
-        import ipdb
-        ipdb.set_trace()#FIXME
         post = [
             np.pad(
                 p.astype(np.float32), (0, max_len - p.size),
@@ -1030,11 +1461,61 @@ combined into a single HDF5 file</dd>
         dataset.attrs[&#39;description&#39;] = &#39;CalibrationAPI.export_posterior() on {ts}&#39;</code></pre>
 </details>
 </dd>
-<dt id="mod16.calibration.CalibrationAPI.tune"><code class="name flex">
-<span>def <span class="ident">tune</span></span>(<span>self, pft: int, plot_trace: bool = False, ipdb: bool = False, save_fig: bool = False, **kwargs)</span>
+<dt id="mod16.calibration.CalibrationAPI.plot_autocorr"><code class="name flex">
+<span>def <span class="ident">plot_autocorr</span></span>(<span>self, pft: int, k_folds: int = 1, **kwargs)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Run the MOD16 ET calibration.</p>
+<div class="desc"><p>Plot the autocorrelation in the trace for each parameter.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>pft</code></strong> :&ensp;<code>int</code></dt>
+<dd>The numeric PFT code</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def plot_autocorr(self, pft: int, k_folds: int = 1, **kwargs):
+    &#39;&#39;&#39;
+    Plot the autocorrelation in the trace for each parameter.
+
+    Parameters
+    ----------
+    pft : int
+        The numeric PFT code
+    &#39;&#39;&#39;
+    # Filter the parameters to just those for the PFT of interest
+    params_dict = restore_bplut(self.config[&#39;BPLUT&#39;][&#39;ET&#39;])
+    params_dict = dict([(k, v[pft]) for k, v in params_dict.items()])
+    backend = self.config[&#39;optimization&#39;][&#39;backend_template&#39;] % (&#39;ET&#39;, pft)
+    # Use a different naming scheme for the backend
+    if k_folds &gt; 1:
+        for fold in range(1, k_folds + 1):
+            sampler = MOD16StochasticSampler(
+                self.config, MOD16._et, params_dict,
+                backend = backend[:backend.rfind(&#39;.&#39;)] + f&#39;-k{fold}&#39; + backend[backend.rfind(&#39;.&#39;):])
+            sampler.plot_autocorr(**kwargs, title = f&#39;Fold {fold} of {k_folds}&#39;)
+    else:
+        sampler = MOD16StochasticSampler(
+            self.config, MOD16._et, params_dict, backend = backend)
+        sampler.plot_autocorr(**kwargs)</code></pre>
+</details>
+</dd>
+<dt id="mod16.calibration.CalibrationAPI.tune"><code class="name flex">
+<span>def <span class="ident">tune</span></span>(<span>self, pft: int, plot_trace: bool = False, k_folds: int = 1, ipdb: bool = False, save_fig: bool = False, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Run the MOD16 ET calibration. If k-folds cross-validation is used,
+the model is calibrated on $k$ random subsets of the data and a
+series of file is created, e.g., as:</p>
+<pre><code>MOD16_ET_calibration_PFT1.h5
+MOD16_ET_calibration_PFT1-k1.nc4
+MOD16_ET_calibration_PFT1-k2.nc4
+...
+</code></pre>
+<p>Where each <code>.nc4</code> file is a standard <code>arviz</code> backend and the <code>.h5</code>
+indicates which indices from the observations vector, after removing
+NaNs, were excluded (i.e., the indices of the test data).</p>
 <h2 id="parameters">Parameters</h2>
 <dl>
 <dt><strong><code>pft</code></strong> :&ensp;<code>int</code></dt>
@@ -1042,6 +1523,9 @@ combined into a single HDF5 file</dd>
 <dt><strong><code>plot_trace</code></strong> :&ensp;<code>bool</code></dt>
 <dd>True to plot the trace for a previous calibration run; this will
 also NOT start a new calibration (Default: False)</dd>
+<dt><strong><code>k_folds</code></strong> :&ensp;<code>int</code></dt>
+<dd>Number of folds to use in k-folds cross-validation; defaults to
+k=1, i.e., no cross-validation is performed.</dd>
 <dt><strong><code>ipdb</code></strong> :&ensp;<code>bool</code></dt>
 <dd>True to drop the user into an ipdb prompt, prior to and instead of
 running calibration</dd>
@@ -1059,10 +1543,21 @@ module, including <a href="https://arthur-e.github.io/MOD17/calibration.html#mod
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def tune(
-        self, pft: int, plot_trace: bool = False, ipdb: bool = False,
-        save_fig: bool = False, **kwargs):
+        self, pft: int, plot_trace: bool = False, k_folds: int = 1,
+        ipdb: bool = False, save_fig: bool = False, **kwargs):
     &#39;&#39;&#39;
-    Run the MOD16 ET calibration.
+    Run the MOD16 ET calibration. If k-folds cross-validation is used,
+    the model is calibrated on $k$ random subsets of the data and a
+    series of file is created, e.g., as:
+
+        MOD16_ET_calibration_PFT1.h5
+        MOD16_ET_calibration_PFT1-k1.nc4
+        MOD16_ET_calibration_PFT1-k2.nc4
+        ...
+
+    Where each `.nc4` file is a standard `arviz` backend and the `.h5`
+    indicates which indices from the observations vector, after removing
+    NaNs, were excluded (i.e., the indices of the test data).
 
     Parameters
     ----------
@@ -1071,6 +1566,9 @@ module, including <a href="https://arthur-e.github.io/MOD17/calibration.html#mod
     plot_trace : bool
         True to plot the trace for a previous calibration run; this will
         also NOT start a new calibration (Default: False)
+    k_folds : int
+        Number of folds to use in k-folds cross-validation; defaults to
+        k=1, i.e., no cross-validation is performed.
     ipdb : bool
         True to drop the user into an ipdb prompt, prior to and instead of
         running calibration
@@ -1084,9 +1582,7 @@ module, including <a href="https://arthur-e.github.io/MOD17/calibration.html#mod
     NOTE that `MOD16StochasticSampler` inherits methods from the `mod17`
     module, including [run()](https://arthur-e.github.io/MOD17/calibration.html#mod17.calibration.StochasticSampler).
     &#39;&#39;&#39;
-    assert pft in PFT_VALID, f&#39;Invalid PFT: {pft}&#39;
-    # Set var_names to tell ArviZ to plot only the free parameters
-    kwargs.update({&#39;var_names&#39;: MOD16.required_parameters[4:]})
+    assert pft in self.config[&#39;data&#39;][&#39;classes&#39;], f&#39;Invalid PFT: {pft}&#39;
     # Pass configuration parameters to MOD16StochasticSampler.run()
     for key in (&#39;chains&#39;, &#39;draws&#39;, &#39;tune&#39;, &#39;scaling&#39;):
         if key in self.config[&#39;optimization&#39;].keys():
@@ -1097,104 +1593,100 @@ module, including <a href="https://arthur-e.github.io/MOD17/calibration.html#mod
     # NOTE: This value was hard-coded in the extant version of MOD16
     if np.isnan(params_dict[&#39;beta&#39;]):
         params_dict[&#39;beta&#39;] = 250
-    model = MOD16(params_dict)
-    with h5py.File(self.hdf5, &#39;r&#39;) as hdf:
-        sites = hdf[&#39;FLUXNET/site_id&#39;][:].tolist()
-        if hasattr(sites[0], &#39;decode&#39;):
-            sites = [s.decode(&#39;utf-8&#39;) for s in sites]
-        # Get dominant PFT
-        pft_map = pft_dominant(hdf[&#39;state/PFT&#39;][:], site_list = sites)
-        # Blacklist various sites
-        blacklist = self.config[&#39;data&#39;][&#39;sites_blacklisted&#39;]
-        pft_mask = np.logical_and(pft_map == pft, ~np.in1d(sites, blacklist))
-        weights = hdf[&#39;weights&#39;][pft_mask]
-        # Read in tower observations
-        tower_obs = hdf[&#39;FLUXNET/latent_heat&#39;][:][:,pft_mask]
-        # Read the validation mask; mask out observations that are
-        #   reserved for validation
-        print(&#39;Masking out validation data...&#39;)
-        mask = hdf[&#39;FLUXNET/validation_mask&#39;][pft]
-        tower_obs[mask] = np.nan
-        # Read start and end dates and mask data appropriately
-        timestamps = [
-             f&#39;{y}-{str(m).zfill(2)}-{str(d).zfill(2)}&#39;
-             for y, m, d in hdf[&#39;time&#39;][:].tolist()
-        ]
-        start = self.config[&#39;data&#39;][&#39;dates&#39;][&#39;start&#39;]
-        end = self.config[&#39;data&#39;][&#39;dates&#39;][&#39;end&#39;]
-        t0 = timestamps.index(start)
-        t1 = timestamps.index(end) + 1
-        tower_obs = tower_obs[t0:t1]
-        # Read in driver datasets
-        print(&#39;Loading driver datasets...&#39;)
-        lw_net_day = hdf[&#39;MERRA2/LWGNT_daytime&#39;][:][t0:t1,pft_mask]
-        lw_net_night = hdf[&#39;MERRA2/LWGNT_nighttime&#39;][:][t0:t1,pft_mask]
-        if self.config[&#39;optimization&#39;][&#39;platform&#39;] == &#39;VIIRS&#39;:
-            sw_albedo = hdf[&#39;VIIRS/VNP43MA3_black_sky_sw_albedo&#39;][:][t0:t1,pft_mask]
-        else:
-            sw_albedo = hdf[&#39;MODIS/MCD43GF_black_sky_sw_albedo&#39;][:][t0:t1,pft_mask]
-        sw_albedo = np.nanmean(sw_albedo, axis = -1)
-        sw_rad_day = hdf[&#39;MERRA2/SWGDN_daytime&#39;][:][t0:t1,pft_mask]
-        sw_rad_night = hdf[&#39;MERRA2/SWGDN_nighttime&#39;][:][t0:t1,pft_mask]
-        temp_day = hdf[&#39;MERRA2/T10M_daytime&#39;][:][t0:t1,pft_mask]
-        temp_night = hdf[&#39;MERRA2/T10M_nighttime&#39;][:][t0:t1,pft_mask]
-        tmin = hdf[&#39;MERRA2/Tmin&#39;][:][t0:t1,pft_mask]
-        # As long as the time series is balanced w.r.t. years (i.e., same
-        #   number of records per year), the overall mean is the annual mean
-        temp_annual = hdf[&#39;MERRA2/T10M&#39;][:][t0:t1,pft_mask].mean(axis = 0)
-        vpd_day = MOD16.vpd(
-            hdf[&#39;MERRA2/QV10M_daytime&#39;][:][t0:t1,pft_mask],
-            hdf[&#39;MERRA2/PS_daytime&#39;][:][t0:t1,pft_mask],
-            temp_day)
-        vpd_night = MOD16.vpd(
-            hdf[&#39;MERRA2/QV10M_nighttime&#39;][:][t0:t1,pft_mask],
-            hdf[&#39;MERRA2/PS_nighttime&#39;][:][t0:t1,pft_mask],
-            temp_night)
-        pressure = hdf[&#39;MERRA2/PS&#39;][:][t0:t1,pft_mask]
-        # Read in fPAR, LAI, and convert from (%) to [0,1]
-        prefix = &#39;MODIS/MOD&#39;
-        if self.config[&#39;optimization&#39;][&#39;platform&#39;] == &#39;VIIRS&#39;:
-            prefix = &#39;VIIRS/VNP&#39;
-        fpar = np.nanmean(
-            hdf[f&#39;{prefix}15A2HGF_fPAR_interp&#39;][:][t0:t1,pft_mask], axis = -1)
-        lai = np.nanmean(
-            hdf[f&#39;{prefix}15A2HGF_LAI_interp&#39;][:][t0:t1,pft_mask], axis = -1)
-        # Convert fPAR from (%) to [0,1] and re-scale LAI; reshape fPAR and LAI
-        fpar /= 100
-        lai /= 10
-    # Compile driver datasets
-    drivers = [
-        lw_net_day, lw_net_night, sw_rad_day, sw_rad_night, sw_albedo,
-        temp_day, temp_night, temp_annual, tmin, vpd_day, vpd_night,
-        pressure, fpar, lai
-    ]
-    print(&#39;Initializing sampler...&#39;)
-    backend = self.config[&#39;optimization&#39;][&#39;backend_template&#39;] % (&#39;ET&#39;, pft)
-    sampler = MOD16StochasticSampler(
-        self.config, MOD16._et, params_dict, backend = backend,
-        weights = weights)
-    if plot_trace or ipdb:
-        # This matplotlib setting prevents labels from overplotting
-        pyplot.rcParams[&#39;figure.constrained_layout.use&#39;] = True
-        trace = sampler.get_trace()
-        if ipdb:
-            import ipdb
-            ipdb.set_trace()
-        az.plot_trace(trace, var_names = MOD16.required_parameters)
-        pyplot.show()
-        return
-    tower_obs = self.clean_observed(tower_obs, drivers)
-    # Get (informative) priors for just those parameters that have them
-    with open(self.config[&#39;optimization&#39;][&#39;prior&#39;], &#39;r&#39;) as file:
-        prior = json.load(file)
-    prior_params = list(filter(
-        lambda p: p in prior.keys(), sampler.required_parameters[&#39;ET&#39;]))
-    prior = dict([
-        (p, dict([(k, v[pft]) for k, v in prior[p].items()]))
-        for p in prior_params
-    ])
-    sampler.run(
-        tower_obs, drivers, prior = prior, save_fig = save_fig, **kwargs)</code></pre>
+
+    tower_obs, drivers, weights = self._load_data(pft)
+
+    if k_folds &gt; 1:
+        print(f&#39;NOTE: Using k-folds CV with k={k_folds}...&#39;)
+        # Back-up the original (complete) datasets; we do this so we can
+        #   simply mask out the test samples (1/k), after restoring the
+        #   original datasets
+        _drivers = [d.copy() for d in drivers]
+        _tower_obs = tower_obs.copy()
+        _weights = weights.copy()
+        # Randomize the indices of the NPP data
+        indices = np.arange(0, tower_obs.size)
+        np.random.shuffle(indices)
+        # Get the starting and ending index of each fold
+        fold_idx = np.array([indices.size // k_folds] * k_folds) * np.arange(0, k_folds)
+        fold_idx = list(map(list, zip(fold_idx, fold_idx + indices.size // k_folds)))
+        # Ensure that the entire dataset is used; i.e., if each fold takes
+        #   slices of the indices from A to B, ensure that the last fold&#39;s
+        #   B is the final (maximum) index of the sequence
+        fold_idx[-1][-1] = indices.max()
+        idx_test = [indices[start:end] for start, end in fold_idx]
+
+    # Loop over each fold (or the entire dataset, if num. folds == 1)
+    for k, fold in enumerate(range(1, k_folds + 1)):
+        backend = self.config[&#39;optimization&#39;][&#39;backend_template&#39;] % (&#39;ET&#39;, pft)
+        if k_folds &gt; 1 and fold == 1:
+            # Create an HDF5 file with the same name as the (original)
+            #   netCDF4 back-end, store the test indices
+            with h5py.File(backend.replace(&#39;nc4&#39;, &#39;h5&#39;), &#39;w&#39;) as hdf:
+                out = list(idx_test)
+                size = indices.size // k_folds
+                try:
+                    out = np.stack(out)
+                except ValueError:
+                    size = max((o.size for o in out))
+                    for i in range(0, len(out)):
+                        out[i] = np.concatenate((out[i], [np.nan] * (size - out[i].size)))
+                hdf.create_dataset(
+                    &#39;test_indices&#39;, (k_folds, size), np.int32, np.stack(out))
+            # Restore the original tower dataset
+            if fold &gt; 1:
+                tower_obs = _tower_obs.copy()
+                weights = _weights.copy()
+            # Set to NaN all the test indices
+            idx = idx_test[k]
+            tower_obs[idx] = np.nan
+            # Same for drivers, after restoring from the original
+            drivers = [
+                d.copy()[~np.isnan(tower_obs)] if d.ndim &gt; 0 else d.copy()
+                for d in _drivers
+            ]
+            weights = weights[~np.isnan(tower_obs)] # NOTE: Do first
+            tower_obs = tower_obs[~np.isnan(tower_obs)]
+        # Use a different naming scheme for the backend
+        if k_folds &gt; 1:
+            backend = backend[:backend.rfind(&#39;.&#39;)] + f&#39;-k{fold}&#39; + backend[backend.rfind(&#39;.&#39;):]
+
+        print(&#39;Initializing sampler...&#39;)
+        sampler = MOD16StochasticSampler(
+            self.config, MOD16._et, params_dict, backend = backend,
+            weights = weights)
+
+        # Either: Enter diagnostic mode or run the sampler
+        if plot_trace or ipdb:
+            # This matplotlib setting prevents labels from overplotting
+            pyplot.rcParams[&#39;figure.constrained_layout.use&#39;] = True
+            trace = sampler.get_trace()
+            if ipdb:
+                import ipdb
+                ipdb.set_trace()#FIXME
+            az.plot_trace(trace, var_names = MOD16.required_parameters)
+            pyplot.show()
+            return
+
+        # Clean the tower observations, run the sampler
+        tower_obs = self.clean_observed(tower_obs, drivers)
+        # Get (informative) priors for just those parameters that have them
+        with open(self.config[&#39;optimization&#39;][&#39;prior&#39;], &#39;r&#39;) as file:
+            prior = yaml.safe_load(file)
+        prior_params = list(filter(
+            lambda p: p in prior.keys(), sampler.required_parameters[&#39;ET&#39;]))
+        prior = dict([
+            (p, dict([(k, v[pft]) for k, v in prior[p].items()]))
+            for p in prior_params
+        ])
+        # Set var_names to tell ArviZ to plot only the free parameters; i.e.,
+        #   those with priors
+        var_names = list(filter(
+            lambda x: x in prior.keys(), MOD16.required_parameters))
+        kwargs.update({&#39;var_names&#39;: var_names})
+        sampler.run( # Only show the trace plot if not using k-folds
+            tower_obs, drivers, prior = prior, save_fig = save_fig,
+            show_fig = (k_folds == 1), **kwargs)</code></pre>
 </details>
 </dd>
 </dl>
@@ -1278,6 +1770,18 @@ weighted least squares)</dd>
         Creates a new ET model based on the prior distribution. Model can be
         re-compiled multiple times, e.g., for cross validation.
 
+        There are two attributes that are set on the sampler when it is
+        initialized that could be helpful here:
+
+            self.priors
+            self.bounds
+
+        `self.priors` is a dict with a key for each parameter that has
+        informative priors. For parameters with a non-informative (Uniform)
+        prior, `self.bounds` is a similar dict (with a key for each parameter)
+        that describes the lower and upper bounds of the Uniform prior, but
+        this is deprecated.
+
         Parameters
         ----------
         observed : Sequence
@@ -1304,21 +1808,21 @@ weighted least squares)</dd>
             tmin_open = self.params[&#39;tmin_open&#39;]
             vpd_open = self.params[&#39;vpd_open&#39;]
             vpd_close = self.params[&#39;vpd_close&#39;]
-            gl_sh =       pm.Triangular(&#39;gl_sh&#39;, **self.prior[&#39;gl_sh&#39;])
-            gl_wv =       pm.Triangular(&#39;gl_wv&#39;, **self.prior[&#39;gl_wv&#39;])
+            gl_sh =       pm.LogNormal(&#39;gl_sh&#39;, **self.prior[&#39;gl_sh&#39;])
+            gl_wv =       pm.LogNormal(&#39;gl_wv&#39;, **self.prior[&#39;gl_wv&#39;])
             g_cuticular = pm.LogNormal(
                 &#39;g_cuticular&#39;, **self.prior[&#39;g_cuticular&#39;])
             csl =         pm.LogNormal(&#39;csl&#39;, **self.prior[&#39;csl&#39;])
-            rbl_min =     pm.Triangular(&#39;rbl_min&#39;, **self.prior[&#39;rbl_min&#39;])
-            rbl_max =     pm.Triangular(&#39;rbl_max&#39;, **self.prior[&#39;rbl_max&#39;])
-            beta =        pm.Triangular(&#39;beta&#39;, **self.prior[&#39;beta&#39;])
+            rbl_min =     pm.Uniform(&#39;rbl_min&#39;, **self.prior[&#39;rbl_min&#39;])
+            rbl_max =     pm.Uniform(&#39;rbl_max&#39;, **self.prior[&#39;rbl_max&#39;])
+            beta =        pm.Uniform(&#39;beta&#39;, **self.prior[&#39;beta&#39;])
             # (Stochstic) Priors for unknown model parameters
             # Convert model parameters to a tensor vector
             params_list = [
                 tmin_close, tmin_open, vpd_open, vpd_close, gl_sh, gl_wv,
                 g_cuticular, csl, rbl_min, rbl_max, beta
             ]
-            params = at.as_tensor_variable(params_list)
+            params = pt.as_tensor_variable(params_list)
             # Key step: Define the log-likelihood as an added potential
             pm.Potential(&#39;likelihood&#39;, log_likelihood(params))
         return model</code></pre>
@@ -1342,11 +1846,21 @@ weighted least squares)</dd>
 <h3>Methods</h3>
 <dl>
 <dt id="mod16.calibration.MOD16StochasticSampler.compile_et_model"><code class="name flex">
-<span>def <span class="ident">compile_et_model</span></span>(<span>self, observed: Sequence, drivers: Sequence) ‑> pymc.model.Model</span>
+<span>def <span class="ident">compile_et_model</span></span>(<span>self, observed: Sequence, drivers: Sequence) ‑> pymc.model.core.Model</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Creates a new ET model based on the prior distribution. Model can be
 re-compiled multiple times, e.g., for cross validation.</p>
+<p>There are two attributes that are set on the sampler when it is
+initialized that could be helpful here:</p>
+<pre><code>self.priors
+self.bounds
+</code></pre>
+<p><code>self.priors</code> is a dict with a key for each parameter that has
+informative priors. For parameters with a non-informative (Uniform)
+prior, <code>self.bounds</code> is a similar dict (with a key for each parameter)
+that describes the lower and upper bounds of the Uniform prior, but
+this is deprecated.</p>
 <h2 id="parameters">Parameters</h2>
 <dl>
 <dt><strong><code>observed</code></strong> :&ensp;<code>Sequence</code></dt>
@@ -1371,6 +1885,18 @@ model's run function</dd>
     &#39;&#39;&#39;
     Creates a new ET model based on the prior distribution. Model can be
     re-compiled multiple times, e.g., for cross validation.
+
+    There are two attributes that are set on the sampler when it is
+    initialized that could be helpful here:
+
+        self.priors
+        self.bounds
+
+    `self.priors` is a dict with a key for each parameter that has
+    informative priors. For parameters with a non-informative (Uniform)
+    prior, `self.bounds` is a similar dict (with a key for each parameter)
+    that describes the lower and upper bounds of the Uniform prior, but
+    this is deprecated.
 
     Parameters
     ----------
@@ -1398,21 +1924,21 @@ model's run function</dd>
         tmin_open = self.params[&#39;tmin_open&#39;]
         vpd_open = self.params[&#39;vpd_open&#39;]
         vpd_close = self.params[&#39;vpd_close&#39;]
-        gl_sh =       pm.Triangular(&#39;gl_sh&#39;, **self.prior[&#39;gl_sh&#39;])
-        gl_wv =       pm.Triangular(&#39;gl_wv&#39;, **self.prior[&#39;gl_wv&#39;])
+        gl_sh =       pm.LogNormal(&#39;gl_sh&#39;, **self.prior[&#39;gl_sh&#39;])
+        gl_wv =       pm.LogNormal(&#39;gl_wv&#39;, **self.prior[&#39;gl_wv&#39;])
         g_cuticular = pm.LogNormal(
             &#39;g_cuticular&#39;, **self.prior[&#39;g_cuticular&#39;])
         csl =         pm.LogNormal(&#39;csl&#39;, **self.prior[&#39;csl&#39;])
-        rbl_min =     pm.Triangular(&#39;rbl_min&#39;, **self.prior[&#39;rbl_min&#39;])
-        rbl_max =     pm.Triangular(&#39;rbl_max&#39;, **self.prior[&#39;rbl_max&#39;])
-        beta =        pm.Triangular(&#39;beta&#39;, **self.prior[&#39;beta&#39;])
+        rbl_min =     pm.Uniform(&#39;rbl_min&#39;, **self.prior[&#39;rbl_min&#39;])
+        rbl_max =     pm.Uniform(&#39;rbl_max&#39;, **self.prior[&#39;rbl_max&#39;])
+        beta =        pm.Uniform(&#39;beta&#39;, **self.prior[&#39;beta&#39;])
         # (Stochstic) Priors for unknown model parameters
         # Convert model parameters to a tensor vector
         params_list = [
             tmin_close, tmin_open, vpd_open, vpd_close, gl_sh, gl_wv,
             g_cuticular, csl, rbl_min, rbl_max, beta
         ]
-        params = at.as_tensor_variable(params_list)
+        params = pt.as_tensor_variable(params_list)
         # Key step: Define the log-likelihood as an added potential
         pm.Potential(&#39;likelihood&#39;, log_likelihood(params))
     return model</code></pre>
@@ -1426,7 +1952,9 @@ model's run function</dd>
 <nav id="sidebar">
 <h1>Index</h1>
 <div class="toc">
-<ul></ul>
+<ul>
+<li><a href="#head">&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD</a></li>
+</ul>
 </div>
 <ul id="index">
 <li><h3>Super-module</h3>
@@ -1441,6 +1969,7 @@ model's run function</dd>
 <ul class="">
 <li><code><a title="mod16.calibration.CalibrationAPI.clean_observed" href="#mod16.calibration.CalibrationAPI.clean_observed">clean_observed</a></code></li>
 <li><code><a title="mod16.calibration.CalibrationAPI.export_posterior" href="#mod16.calibration.CalibrationAPI.export_posterior">export_posterior</a></code></li>
+<li><code><a title="mod16.calibration.CalibrationAPI.plot_autocorr" href="#mod16.calibration.CalibrationAPI.plot_autocorr">plot_autocorr</a></code></li>
 <li><code><a title="mod16.calibration.CalibrationAPI.tune" href="#mod16.calibration.CalibrationAPI.tune">tune</a></code></li>
 </ul>
 </li>

@@ -99,10 +99,12 @@ def pft_dominant(
             # Skip those sites that have no valid PFTs
             continue
     if site_list is not None:
-        pft_dom[site_list.index(&#39;US-A10&#39;)] = np.nan
+        if &#39;US-A10&#39; in site_list:
+            pft_dom[site_list.index(&#39;US-A10&#39;)] = 0
         # For PFT==3, DNF, use pre-determined locations
-        idx = [site_list.index(sid) for sid in (&#39;CA-SF2&#39;, &#39;CA-SF3&#39;, &#39;US-NGC&#39;)]
-        pft_dom[idx] = 3
+        for sid in (&#39;CA-SF2&#39;, &#39;CA-SF3&#39;, &#39;US-NGC&#39;):
+            if sid in site_list:
+                pft_dom[site_list.index(sid)] = 3
     return pft_dom
 
 
@@ -258,10 +260,12 @@ without 11)</dd>
             # Skip those sites that have no valid PFTs
             continue
     if site_list is not None:
-        pft_dom[site_list.index(&#39;US-A10&#39;)] = np.nan
+        if &#39;US-A10&#39; in site_list:
+            pft_dom[site_list.index(&#39;US-A10&#39;)] = 0
         # For PFT==3, DNF, use pre-determined locations
-        idx = [site_list.index(sid) for sid in (&#39;CA-SF2&#39;, &#39;CA-SF3&#39;, &#39;US-NGC&#39;)]
-        pft_dom[idx] = 3
+        for sid in (&#39;CA-SF2&#39;, &#39;CA-SF3&#39;, &#39;US-NGC&#39;):
+            if sid in site_list:
+                pft_dom[site_list.index(sid)] = 3
     return pft_dom</code></pre>
 </details>
 </dd>
