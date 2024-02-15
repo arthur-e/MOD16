@@ -40,6 +40,8 @@ Tests can be run by:
 python tests/tests.py
 ```
 
+The MOD16 library depends on the [MOD17 library.](https://github.com/arthur-e/MOD17)
+
 
 Documentation
 -------------
@@ -251,7 +253,7 @@ Again 0.622 is the ratio of molecular weights, water vapor to dry air. **Note th
 
 Calculating evaporation from bare soil surfaces requires calculating both potential evaporation (PET) from the unsaturated soil surface and actual evaporation from the saturated soil surface. As with evaporation from wet canopy, we begin with calculating the resistances to water vapor fluxes.
 
-**The total aerodynamic resistance to water vapor,** $r_{\text{total}}$, is given in terms of pre-determined (calibrated) quantities including:
+**The total aerodynamic resistance to water vapor,** $r_{\text{total}}$, was shown by van de Griend & Owe (1994) to be the sum of surface resistance and the aerodynamic resistance to water vapor transport. In MOD16, we assume this sum is equivalent to the boundary-layer resistance, but that it is not constant; instead, there are biome-specific limits on this resistance and the role of VPD in driving changes in the stomatal aperture:
 
 - $r_{\text{BL,max}}$, the maximum boundary-layer resistance;
 - $r_{\text{BL,min}}$, the minimum boundary-layer resistance;
@@ -422,8 +424,8 @@ Note that all of the ET values are given in energy units, [W m-2]. If you wish t
 | $g_{WV}$                   | Leaf cond. to evaporated water per unit LAI (m s-1 LAI-1)   |
 | $g_{\text{cuticular}}$     | Leaf cuticular conductance (m s-1)                          |
 | $C_L$                      | Mean potential stomatal cond. per unit leaf area (m s-1)    |
-| $r_{\text{BL,min}}$        | Minimum leaf boundary layer resistance (s m-1)              |
-| $r_{\text{BL,max}}$        | Maximum leaf boundary layer resistance (s m-1)              |
+| $r_{\text{BL,min}}$        | Minimum atmospheric boundary layer resistance (s m-1)       |
+| $r_{\text{BL,max}}$        | Maximum atmospheric boundary layer resistance (s m-1)       |
 | $\beta$                    | Soil moisture constraint on potential soil evaporation      |
 
 
