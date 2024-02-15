@@ -24,10 +24,8 @@ from mod16 import MOD16, latent_heat_vaporization, svp
 from mod16.utils import pft_dominant, restore_bplut
 
 BPLUT = os.path.join(os.path.dirname(mod16.__file__), 'data/MOD16_BPLUT_C5.1_05deg_MCD43B_Albedo_MERRA_GMAO.csv')
-FLUXNET_HDF5 = '/anx_lagr4/MODIS_VIIRS/calibration/VIIRS_MOD16_tower_site_latent_heat_and_drivers_v3.h5'
-# FLUXNET_HDF5 = '/home/arthur/VIIRS_MOD16_tower_site_latent_heat_and_drivers_v3.h5'
+FLUXNET_HDF5 = '/anx_lagr4/MODIS_VIIRS/calibration/VIIRS_MOD16_tower_site_latent_heat_and_drivers_v5.h5'
 L4C_HDF5 = '/home/arthur.endsley/Remotes/arthur.endsley/DATA/L4_C_tower_site_drivers_NRv8-3_for_356_sites.h5'
-# L4C_HDF5 = '/home/arthur/Downloads/L4C_experiments/L4_C_tower_site_drivers_NRv8-3_for_356_sites.h5'
 SITE_ID = 'AR-SLu' # Focus on one site for now
 
 def main():
@@ -66,6 +64,8 @@ def main():
     rad_soil = (1 - Fc) * A - G
     Tavg_ann = 289.74402 # Annual mean temperature
     lamda = latent_heat_vaporization(Tday)
+    print('Lambda:', lamda)
+    print('RH:', (SVP_day - VPD_day) / SVP_day)
     lw_net_day = -117
     sw_rad_day = 419
     sw_albedo = 0.116
@@ -73,11 +73,12 @@ def main():
         lw_net_day, -65, sw_rad_day, 0, sw_albedo, Tday, Tnight,
         Tavg_ann, Tmin, VPD_day, 512, pressure, Fc, LAI,
         f_wet = Fwet_day, separate = True)
+    # i.e., only Daytime results
     e_canopy, e_soil, trans = result[0]
-    print('Transpiration: ', list(map(lambda x: '%.6f' % x, trans)))
-    print('Canopy Evap..: ', list(map(lambda x: '%.6f' % x, e_canopy)))
-    print('Soil Evapo...: ', list(map(lambda x: '%.6f' % x, e_soil)))
-    print('TOTAL ET.....: ', list(map(lambda x: '%.6f' % x, trans + e_canopy + e_soil)))
+    print('Transpiration..: ', list(map(lambda x: '%.6f' % x, trans)))
+    print('Canopy Evap....: ', list(map(lambda x: '%.6f' % x, e_canopy)))
+    print('Soil Evapo.....: ', list(map(lambda x: '%.6f' % x, e_soil)))
+    print('TOTAL ET.......: ', list(map(lambda x: '%.6f' % x, trans + e_canopy + e_soil)))
     print('-- Using streamlined code:')
     result = model._evapotranspiration(
         [params[p] for p in MOD16.required_parameters],
@@ -86,7 +87,8 @@ def main():
         f_wet = Fwet_day)
     # Divide by the latent heat of vaporization (J kg-1) to obtain mass
     #   flux (kg m-2 s-1)
-    print('TOTAL ET.....: ', list(map(lambda x: '%.6f' % x, result[0] / lamda)))
+    print('TOTAL ET [W/m2]: ', list(map(lambda x: '%.2f' % x, result[0])))
+    print('TOTAL ET.......: ', list(map(lambda x: '%.6f' % x, result[0] / lamda)))
 
 
 if __name__ == '__main__':
