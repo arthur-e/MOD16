@@ -32,47 +32,52 @@ units (W m-2), for comparison to eddy covariance tower measurements.
 
 NOTES:
 
-- Air pressure is an input field, which could be taken as given from a
+1. Air pressure is an input field, which could be taken as given from a
     reanalysis dataset or calculated using the lapse-rate function given in
     the MOD16 C6.1 User's Guide (pp. 7-8), for estimating air pressure from
     elevation.
-- MOD16 C6.1 User's Guide has an outdated formula for net radiation
+2. MOD16 C6.1 User's Guide has an outdated formula for net radiation
     (Equation 7, page 4); it is no longer based on surface emissivity and is
     instead based on the sum of short-wave and long-wave radiation; see
     `MOD16.radiation_soil()`.
-- MOD16 C6.1 User's Guide has an error in the calculation of boundary-layer
+3. MOD16 C6.1 User's Guide has an error in the calculation of boundary-layer
     resistance to bare soil evaporation (Equation 19, page 9); instead of what
     is written there: When VPD <= `VPD_open`, then `rbl_max` should be used
     and when VPD >= `VPD_close`, then `rbl_min` should be used.
-- MOD16 C6.1 User's Guide suggested that, in calculating the radiation
+4. MOD16 C6.1 User's Guide suggested that, in calculating the radiation
     received by the soil (Equation 8), only net radiation is modulated by
     bare soil area, \((1 - fPAR)\). In fact, the difference between net
     radiation and the ground heat flux is what is modulated; i.e., the
     correct equation is \(A_{soil} = (1 - fPAR)\times (A - G)\)
-- The MERRA2 longwave radiation field `LWGNT` is defined as the "surface net
+5. The MERRA2 longwave radiation field `LWGNT` is defined as the "surface net
     downward longwave flux", hence, it is usually negative because of the net
     outward flux of longwave radiation from the Earth's surface.
-- For numerical stability, the quantity `r_corr` used in this implementation
+6. For numerical stability, the quantity `r_corr` used in this implementation
     is different from the term defined in the MOD16 C6.1 User's Guide (ca.
     Equation 13). Here, `r_corr` is a large number (greater than 1), equal to
     1/r, where r is the value provided in the User Guide; this avoids
     numerical instability associated with keeping track of a very small
     number.
+7. Calculation of canopy conductance has changed since C6.1, see below.
 
-Also, in MOD16 C6.1, canopy conductance was calculated as:
+In MOD16 C6.1, canopy conductance was calculated as:
 $$
-C_c = \frac{(gl_{sh}(G_S = G_C))}{gl_{sh} + G_S + G_C} \text{LAI}(1 - F_{wet})
+C_c = \frac{gl_{sh}(G_S + G_C)}{gl_{sh} + G_S + G_C} \text{LAI}(1 - F_{wet})
 $$
 
 However, in the new VIIRS VNP16 and updated MOD16 it is calculated as:
 $$
-C_c = \frac{(G_0(G_S = G_C))}{G_0 + G_S + G_C}
+C_c = \frac{G_0(G_S + G_C)}{G_0 + G_S + G_C}
 $$
 
 Where:
 $$
 G_0 = gl_{sh} \times \text{LAI}(1 - F_{wet})
 $$
+
+Based on [2], `MOD16.radiation_soil()` was updated. Based on [4],
+`MOD16.soil_heat_flux()` was updated. Based on [7], `MOD16.transpiration()`
+was updated.
 
 TODO:
 
@@ -336,8 +341,8 @@ class MOD16(object):
             # BARE SOIL EVAPORATION
             # -- Total aerodynamic resistance as a function of VPD and the
             #   atmospheric boundary layer resistance...
-            r_tot = np.where(vpd <= params[2], params[8],
-                np.where(vpd >= params[3], params[9],
+            r_tot = np.where(vpd <= params[2], params[8], # rbl_min
+                np.where(vpd >= params[3], params[9], # rbl_max
                 params[9] - (
                     (params[9] - params[8]) * (params[3] - vpd))\
                         / (params[3] - params[2])))
@@ -871,7 +876,7 @@ class MOD16(object):
         rad_net_day = sw_rad_day * (1 - sw_albedo) + lw_net_day
         rad_net_night = lw_net_night
         g_soil_day, g_soil_night = self.soil_heat_flux(
-            rad_net_day, rad_net_night, temp_day, temp_night, temp_annual, fpar)
+            rad_net_day, rad_net_night, temp_day, temp_night, temp_annual)
         # Section 2.8 of MOD16 Collection 6.1 User's Guide (pp. 10-11);
         #   if soil heat flux is greater than net incoming radiation...
         g_soil_day = np.where(
@@ -892,8 +897,7 @@ class MOD16(object):
 
     def soil_heat_flux(
             self, rad_net_day: Number, rad_net_night: Number,
-            temp_day: Number, temp_night: Number, temp_annual: Number,
-            fpar: Number
+            temp_day: Number, temp_night: Number, temp_annual: Number
         ) -> Iterable[Tuple[Sequence, Sequence]]:
         r'''
         Soil heat flux [MJ m-2], based on surface energy balance. If the mean
@@ -931,9 +935,6 @@ class MOD16(object):
             Average temperature (degrees K) during nighttime hours
         temp_annual : int or float or numpy.ndarray
             Annual average daily temperature (degrees K)
-        fpar : float or numpy.ndarray
-            Fraction of photosynthetically active radiation (PAR) absorbed by
-            the vegetation canopy
 
         Returns
         -------
@@ -955,7 +956,8 @@ class MOD16(object):
             # g_soil is the soil heat flux when fPAR == 0
             # NOTE: We do not scale the result by (1 - fPAR) here, as in
             #   Mu et al. (2011), because this is accounted for when
-            #   calculating net radidation received by the soil surface
+            #   calculating net radidation received by the soil surface;
+            #   see MOD16.radiation_soil()
             g_soil.append(g)
         return g_soil
 
