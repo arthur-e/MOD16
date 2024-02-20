@@ -6,7 +6,7 @@ the operational C implementation.
 
 To compile:
 
-  gcc -Wall baresoil.c -lm
+  gcc -Wall baresoil.c -lm -o baresoil
 
  */
 
@@ -87,7 +87,7 @@ int baresoil_et_night(double *ET, double *LE, double *PET, double *PLE,
 
 int main() {
   int i;
-  double A = 255.27261;
+  double A = 419 * (1 - 0.116) + -117;
   double lamda[3] = {2470184.48771, 2455251.68213, 2441553.3254};
   double a_Tday[3] = {286.20189, 292.52667, 298.3286};
   double a_pressure[3] = {92753.47, 92753.47, 92753.47};
@@ -96,8 +96,8 @@ int main() {
   double a_SVP_day[3] = {1502.86379395, 2249.56542969, 3201.63623047};
   double a_RH_day[3] = {0.52696977, 0.44460384, 0.38187856};
   double SWrad = 419; /* Short-wave radiation */
-  double G = 0.0;           /* Soil heat flux */
-  double Fc = 0.35839;      /* fPAR */
+  double G[3] = {0.0, 0.0, 98.2248}; /* Soil heat flux */
+  double Fc = 0.35839; /* fPAR */
   double Fwet_day[3] = {0, 0.4, 0.8};
 
   /* Outputs */
@@ -109,27 +109,27 @@ int main() {
   /* Met array defaults */
   met_array.day_length = 1;
 
+  printf("Parameter Sweep\n");
   for (i = 0; i < 3; i++) {
-    printf("----- Iteration %d of 3\n", i + 1);
+    /*printf("----- Parameter sweep %d of 3\n", i + 1);*/
     met_array.AIR_DENSITY_day = a_AIR_DENSITY_day[i];
     met_array.pressure = a_pressure[i];
 	  met_array.VPD_day = a_VPD_day[i];
 	  met_array.SWrad = SWrad;
-	  met_array.Tday = a_Tday[i];
-	  met_array.RH_day = a_RH_day[i];
+	  met_array.Tday = a_Tday[i] - 273.15;
+	  met_array.RH_day = a_RH_day[i] * 100;
 	  met_array.SVP_day = a_SVP_day[i];
 
 	  baresoil_et_day(
-	      ET, LE, PET, PLE, lamda[i], &met_array, &VNP16BPLUT, A, Fc, G, Fwet_day[i]);
+	      ET, LE, PET, PLE, lamda[i], &met_array, &VNP16BPLUT, A, Fc, G[i], Fwet_day[i]);
 
+    /*
     printf("Soil LE: %f\n", (float)*LE);
     printf("Soil PLE: %f\n", (float)*PLE);
-    /*
     printf("PLE_soil: %f\n", (float)PLE_soil);
     printf("PLE_water: %f\n", (float)PLE_water);
     */
-    printf("Soil ET: %f\n", (float)*ET);
-
+    printf("--- Soil ET: %f\n", (float)*ET);
 
 	}
 
@@ -160,8 +160,10 @@ int baresoil_et_day(double *ET, double *LE, double *PET, double *PLE,
                  met_array->pressure);
 
   /* January 12, 2013, Qiaozhen Mu */
+  /* NOTE: Corrected 2024-02-20 */
   if (met_array->VPD_day < bplut->VPD_min)
-    rbl = bplut->RBL_MIN * rcorr;
+    /* 2024-02-20 Should be highest when atmospheric demand for moisture is low */
+    rbl = bplut->RBL_MAX * rcorr;
   else if (met_array->VPD_day >= bplut->VPD_min &&
            met_array->VPD_day <= bplut->VPD_max)
     rbl = (bplut->RBL_MAX - (bplut->RBL_MAX - bplut->RBL_MIN) *
@@ -169,7 +171,8 @@ int baresoil_et_day(double *ET, double *LE, double *PET, double *PLE,
                                 (bplut->VPD_max - bplut->VPD_min)) *
           rcorr;
   else
-    rbl = bplut->RBL_MAX * rcorr;
+    /* 2024-02-20 Should be lowest when atmospheric demand for moisture is high */
+    rbl = bplut->RBL_MIN * rcorr;
 
   /* calculate density of air (rho) as a function of air temperature */
   rho = met_array->AIR_DENSITY_day;
@@ -255,7 +258,8 @@ int baresoil_et_night(double *ET, double *LE, double *PET, double *PLE,
 
   /* January 12, 2013, Qiaozhen Mu */
   if (met_array->VPD_night < bplut->VPD_min)
-    rbl = bplut->RBL_MIN * rcorr;
+    /* 2024-02-20 Should be highest when atmospheric demand for moisture is low */
+    rbl = bplut->RBL_MAX * rcorr;
   else if (met_array->VPD_night >= bplut->VPD_min &&
            met_array->VPD_night <= bplut->VPD_max)
     rbl = (bplut->RBL_MAX - (bplut->RBL_MAX - bplut->RBL_MIN) *
@@ -263,7 +267,8 @@ int baresoil_et_night(double *ET, double *LE, double *PET, double *PLE,
                                 (bplut->VPD_max - bplut->VPD_min)) *
           rcorr;
   else
-    rbl = bplut->RBL_MAX * rcorr;
+    /* 2024-02-20 Should be lowest when atmospheric demand for moisture is high */
+    rbl = bplut->RBL_MIN * rcorr;
 
   /* calculate density of air (rho) as a function of air temperature */
   rho = met_array->AIR_DENSITY_night;

@@ -596,6 +596,7 @@ class MOD16(object):
             # Correction for atmospheric temperature and pressure
             #   (Equation 13, MOD16 C6.1 User's Guide)
             r_corr = (101300 / pressure) * (temp_k / 293.15)**1.75
+
             # EVAPORATION FROM WET CANOPY
             e_canopy.append(self.evaporation_wet_canopy(
                 pressure, temp_k, vpd, lai, fpar, rad_canopy, lhv, rhumidity,
@@ -945,12 +946,12 @@ class MOD16(object):
         tuple
             A 2-element tuple of (daytime, nighttime) soil heat flux
         '''
-        # See ca. Line 4355 in MODPR16_main.c
+        # See ca. Line 4355 in MODPR16_main.c and ca. User Guide Eq. 9
         g_soil = []
         condition = np.logical_and(
             np.logical_and(
                 temp_annual < (273.15 + 25),
-                temp_annual > (273.15 + self.tmin_close)
+                temp_annual >= (273.15 + self.tmin_close)
             ), (temp_day - temp_night) >= 5)
         for rad_i, temp_i in zip(
                 (rad_net_day, rad_net_night), (temp_day, temp_night)):

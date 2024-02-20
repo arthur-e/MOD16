@@ -64,8 +64,8 @@ def main():
     rad_soil = (1 - Fc) * A - G
     Tavg_ann = 289.74402 # Annual mean temperature
     lamda = latent_heat_vaporization(Tday)
-    print('Lambda:', lamda)
-    print('RH:', (SVP_day - VPD_day) / SVP_day)
+    # print('Lambda:', lamda)
+    # print('RH:', (SVP_day - VPD_day) / SVP_day)
     lw_net_day = -117
     sw_rad_day = 419
     sw_albedo = 0.116
