@@ -121,7 +121,8 @@ int main() {
 	  met_array.SVP_day = a_SVP_day[i];
 
 	  baresoil_et_day(
-	      ET, LE, PET, PLE, lamda[i], &met_array, &VNP16BPLUT, A, Fc, G[i], Fwet_day[i]);
+	      ET, LE, PET, PLE, lamda[i], &met_array, &VNP16BPLUT,
+        A, Fc, G[i], Fwet_day[i]);
 
     /*
     printf("Soil LE: %f\n", (float)*LE);
