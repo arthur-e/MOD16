@@ -341,8 +341,10 @@ class MOD16(object):
             # BARE SOIL EVAPORATION
             # -- Total aerodynamic resistance as a function of VPD and the
             #   atmospheric boundary layer resistance...
-            r_tot = np.where(vpd <= params[2], params[8], # rbl_min
-                np.where(vpd >= params[3], params[9], # rbl_max
+            # UPDATED 2024-02, as boundary-layer resistance should be at maximum
+            #   when VPD is low and at minimum when VPD is high
+            r_tot = np.where(vpd <= params[2], params[9], # rbl_max
+                np.where(vpd >= params[3], params[8], # rbl_min
                 params[9] - (
                     (params[9] - params[8]) * (params[3] - vpd))\
                         / (params[3] - params[2])))
@@ -683,8 +685,10 @@ class MOD16(object):
             4 * STEFAN_BOLTZMANN * temp_k**3)
         # Total aerodynamic resistance as a function of VPD and the
         #   atmospheric boundary layer resistance...
-        r_tot = np.where(vpd <= self.vpd_open, self.rbl_min,
-            np.where(vpd >= self.vpd_close, self.rbl_max,
+        # UPDATED 2024-02, as boundary-layer resistance should be at maximum
+        #   when VPD is low and at minimum when VPD is high
+        r_tot = np.where(vpd <= self.vpd_open, self.rbl_max,
+            np.where(vpd >= self.vpd_close, self.rbl_min,
             self.rbl_max - (
                 (self.rbl_max - self.rbl_min) * (self.vpd_close - vpd))\
                     / (self.vpd_close - self.vpd_open)))
