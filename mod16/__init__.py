@@ -40,10 +40,16 @@ NOTES:
     (Equation 7, page 4); it is no longer based on surface emissivity and is
     instead based on the sum of short-wave and long-wave radiation; see
     `MOD16.radiation_soil()`.
-3. MOD16 C6.1 User's Guide has an error in the calculation of boundary-layer
-    resistance to bare soil evaporation (Equation 19, page 9); instead of what
-    is written there: When VPD <= `VPD_open`, then `rbl_max` should be used
-    and when VPD >= `VPD_close`, then `rbl_min` should be used.
+3. Mu et al. (2011), Equation 26 is incorrect. This part of the algorithm is
+    confusing because it conflates aerodynamic and surface resistances. While
+    it seems that `rbl_max` should be used when VPD is low (because the
+    atmospheric demand for water vapor is low, therefore resistance of water
+    vapor transport should be high), this is already accounted for in the
+    Penman-Monteith algorithm where VPD is in the numerator. Instead, what
+    this section of the algorithm really represents is the surface resistance,
+    using VPD as a (poor) proxy for the surface soil moisture. Hence, wet
+    soils (low VPD) have low surface resistance and dry soils (high VPD) have
+    high surface resistance.
 4. MOD16 C6.1 User's Guide suggested that, in calculating the radiation
     received by the soil (Equation 8), only net radiation is modulated by
     bare soil area, \((1 - fPAR)\). In fact, the difference between net
@@ -341,10 +347,11 @@ class MOD16(object):
             # BARE SOIL EVAPORATION
             # -- Total aerodynamic resistance as a function of VPD and the
             #   atmospheric boundary layer resistance...
-            # UPDATED 2024-02, as boundary-layer resistance should be at maximum
-            #   when VPD is low and at minimum when VPD is high
-            r_tot = np.where(vpd <= params[2], params[9], # rbl_max
-                np.where(vpd >= params[3], params[8], # rbl_min
+            # VERIFIED 2024-02, as VPD is really a proxy for soil moisture
+            #   here; hence "boundary-layer resistance" (really surface
+            #   resistance) should be low when VPD is low (soil is "wet")
+            r_tot = np.where(vpd <= params[2], params[8], # rbl_min
+                np.where(vpd >= params[3], params[9], # rbl_max
                 params[9] - (
                     (params[9] - params[8]) * (params[3] - vpd))\
                         / (params[3] - params[2])))
@@ -686,10 +693,11 @@ class MOD16(object):
             4 * STEFAN_BOLTZMANN * temp_k**3)
         # Total aerodynamic resistance as a function of VPD and the
         #   atmospheric boundary layer resistance...
-        # UPDATED 2024-02, as boundary-layer resistance should be at maximum
-        #   when VPD is low and at minimum when VPD is high
-        r_tot = np.where(vpd <= self.vpd_open, self.rbl_max,
-            np.where(vpd >= self.vpd_close, self.rbl_min,
+        # VERIFIED 2024-02, as VPD is really a proxy for soil moisture
+        #   here; hence "boundary-layer resistance" (really surface
+        #   resistance) should be low when VPD is low (soil is "wet")
+        r_tot = np.where(vpd <= self.vpd_open, self.rbl_min,
+            np.where(vpd >= self.vpd_close, self.rbl_max,
             self.rbl_max - (
                 (self.rbl_max - self.rbl_min) * (self.vpd_close - vpd))\
                     / (self.vpd_close - self.vpd_open)))
