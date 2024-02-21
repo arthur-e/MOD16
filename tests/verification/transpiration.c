@@ -8,6 +8,11 @@ To compile:
 
   gcc -Wall transpiration.c -lm -o transpiration
 
+We need to verify how canopy conductance is to be calculated; in the
+PGE617 code, it simplifies to:
+
+  C_C = \ell\, F \frac{gl_{sh}\, r\, (C_l\, f(\text{VPD})\, f(\text{Tmin}) + g_{cut})}{C_l\, f(\text{VPD})\, f(\text{Tmin})\, r + g_{cut}\, r + gl_{sh}}
+
  */
 
 #include <math.h>
@@ -131,9 +136,9 @@ int main() {
   double a_Tday[3] = {286.20189, 292.52667, 298.3286};
   double a_pressure[3] = {92753.47, 92753.47, 92753.47};
   double a_VPD_day[3] = {710.9, 1249.4, 1979.};
-  double a_AIR_DENSITY_day[3] = {1.12791642, 1.10072136, 1.07518633};
-  double a_SVP_day[3] = {1502.86379395, 2249.56542969, 3201.63623047};
-  double a_RH_day[3] = {0.52696977, 0.44460384, 0.38187856};
+  double a_AIR_DENSITY_day[3] = {1.12699, 1.10054, 1.07786};
+  double a_SVP_day[3] = {1502.86, 2249.56, 3201.63};
+  double a_RH_day[3] = {0.52697, 0.4446 , 0.38188};
   double SWrad = 419;  /* Short-wave radiation */
   double Fc = 0.35839; /* fPAR */
   double Fwet_day[3] = {0, 0.4, 0.8};
@@ -157,17 +162,23 @@ int main() {
 
   /* Met array defaults */
   met_array.day_length = 1;
+	met_array.night_length = 1;
 
   printf("Parameter Sweep\n");
   for (i = 0; i < 3; i++) {
     /*printf("----- Parameter sweep %d of 3\n", i + 1);*/
     met_array.AIR_DENSITY_day = a_AIR_DENSITY_day[i];
+    met_array.AIR_DENSITY_night = a_AIR_DENSITY_day[i]; /* i.e., same as day */
     met_array.pressure = a_pressure[i];
     met_array.VPD_day = a_VPD_day[i];
+    met_array.VPD_night = a_VPD_day[i]; /* i.e., same as day */
     met_array.SWrad = SWrad;
     met_array.Tday = a_Tday[i] - 273.15;
+		met_array.Tnight = a_Tday[i] - 273.15; /* i.e., same as day */
     met_array.RH_day = a_RH_day[i] * 100;
-    met_array.SVP_day = a_SVP_day[i];
+    met_array.RH_night = a_RH_day[i] * 100;
+    met_array.SVP_day = a_SVP_day[i]; /* i.e., same as day */
+    met_array.SVP_night = a_SVP_day[i]; /* i.e., same as day */
     modis_array.LAI = LAI[i];
     final_output.Tmin_reduction = Tmin_reduction[i];
     final_output.VPD_reduction = VPD_reduction[i];
@@ -184,11 +195,11 @@ int main() {
     /*
     printf("--- Ra_day: %f\n", (float)Ra_day);
     printf("--- Rs_day: %f\n", (float)Rs_day);
-*/
     printf("--- Daytime transpiration: %f\n", (float)*ET);
-    vapor_flux_night(ET, LE, PET, PLE, lamda[i], &met_array, Rs_day, Ra_day, A,
+    */
+    vapor_flux_night(ET, LE, PET, PLE, lamda[i], &met_array, Rs_day, Ra_day, -65,
                      0.35839, Fwet_day[i]);
-		printf("--- Nighttime transpiration: %f\n", (float)*ET);
+		/*printf("--- Nighttime transpiration: %f\n", (float)*ET);*/
   }
 
   return 0;
@@ -313,10 +324,24 @@ int surface_resistance_day(double *Rs, double *Fc, double Fwet,
                  met_array->pressure);
 
   /*
-          PENDING 2024-02-20
+          UPDATED 2024-02-20
           This is the surface conductance (`g_surf` or
 `MOD16.surface_conductance()` in the Python implementation). I think what's
-below is wrong because it shouldn't be multipled by (LAI * (1 - Fwet)) Gs1 =
+below is wrong because it shouldn't be multipled by (LAI * (1 - Fwet))
+
+F &= (1 - F_{wet})\\
+\ell &= [\text{LAI}]\\
+r &= r_{corr}\\
+G_S^1 &= C_l\, f(\text{VPD})\, f(\text{Tmin})\, r\, \ell\, F\\
+G_S^2 &= gl_{sh}\, \ell\, F\\
+G_C &= g_{cut}\, r\, \ell\, F\\
+C_C &= \frac{G_S^2(G_S^1 + G_C)}{G_S^1 + G_S^2 + G_C}\\
+C_C &= \frac{(gl_{sh}\, \ell\, F)(C_l\, f(\text{VPD})\, f(\text{Tmin})\, r\, \ell\, F + g_{cut}\, r\, \ell\, F)}{C_l\, f(\text{VPD})\, f(\text{Tmin})\, r\, \ell\, F + g_{cut}\, r\, \ell\, F + gl_{sh}\, \ell\, F}\\
+C_C &= \frac{gl_{sh}\, r\, 2\ell\, 2F(C_l\, f(\text{VPD})\, f(\text{Tmin})\, + g_{cut})}{\ell\,F(C_l\, f(\text{VPD})\, f(\text{Tmin})\, r + g_{cut}\, r + gl_{sh})}\\
+C_C &= \frac{gl_{sh}\, r\, \ell\, F(C_l\, f(\text{VPD})\, f(\text{Tmin})\, + g_{cut})}{C_l\, f(\text{VPD})\, f(\text{Tmin})\, r + g_{cut}\, r + gl_{sh}}
+C_C &= \ell\, F \frac{gl_{sh}\, r\, (C_l\, f(\text{VPD})\, f(\text{Tmin}) + g_{cut})}{C_l\, f(\text{VPD})\, f(\text{Tmin})\, r + g_{cut}\, r + gl_{sh}}\\
+
+Gs1 =
 bplut->Cl * final_output->VPD_reduction * final_output->Tmin_reduction * rcorr *
 (double)modis_array->LAI * (1.0 - Fwet);
   */
@@ -397,6 +422,11 @@ int vapor_flux_night(double *ET, double *LE, double *PET, double *PLE,
     if (met_array->RH_night < 70. && *LE < 0.0)
       *LE = 0.0;
   }
+
+  printf("Rs: %.5f\n", Rs);
+  printf("gamma: %.5f\n", Gama);
+	printf("temp: %.5f\n", temp);
+	printf("t: %.5f\n", temp1);
 
   /* calculate the evapotranspiration */
   *ET = *LE / lamda;

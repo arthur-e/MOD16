@@ -92,11 +92,11 @@ int main() {
   double a_Tday[3] = {286.20189, 292.52667, 298.3286};
   double a_pressure[3] = {92753.47, 92753.47, 92753.47};
   double a_VPD_day[3] = {710.9, 1249.4, 1979.};
-  double a_AIR_DENSITY_day[3] = {1.12791642, 1.10072136, 1.07518633};
-  double a_SVP_day[3] = {1502.86379395, 2249.56542969, 3201.63623047};
-  double a_RH_day[3] = {0.52696977, 0.44460384, 0.38187856};
+  double a_AIR_DENSITY_day[3] = {1.12699, 1.10054, 1.07786};
+  double a_SVP_day[3] = {1502.86, 2249.56, 3201.63};
+  double a_RH_day[3] = {0.52697, 0.4446 , 0.38188};
   double SWrad = 419; /* Short-wave radiation */
-  double G[3] = {0.0, 0.0, 98.2248}; /* Soil heat flux */
+  double G[3] = {0.0, 0.0, 0.0}; /* Soil heat flux */
   double Fc = 0.35839; /* fPAR */
   double Fwet_day[3] = {0, 0.4, 0.8};
 
@@ -161,10 +161,11 @@ int baresoil_et_day(double *ET, double *LE, double *PET, double *PLE,
                  met_array->pressure);
 
   /* January 12, 2013, Qiaozhen Mu */
-  /* NOTE: Corrected 2024-02-20 */
+  /* VERIFIED 2024-02, as VPD is really a proxy for soil moisture
+      here; hence "boundary-layer resistance" (really surface
+      resistance) should be low when VPD is low (soil is "wet") */
   if (met_array->VPD_day < bplut->VPD_min)
-    /* 2024-02-20 Should be highest when atmospheric demand for moisture is low */
-    rbl = bplut->RBL_MAX * rcorr;
+    rbl = bplut->RBL_MIN * rcorr;
   else if (met_array->VPD_day >= bplut->VPD_min &&
            met_array->VPD_day <= bplut->VPD_max)
     rbl = (bplut->RBL_MAX - (bplut->RBL_MAX - bplut->RBL_MIN) *
@@ -172,8 +173,7 @@ int baresoil_et_day(double *ET, double *LE, double *PET, double *PLE,
                                 (bplut->VPD_max - bplut->VPD_min)) *
           rcorr;
   else
-    /* 2024-02-20 Should be lowest when atmospheric demand for moisture is high */
-    rbl = bplut->RBL_MIN * rcorr;
+    rbl = bplut->RBL_MAX * rcorr;
 
   /* calculate density of air (rho) as a function of air temperature */
   rho = met_array->AIR_DENSITY_day;
@@ -259,8 +259,7 @@ int baresoil_et_night(double *ET, double *LE, double *PET, double *PLE,
 
   /* January 12, 2013, Qiaozhen Mu */
   if (met_array->VPD_night < bplut->VPD_min)
-    /* 2024-02-20 Should be highest when atmospheric demand for moisture is low */
-    rbl = bplut->RBL_MAX * rcorr;
+    rbl = bplut->RBL_MIN * rcorr;
   else if (met_array->VPD_night >= bplut->VPD_min &&
            met_array->VPD_night <= bplut->VPD_max)
     rbl = (bplut->RBL_MAX - (bplut->RBL_MAX - bplut->RBL_MIN) *
@@ -268,8 +267,7 @@ int baresoil_et_night(double *ET, double *LE, double *PET, double *PLE,
                                 (bplut->VPD_max - bplut->VPD_min)) *
           rcorr;
   else
-    /* 2024-02-20 Should be lowest when atmospheric demand for moisture is high */
-    rbl = bplut->RBL_MIN * rcorr;
+    rbl = bplut->RBL_MAX * rcorr;
 
   /* calculate density of air (rho) as a function of air temperature */
   rho = met_array->AIR_DENSITY_night;
