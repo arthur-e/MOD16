@@ -142,10 +142,6 @@ int main() {
   double Tmin_reduction[3] = {0.8196, 1.0, 1.0};
   double VPD_reduction[3] = {0.98376, 0.84016, 0.6456};
 
-  /* Surface and aerodynamic resistances */
-  double Rs_day = 0.;
-  double Ra_day = 0.;
-
   /* Outputs */
   double PLE[1] = {0};
   double LE[1] = {0};
@@ -193,7 +189,8 @@ int canopy_evaporation_day(double *ET, double *LE, double *PET, double *PLE,
                            double Fwet, VNP16_BPLUT *bplut) {
   double Taa;
   double VPD;
-  double rcorr; /* correction factor for temp and pressure */
+  /* KAE NOTE that rcorr is not needed in this function
+  double rcorr; correction factor for temp and pressure */
   double rh, rho, rhr, rr, rv;
   double ta, tk;
   double s;
@@ -202,10 +199,12 @@ int canopy_evaporation_day(double *ET, double *LE, double *PET, double *PLE,
   ta = (double)(met_array->Tday);
   tk = ta + 273.15;
 
-  /* correct conductances for temperature and pressure based on Jones (1992)
-  with standard conditions assumed to be 20 deg C, 101300 Pa */
+  /* KAE NOTE that rcorr is not needed in this function
+  correct conductances for temperature and pressure based on Jones (1992)
+  with standard conditions assumed to be 20 deg C, 101300 Pa
   rcorr = 1.0 / (pow((met_array->Tday + 273.15) / 293.15, 1.75) * 101300 /
                  met_array->pressure);
+  */
 
   /*	if(Fwet ==0.0 || modis_array->LAI[k] ==0.) */
   if (fabs(Fwet * modis_array->LAI) <= 1.0e-7)
@@ -269,7 +268,8 @@ int canopy_evaporation_night(double *ET, double *LE, double *PET, double *PLE,
                              double Fwet, VNP16_BPLUT *bplut) {
   double Taa;
   double VPD;
-  double rcorr; /* correction factor for temp and pressure */
+  /* KAE NOTE that rcorr is not needed in this function
+  double rcorr; correction factor for temp and pressure */
   double rh, rho, rhr, rr, rv;
   double ta, tk;
   double s;
@@ -278,10 +278,12 @@ int canopy_evaporation_night(double *ET, double *LE, double *PET, double *PLE,
   ta = (double)(met_array->Tnight);
   tk = ta + 273.15;
 
-  /* correct conductances for temperature and pressure based on Jones (1992)
-  with standard conditions assumed to be 20 deg C, 101300 Pa */
-  rcorr = 1.0 / (pow((met_array->Tnight + 273.15) / 293.15, 1.75) * 101300 /
+  /* KAE NOTE that rcorr is not needed in this function
+  correct conductances for temperature and pressure based on Jones (1992)
+  with standard conditions assumed to be 20 deg C, 101300 Pa
+  rcorr = 1.0 / (pow((met_array->Tday + 273.15) / 293.15, 1.75) * 101300 /
                  met_array->pressure);
+  */
 
   /*	if(Fwet == 0.0 || modis_array->LAI[k] == 0.) */
   if (fabs(Fwet * modis_array->LAI) <= 1.0e-7)

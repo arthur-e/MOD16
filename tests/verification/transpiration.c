@@ -11,7 +11,8 @@ To compile:
 We need to verify how canopy conductance is to be calculated; in the
 PGE617 code, it simplifies to:
 
-  C_C = \ell\, F \frac{gl_{sh}\, r\, (C_l\, f(\text{VPD})\, f(\text{Tmin}) + g_{cut})}{C_l\, f(\text{VPD})\, f(\text{Tmin})\, r + g_{cut}\, r + gl_{sh}}
+  C_C = \ell\, F \frac{gl_{sh}\, r\, (C_l\, f(\text{VPD})\, f(\text{Tmin}) +
+g_{cut})}{C_l\, f(\text{VPD})\, f(\text{Tmin})\, r + g_{cut}\, r + gl_{sh}}
 
  */
 
@@ -126,6 +127,9 @@ int vapor_flux_night(double *ET, double *LE, double *PET, double *PLE,
 int surface_resistance_day(double *Rs, double *Fc, double Fwet,
                            VNP16_BPLUT *bplut, VIIRS_ARRAY *modis_array,
                            MET_ARRAY *met_array, FINAL_OUTPUT *final_output);
+int surface_resistance_night(double *Rs, double Fwet, VNP16_BPLUT *bplut,
+                             VIIRS_ARRAY *modis_array, MET_ARRAY *met_array,
+                             FINAL_OUTPUT *final_output);
 int aerodynamic_resistance_day(double *Ra_day, VNP16_BPLUT *bplut,
                                MET_ARRAY *met_array);
 
@@ -138,7 +142,7 @@ int main() {
   double a_VPD_day[3] = {710.9, 1249.4, 1979.};
   double a_AIR_DENSITY_day[3] = {1.12699, 1.10054, 1.07786};
   double a_SVP_day[3] = {1502.86, 2249.56, 3201.63};
-  double a_RH_day[3] = {0.52697, 0.4446 , 0.38188};
+  double a_RH_day[3] = {0.52697, 0.4446, 0.38188};
   double SWrad = 419;  /* Short-wave radiation */
   double Fc = 0.35839; /* fPAR */
   double Fwet_day[3] = {0, 0.4, 0.8};
@@ -162,7 +166,7 @@ int main() {
 
   /* Met array defaults */
   met_array.day_length = 1;
-	met_array.night_length = 1;
+  met_array.night_length = 1;
 
   printf("Parameter Sweep\n");
   for (i = 0; i < 3; i++) {
@@ -174,32 +178,31 @@ int main() {
     met_array.VPD_night = a_VPD_day[i]; /* i.e., same as day */
     met_array.SWrad = SWrad;
     met_array.Tday = a_Tday[i] - 273.15;
-		met_array.Tnight = a_Tday[i] - 273.15; /* i.e., same as day */
+    met_array.Tnight = a_Tday[i] - 273.15; /* i.e., same as day */
     met_array.RH_day = a_RH_day[i] * 100;
     met_array.RH_night = a_RH_day[i] * 100;
-    met_array.SVP_day = a_SVP_day[i]; /* i.e., same as day */
+    met_array.SVP_day = a_SVP_day[i];   /* i.e., same as day */
     met_array.SVP_night = a_SVP_day[i]; /* i.e., same as day */
     modis_array.LAI = LAI[i];
     final_output.Tmin_reduction = Tmin_reduction[i];
     final_output.VPD_reduction = VPD_reduction[i];
 
     aerodynamic_resistance_day(&Ra_day, &VNP16BPLUT, &met_array);
-    surface_resistance_day(&Rs_day, &Fc, Fwet_day[i], &VNP16BPLUT, &modis_array,
-                           &met_array, &final_output);
     /* NOTE: Because of the reference &Fc above, we have to hard-code Fc below;
                     the types of these arguments are incompatible between these
        two function signatures
      */
+    surface_resistance_day(&Rs_day, &Fc, Fwet_day[i], &VNP16BPLUT, &modis_array,
+                           &met_array, &final_output);
     vapor_flux_day(ET, LE, PET, PLE, lamda[i], &met_array, Rs_day, Ra_day, A,
                    0.35839, Fwet_day[i]);
-    /*
-    printf("--- Ra_day: %f\n", (float)Ra_day);
-    printf("--- Rs_day: %f\n", (float)Rs_day);
     printf("--- Daytime transpiration: %f\n", (float)*ET);
-    */
-    vapor_flux_night(ET, LE, PET, PLE, lamda[i], &met_array, Rs_day, Ra_day, -65,
-                     0.35839, Fwet_day[i]);
-		/*printf("--- Nighttime transpiration: %f\n", (float)*ET);*/
+
+    surface_resistance_night(&Rs_day, Fwet_day[i], &VNP16BPLUT, &modis_array,
+                       &met_array, &final_output);
+    vapor_flux_night(ET, LE, PET, PLE, lamda[i], &met_array, Rs_day, Ra_day,
+                     -65, 0.35839, Fwet_day[i]);
+    printf("--- Nighttime transpiration: %f\n", (float)*ET);
   }
 
   return 0;
@@ -299,7 +302,9 @@ int surface_resistance_day(double *Rs, double *Fc, double Fwet,
                            VNP16_BPLUT *bplut, VIIRS_ARRAY *modis_array,
                            MET_ARRAY *met_array, FINAL_OUTPUT *final_output) {
   double Gs;
+  /* KAE NOTE that this is unused
   double Fc1;
+  */
   double rcorr;
   double Gs1, Gs2, Gc;
 
@@ -316,7 +321,9 @@ int surface_resistance_day(double *Rs, double *Fc, double Fwet,
     *Fc = 0.0;
   if (*Fc > 1.0)
     *Fc = 1.0;
+  /* KAE NOTE that this is unused
   Fc1 = *Fc;
+  */
 
   /* correct conductances for temperature and pressure based on Jones (1992)
   with standard conditions assumed to be 20 deg C, 101300 Pa */
@@ -336,10 +343,16 @@ G_S^1 &= C_l\, f(\text{VPD})\, f(\text{Tmin})\, r\, \ell\, F\\
 G_S^2 &= gl_{sh}\, \ell\, F\\
 G_C &= g_{cut}\, r\, \ell\, F\\
 C_C &= \frac{G_S^2(G_S^1 + G_C)}{G_S^1 + G_S^2 + G_C}\\
-C_C &= \frac{(gl_{sh}\, \ell\, F)(C_l\, f(\text{VPD})\, f(\text{Tmin})\, r\, \ell\, F + g_{cut}\, r\, \ell\, F)}{C_l\, f(\text{VPD})\, f(\text{Tmin})\, r\, \ell\, F + g_{cut}\, r\, \ell\, F + gl_{sh}\, \ell\, F}\\
-C_C &= \frac{gl_{sh}\, r\, 2\ell\, 2F(C_l\, f(\text{VPD})\, f(\text{Tmin})\, + g_{cut})}{\ell\,F(C_l\, f(\text{VPD})\, f(\text{Tmin})\, r + g_{cut}\, r + gl_{sh})}\\
-C_C &= \frac{gl_{sh}\, r\, \ell\, F(C_l\, f(\text{VPD})\, f(\text{Tmin})\, + g_{cut})}{C_l\, f(\text{VPD})\, f(\text{Tmin})\, r + g_{cut}\, r + gl_{sh}}
-C_C &= \ell\, F \frac{gl_{sh}\, r\, (C_l\, f(\text{VPD})\, f(\text{Tmin}) + g_{cut})}{C_l\, f(\text{VPD})\, f(\text{Tmin})\, r + g_{cut}\, r + gl_{sh}}\\
+C_C &= \frac{(gl_{sh}\, \ell\, F)(C_l\, f(\text{VPD})\, f(\text{Tmin})\, r\,
+\ell\, F + g_{cut}\, r\, \ell\, F)}{C_l\, f(\text{VPD})\, f(\text{Tmin})\, r\,
+\ell\, F + g_{cut}\, r\, \ell\, F + gl_{sh}\, \ell\, F}\\
+C_C &= \frac{gl_{sh}\, r\, 2\ell\, 2F(C_l\, f(\text{VPD})\, f(\text{Tmin})\, +
+g_{cut})}{\ell\,F(C_l\, f(\text{VPD})\, f(\text{Tmin})\, r + g_{cut}\, r +
+gl_{sh})}\\ C_C &= \frac{gl_{sh}\, r\, \ell\, F(C_l\, f(\text{VPD})\,
+f(\text{Tmin})\, + g_{cut})}{C_l\, f(\text{VPD})\, f(\text{Tmin})\, r +
+g_{cut}\, r + gl_{sh}}
+C_C &= \ell\, F \frac{gl_{sh}\, r\, (C_l\, f(\text{VPD})\, f(\text{Tmin}) +
+g_{cut})}{C_l\, f(\text{VPD})\, f(\text{Tmin})\, r + g_{cut}\, r + gl_{sh}}\\
 
 Gs1 =
 bplut->Cl * final_output->VPD_reduction * final_output->Tmin_reduction * rcorr *
@@ -353,6 +366,36 @@ bplut->Cl * final_output->VPD_reduction * final_output->Tmin_reduction * rcorr *
     *Rs = 99999.0; /* version 1.0, 4/3/2009 */
   else {
     Gc = bplut->g_cuticular * rcorr * (double)modis_array->LAI * (1.0 - Fwet);
+    Gs2 = bplut->gl_sh * (double)modis_array->LAI * (1.0 - Fwet);
+    Gs = (Gs2 * (Gs1 + Gc)) / (Gs2 + Gs1 + Gc);
+    if (Gs == 0.0)
+      *Rs = 99999.0; /* version 1.0, 4/3/2009 */
+    else
+      *Rs = 1.0 / Gs;
+  }
+
+  return (0);
+}
+
+int surface_resistance_night(double *Rs, double Fwet, VNP16_BPLUT *bplut,
+                             VIIRS_ARRAY *modis_array, MET_ARRAY *met_array,
+                             FINAL_OUTPUT *final_output) {
+  double Gs;
+  double rcorr;
+  double Gs1, Gs2, Gc;
+
+  /* for surface resistance */
+  /* correct conductances for temperature and pressure based on Jones (1992)
+  with standard conditions assumed to be 20 deg C, 101300 Pa */
+  rcorr = 1.0 / (pow((met_array->Tnight + 273.15) / 293.15, 1.75) * 101300 /
+                 met_array->pressure);
+
+  Gs1 = 0.0; /* the stomata close at night. */
+  Gc = bplut->g_cuticular * rcorr * (double)modis_array->LAI * (1.0 - Fwet);
+  /*	if((1.0-Fwet) == 0. || modis_array->LAI[k] ==0.0) */
+  if (fabs((1.0 - Fwet) * modis_array->LAI) <= 1.0e-7)
+    *Rs = 99999.0; /* version 1.0, 4/3/2009 */
+  else {
     Gs2 = bplut->gl_sh * (double)modis_array->LAI * (1.0 - Fwet);
     Gs = (Gs2 * (Gs1 + Gc)) / (Gs2 + Gs1 + Gc);
     if (Gs == 0.0)
@@ -423,10 +466,12 @@ int vapor_flux_night(double *ET, double *LE, double *PET, double *PLE,
       *LE = 0.0;
   }
 
+  /*
   printf("Rs: %.5f\n", Rs);
   printf("gamma: %.5f\n", Gama);
-	printf("temp: %.5f\n", temp);
-	printf("t: %.5f\n", temp1);
+        printf("temp: %.5f\n", temp);
+        printf("t: %.5f\n", temp1);
+  */
 
   /* calculate the evapotranspiration */
   *ET = *LE / lamda;
