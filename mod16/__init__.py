@@ -64,7 +64,11 @@ NOTES:
     1/r, where r is the value provided in the User Guide; this avoids
     numerical instability associated with keeping track of a very small
     number.
-7. Calculation of canopy conductance has changed since C6.1, see below.
+7. [ ] Surface pressure is calculated in two different ways: throughout most of
+    MOD16, it is calculated based on the elevation of the land surface; but
+    when calculating the actual vapor pressure (AVP), the NASA GMAO surface
+    pressure (from MERRA-2 or GEOS-5) is used.
+8. Calculation of canopy conductance has changed since C6.1, see below.
 
 In MOD16 C6.1, canopy conductance was calculated as:
 $$
@@ -82,7 +86,7 @@ G_0 = gl_{sh} \times \text{LAI}(1 - F_{wet})
 $$
 
 Based on [2], `MOD16.radiation_soil()` was updated. Based on [4],
-`MOD16.soil_heat_flux()` was updated. Based on [7], `MOD16.transpiration()`
+`MOD16.soil_heat_flux()` was updated. Based on [8], `MOD16.transpiration()`
 was updated.
 
 TODO:
@@ -157,7 +161,7 @@ class MOD16(object):
     def _et(
             params, lw_net_day, lw_net_night, sw_rad_day, sw_rad_night,
             sw_albedo, temp_day, temp_night, temp_annual, tmin, vpd_day,
-            vpd_night, pressure, fpar, lai, f_wet = None, tiny = 1e-9,
+            vpd_night, pressure, fpar, lai, f_wet = None, tiny = 1e-7,
             r_corr_list = None
         ) -> Number:
         '''
@@ -182,7 +186,7 @@ class MOD16(object):
         day, night = MOD16._evapotranspiration(
             params, lw_net_day, lw_net_night, sw_rad_day, sw_rad_night,
             sw_albedo, temp_day, temp_night, temp_annual, tmin, vpd_day,
-            vpd_night, pressure, fpar, lai, f_wet = None, tiny = 1e-9,
+            vpd_night, pressure, fpar, lai, f_wet = None, tiny = 1e-7,
             r_corr_list = r_corr_list)
         return np.add(day, night)
 
@@ -190,7 +194,7 @@ class MOD16(object):
     def _evapotranspiration(
             params, lw_net_day, lw_net_night, sw_rad_day, sw_rad_night,
             sw_albedo, temp_day, temp_night, temp_annual, tmin, vpd_day,
-            vpd_night, pressure, fpar, lai, f_wet = None, tiny = 1e-9,
+            vpd_night, pressure, fpar, lai, f_wet = None, tiny = 1e-7,
             r_corr_list = None
         ) -> Iterable[Tuple[Sequence, Sequence]]:
         '''
@@ -335,11 +339,7 @@ class MOD16(object):
             if np.any(g_surf > 0):
                 t = (1 - f_wet) * ((s * rad_canopy) +\
                     (rho * SPECIFIC_HEAT_CAPACITY_AIR * fpar * (vpd / r_a_dry)))
-                if daytime:
-                    t /= (s + gamma * (1 + (1 / g_canopy) / r_a_dry))
-                else:
-                    # Simplify calculation because g_canopy := 0 at night
-                    t /= (s + gamma)
+                t /= (s + gamma * (1 + (1 / g_canopy) / r_a_dry))
             else:
                 t = 0
             transpiration.append(t)
@@ -374,6 +374,7 @@ class MOD16(object):
 
             # Result is the sum of the three components
             et_total.append((transpiration[i] + e_canopy[i] + e_soil[i]))
+
         return et_total
 
     @staticmethod
@@ -426,7 +427,7 @@ class MOD16(object):
           \right)^{5.256}
         $$
 
-        Where \(\ell\) is the standard temperature lapse rate (-0.0065 deg K
+        Where \(\ell\) is the standard temperature lapse rate (0.0065 deg K
         per meter), \(z\) is the elevation in meters, and \(P_{\text{std}}\),
         \(T_{\text{std}}\) are the standard pressure (101325 Pa) and
         temperature (288.15 deg K) at sea level.
@@ -727,16 +728,17 @@ class MOD16(object):
     def evaporation_wet_canopy(
             self, pressure: Number, temp_k: Number, vpd: Number, lai: Number,
             fpar: Number, rad_canopy: Number, lhv: Number = None,
-            rhumidity: Number = None, f_wet: Number = None, tiny: float = 1e-9
+            rhumidity: Number = None, f_wet: Number = None, tiny: float = 1e-7
         ) -> Number:
         r'''
         Wet canopy evaporation calculated according to the MODIS MOD16
         framework:
 
         $$
-        \lambda E = F_{wet} \frac{
-            s\, A_c\, F_c + \rho\, C_p\, D\, (F_c / r_w)
-          }{s + (P_a\, C_p\, r_e)(\lambda\, \varepsilon\, r_w)^{-1}}
+        \lambda E_{\text{canopy}} = F_{\text{wet}} \frac{
+          s A_{\text{canopy}} + \rho\, C_p [\text{VPD}]
+            (F_c / r_{\text{wet}})
+        }{s + (P_a\, C_p\, r_{WV})(0.622\, \lambda\, r_{\text{wet}})^{-1}}
         $$
 
         Where:
@@ -777,7 +779,7 @@ class MOD16(object):
             (Optional) The fraction of the surface that has standing water
         tiny : float
             (Optional) A very small number, the numerical tolerance for zero
-            (Default: 1e-9)
+            (Default: 1e-7)
 
         Returns
         -------
@@ -810,7 +812,7 @@ class MOD16(object):
         #   surface ("rhrc")
         r_a_wet = np.divide(r_h * r_r, r_h + r_r) # (s m-1)
         numer = f_wet * ((s * rad_canopy) +\
-            (rho * SPECIFIC_HEAT_CAPACITY_AIR * fpar * (vpd * 1/r_a_wet)))
+            (rho * SPECIFIC_HEAT_CAPACITY_AIR * fpar * vpd * 1/r_a_wet))
         denom = s + ((pressure * SPECIFIC_HEAT_CAPACITY_AIR * r_e) *\
             1/(lhv * MOL_WEIGHT_WET_DRY_RATIO_AIR * r_a_wet))
         # Mu et al. (2011), Equation 17; PET (J m-2 s-1) is divided by the
@@ -1009,15 +1011,16 @@ class MOD16(object):
             self, pressure: Number, temp_k: Number, vpd: Number, lai: Number,
             fpar: Number, rad_canopy: Number, tmin: Number, r_corr: Number,
             lhv: Number = None, rhumidity: Number = None,
-            f_wet: Number = None, daytime: bool = True, tiny = 1e-9
+            f_wet: Number = None, daytime: bool = True, tiny: float = 1e-7
         ) -> Number:
         r'''
         Plant transpiration over daytime or night-time hours, in mass flux
         units (kg m-2 s-1), according to:
 
         $$
-        \lambda E_T = \frac{s A_c + \rho C_p F_c D r_d^{-1}}
-          {s + \gamma(1 + r_s r_d^{-1})}
+        \lambda E_{\text{trans}} = (1 - F_{\text{wet}})
+          \frac{s A_C + \rho C_p F_C [\text{VPD}] r_{\text{dry}}^{-1}}
+            {s + \gamma(1 + C_C^{-1} r_{\text{dry}}^{-1})}
         $$
 
         NOTE: The `r_corr` argument to this function is different from that
@@ -1025,6 +1028,9 @@ class MOD16(object):
         stability, `r_corr` equals 1/r where r is the quantity defined in
         Equaiton 13. See `MOD16.evapotranspiration()` for how `r_corr` is
         calculated.
+
+        At nighttime, $g_s$ is assumed to be zero, which may impact the
+        calculation of $C_C$ in the denominator of the PM equation above.
 
         Parameters
         ----------
@@ -1057,7 +1063,7 @@ class MOD16(object):
             to calculate night-time (sun-down) transpiration (Default: True)
         tiny : float
             (Optional) A very small number, the numerical tolerance for zero
-            (Default: 1e-9)
+            (Default: 1e-7)
 
         Returns
         -------
@@ -1079,7 +1085,7 @@ class MOD16(object):
         # Resistance to radiative heat transfer through air ("rrc")
         r_r = (rho * SPECIFIC_HEAT_CAPACITY_AIR) / (
             4 * STEFAN_BOLTZMANN * temp_k**3)
-        # Surface conductance (zero at nighttime)
+        # Surface conductance (assumed to be zero at nighttime)
         g_surf = 0 # (Equation 13, MOD16 C6.1 User's Guide)
         if daytime:
             # NOTE: C_L (self.csl) is included in self.surface_conductance()
@@ -1101,11 +1107,7 @@ class MOD16(object):
         # PLANT TRANSPIRATION
         t = (1 - f_wet) * ((s * rad_canopy) +\
             (rho * SPECIFIC_HEAT_CAPACITY_AIR * fpar * (vpd / r_a_dry)))
-        if daytime:
-            t /= (s + gamma * (1 + (1 / g_canopy) / r_a_dry))
-        else:
-            # At nighttime, g_canopy is zero, so simplify the calculation
-            t /= (s + gamma) # (Equation 17, MOD16 C6.1 User's Guide)
+        t /= (s + gamma * (1 + (1 / g_canopy) / r_a_dry))
         # Divide by the latent heat of vaporization (J kg-1) to obtain mass
         #   flux (kg m-2 s-1)
         return np.where(g_canopy <= tiny, 0, t / lhv)
