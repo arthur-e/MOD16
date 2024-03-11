@@ -89,7 +89,8 @@ class CanopyEvaporation(unittest.TestCase):
             self.rad_canopy, self.tmin, self.r_corr, daytime = False)
         # <KAE> 2021-12-08 The Tmin ramp function parameters had been
         #   inadvertently switched when the tests were first written
-        self.assertEqual(trans.round(3), 3.854) # kg m-2 hr-1
+        # <KAE> 2024-03-11 Updated denominator of transpiration calc.
+        self.assertEqual(trans.round(3), 0.011) # kg m-2 hr-1
 
     def test_wet_canopy_evaporation(self):
         'Should accurately calculate wet canopy evaporation (kg m-2 s-1)'

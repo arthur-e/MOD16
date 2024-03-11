@@ -334,7 +334,11 @@ class CalibrationAPI(object):
                 hdf[f'{group}/QV10M_nighttime'][:][pft_mask],
                 hdf[f'{group}/PS_nighttime'][:][pft_mask],
                 temp_night)
+
+            # TODO Replace with the MOD16.air_pressure() calculation based on elevation
             pressure = hdf[f'{group}/PS'][:][pft_mask]
+            ###########################################
+
             # Read in fPAR, LAI, and convert from (%) to [0,1]
             fpar = hdf[self.config['data']['datasets']['fPAR']][:][pft_mask]
             lai = hdf[self.config['data']['datasets']['LAI']][:][pft_mask]
