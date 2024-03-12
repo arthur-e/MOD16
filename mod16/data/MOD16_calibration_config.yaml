@@ -2,7 +2,7 @@
 BPLUT:
   ET: "/usr/local/dev/MOD16/mod16/data/MOD16_BPLUT_CX.X_05deg_MCD43B_Albedo_MERRA.csv"
 data:
-  file: "/anx_lagr4/MODIS_VIIRS/calibration/VIIRS_MOD16_tower_site_latent_heat_and_drivers_v4.h5"
+  file: "/anx_lagr4/MODIS_VIIRS/calibration/VIIRS_MOD16_tower_site_latent_heat_and_drivers_v5.h5"
   class_map: state/PFT # HDF5 field name for PFT map
   classes: [1,2,3,4,5,6,7,8,9,10,12] # The unique and valid PFT codes
   # If a time-varying PFT map is used, this should be true and the corresponding
@@ -21,9 +21,16 @@ data:
   met_group: MERRA2
   # The name of the HDF5 datasets for albedo, fPAR, LAI, etc.
   datasets:
+    MAP: IMERG/mean_annual_precip # Mean annual precipitation constraint
+    elevation: state/elevation # Elevation in meters
     albedo: MODIS/MCD43GF_black_sky_sw_albedo
     fPAR: MODIS/MOD15A2HGF_fPAR_interp
     LAI: MODIS/MOD15A2HGF_LAI_interp
+# Constraints are currently NOT functional
+constraints:
+  # True to constrain annual ET: Cannot exceed mean annual precipitation;
+  #   must then provide a data/datasets/MAP field, above
+  mean_annual_precipitation: true
 optimization:
   platform: MODIS
   backend_template: "/home/arthur/20231218_MOD16_%s_calibration_PFT%d.nc4"

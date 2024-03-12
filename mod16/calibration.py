@@ -82,6 +82,10 @@ surrounding a tower:
       *MOD15A2HGF_fPAR
           -- (T x N x P) Fraction of photosynthetically active radiation [%]
 
+    *IMERG/
+      *mean_annual_precip
+          -- (Y x N) Mean annual precipitation in each year (Y years)
+
     coordinates/
       lng_lat       -- (2 x N) Longitude, latitude coordinates of each tower
 
@@ -192,7 +196,8 @@ class MOD16StochasticSampler(StochasticSampler):
         '''
         # Define the objective/ likelihood function
         log_likelihood = BlackBoxLikelihood(
-            self.model, observed, x = drivers, weights = self.weights)
+            self.model, observed, x = drivers, weights = self.weights,
+            constraints = self.constraints)
         # With this context manager, "all PyMC3 objects introduced in the indented
         #   code block...are added to the model behind the scenes."
         with pm.Model() as model:
@@ -323,6 +328,20 @@ class CalibrationAPI(object):
             temp_day = hdf[f'{group}/T10M_daytime'][:][pft_mask]
             temp_night = hdf[f'{group}/T10M_nighttime'][:][pft_mask]
             tmin = hdf[f'{group}/Tmin'][:][pft_mask]
+
+            # if self.config['constraints']['mean_annual_precipitation']:
+            #     # Convert mean annual precip (Y x N) to a (T x N) array,
+            #     #   then subset
+            #     mean_annual_precip = hdf[self.config['data']['datasets']['MAP']][:]
+            #     years = np.array([
+            #         datetime.date(*ymd).year for ymd in hdf['time'][:].tolist()
+            #     ])
+            #     # i.e., 2000 == 0, 2001 == 1, ... and we have a way to index
+            #     years -= years.min()
+            #     mean_annual_precip = mean_annual_precip[years][pft_mask]
+            # import ipdb
+            # ipdb.set_trace()#FIXME
+
             # As long as the time series is balanced w.r.t. years (i.e., same
             #   number of records per year), the overall mean is the annual mean
             temp_annual = hdf[f'{group}/T10M'][:][pft_mask].mean(axis = 0)
@@ -335,13 +354,17 @@ class CalibrationAPI(object):
                 hdf[f'{group}/PS_nighttime'][:][pft_mask],
                 temp_night)
 
-            # TODO Replace with the MOD16.air_pressure() calculation based on elevation
-            pressure = hdf[f'{group}/PS'][:][pft_mask]
-            ###########################################
+            # After VPD is calculated, air pressure is based solely
+            #   on elevation
+            elevation = hdf[self.config['data']['datasets']['elevation']][:]
+            elevation = elevation[np.newaxis,:]\
+                .repeat(nsteps, axis = 0)[pft_mask]
+            pressure = MOD16.air_pressure(elevation.mean(axis = -1))
 
             # Read in fPAR, LAI, and convert from (%) to [0,1]
             fpar = hdf[self.config['data']['datasets']['fPAR']][:][pft_mask]
             lai = hdf[self.config['data']['datasets']['LAI']][:][pft_mask]
+
             # If a heterogeneous sub-grid is used at each tower (i.e., there
             #   is a third axis to these datasets), then average over that
             #   sub-grid

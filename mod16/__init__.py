@@ -442,7 +442,7 @@ class MOD16(object):
             Air pressure in Pascals
         '''
         temp_ratio = 1 - ((TEMP_LAPSE_RATE * elevation_m) / STD_TEMP_K)
-        return STD_PRESSURE_PASCALS * np.pow(temp_ratio, AIR_PRESSURE_RATE)
+        return STD_PRESSURE_PASCALS * np.power(temp_ratio, AIR_PRESSURE_RATE)
 
     @staticmethod
     def vpd(qv10m: Number, pressure: Number, tmean: Number) -> Number:
