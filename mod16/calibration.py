@@ -216,11 +216,17 @@ class MOD16StochasticSampler(StochasticSampler):
             rbl_max =     pm.Uniform('rbl_max', **self.prior['rbl_max'])
             beta =        pm.Uniform('beta', **self.prior['beta'])
             # (Stochstic) Priors for unknown model parameters
-            # Convert model parameters to a tensor vector
             params_list = [
                 tmin_close, tmin_open, vpd_open, vpd_close, gl_sh, gl_wv,
                 g_cuticular, csl, rbl_min, rbl_max, beta
             ]
+            # If the value for this parameter (and this PFT) is fixed...
+            for i, name in enumerate(self.required_parameters['ET']):
+                if self.fixed is not None:
+                    if name in self.fixed.keys():
+                        if self.fixed[name] is not None:
+                            params_list[i] = self.fixed[name]
+            # Convert model parameters to a tensor vector
             params = pt.as_tensor_variable(params_list)
             # Key step: Define the log-likelihood as an added potential
             pm.Potential('likelihood', log_likelihood(params))
@@ -640,6 +646,7 @@ class CalibrationAPI(object):
 
             # Clean the tower observations, run the sampler
             tower_obs = self.clean_observed(tower_obs, drivers)
+
             # Get (informative) priors for just those parameters that have them
             with open(self.config['optimization']['prior'], 'r') as file:
                 prior = yaml.safe_load(file)
@@ -649,14 +656,25 @@ class CalibrationAPI(object):
                 (p, dict([(k, v[pft]) for k, v in prior[p].items()]))
                 for p in prior_params
             ])
+
+            # Determine whether any parameters are fixed
+            fixed = []
+            for name in MOD16.required_parameters:
+                if self.config['optimization']['fixed'] is None:
+                    break
+                if name in self.config['optimization']['fixed'].keys():
+                    fixed.append(
+                        (name, self.config['optimization']['fixed'][name][pft]))
+            fixed = dict(fixed)
+
             # Set var_names to tell ArviZ to plot only the free parameters; i.e.,
             #   those with priors
             var_names = list(filter(
                 lambda x: x in prior.keys(), MOD16.required_parameters))
             kwargs.update({'var_names': var_names})
             sampler.run( # Only show the trace plot if not using k-folds
-                tower_obs, drivers, prior = prior, save_fig = save_fig,
-                show_fig = (k_folds == 1), **kwargs)
+                tower_obs, drivers, prior = prior, fixed = fixed,
+                save_fig = save_fig, show_fig = (k_folds == 1), **kwargs)
 
 
 if __name__ == '__main__':
