@@ -675,11 +675,16 @@ class CalibrationAPI(object):
             fixed = dict(fixed)
 
             # Set var_names to tell ArviZ to plot only the free parameters; i.e.,
-            #   those with priors
+            #   those with priors and which are not fixed
             var_names = list(filter(
-                lambda x: x in prior.keys() and x not in fixed.keys(),
-                MOD16.required_parameters))
+                lambda x: x in prior.keys(), MOD16.required_parameters))
+            # Remove any random variables that have fixed values from the list
+            #   of variables to be plotted
+            for key in fixed.keys():
+                if fixed[key] is not None:
+                    var_names.remove(key)
             kwargs.update({'var_names': var_names})
+
             sampler.run( # Only show the trace plot if not using k-folds
                 tower_obs, drivers, prior = prior, fixed = fixed,
                 save_fig = save_fig, show_fig = (k_folds == 1), **kwargs)

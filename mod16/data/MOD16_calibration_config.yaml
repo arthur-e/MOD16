@@ -30,7 +30,7 @@ data:
 constraints:
   # True to constrain annual ET: Cannot exceed mean annual precipitation;
   #   must then provide a data/datasets/MAP field, above
-  mean_annual_precipitation: true
+  mean_annual_precipitation: false
 optimization:
   platform: MODIS
   backend_template: "/home/arthur/20231218_MOD16_%s_calibration_PFT%d.nc4"
