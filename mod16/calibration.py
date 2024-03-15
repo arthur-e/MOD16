@@ -220,16 +220,23 @@ class MOD16StochasticSampler(StochasticSampler):
                 tmin_close, tmin_open, vpd_open, vpd_close, gl_sh, gl_wv,
                 g_cuticular, csl, rbl_min, rbl_max, beta
             ]
-            # If the value for this parameter (and this PFT) is fixed...
-            for i, name in enumerate(self.required_parameters['ET']):
-                if self.fixed is not None:
-                    if name in self.fixed.keys():
-                        if self.fixed[name] is not None:
-                            params_list[i] = self.fixed[name]
             # Convert model parameters to a tensor vector
             params = pt.as_tensor_variable(params_list)
             # Key step: Define the log-likelihood as an added potential
             pm.Potential('likelihood', log_likelihood(params))
+        # If the value for this parameter (and this PFT) is fixed...
+        fixed = dict()
+        for i, name in enumerate(self.required_parameters['ET']):
+            if self.fixed is not None:
+                if name in self.fixed.keys():
+                    if self.fixed[name] is not None:
+                        # e.g., {beta: fixed_value}
+                        fixed[getattr(model, name)] = self.fixed[name]
+        if len(fixed) > 0:
+            # i.e., Return "a distinct PyMC model with the relevant variables
+            #   replaced by the intervention expressions; all remaining
+            #   variables are cloned"
+            return pm.do(model, fixed)
         return model
 
 
@@ -670,7 +677,8 @@ class CalibrationAPI(object):
             # Set var_names to tell ArviZ to plot only the free parameters; i.e.,
             #   those with priors
             var_names = list(filter(
-                lambda x: x in prior.keys(), MOD16.required_parameters))
+                lambda x: x in prior.keys() and x not in fixed.keys(),
+                MOD16.required_parameters))
             kwargs.update({'var_names': var_names})
             sampler.run( # Only show the trace plot if not using k-folds
                 tower_obs, drivers, prior = prior, fixed = fixed,
