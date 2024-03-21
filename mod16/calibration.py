@@ -198,6 +198,7 @@ class MOD16StochasticSampler(StochasticSampler):
         # Define the objective/ likelihood function
         log_likelihood = BlackBoxLikelihood(
             self.model, observed, x = drivers, weights = self.weights,
+            objective = self.config['optimization']['objective'],
             constraints = self.constraints)
         # With this context manager, "all PyMC3 objects introduced in the indented
         #   code block...are added to the model behind the scenes."
@@ -476,13 +477,11 @@ class CalibrationAPI(object):
             temp_night = hdf[f'{group}/T10M_nighttime'][:][:,site_mask]
             tmin = hdf[f'{group}/Tmin'][:][:,site_mask]
 
-            if self.config['constraints']['mean_annual_precipitation']:
+            if self.config['constraints']['annual_precipitation']:
                 # Convert mean annual precip (Y x N) to a (T x N) array,
                 #   then subset
-                mann_precip = hdf[self.config['data']['datasets']['MAP']][:]
-                # i.e., 2000 == 0, 2001 == 1, ... and we have a way to index
-                mann_precip = mann_precip[years - years.min()]
-                constraints['mean_annual_precipitation'] = (years, mann_precip[:,site_mask])
+                ann_precip = hdf[self.config['data']['datasets']['annual_precip']][:]
+                constraints['annual_precipitation'] = (years, ann_precip[:,site_mask])
 
             # As long as the time series is balanced w.r.t. years (i.e., same
             #   number of records per year), the overall mean is the annual mean
@@ -518,10 +517,6 @@ class CalibrationAPI(object):
             fpar /= 100
             lai /= 10
 
-        # TODO Need to deal with NaNs in the nighttime quantities (these are
-        #   sites above the Arctic Circle?)
-        import ipdb
-        ipdb.set_trace()#FIXME
         drivers = [
             lw_net_day, lw_net_night, sw_rad_day, sw_rad_night, sw_albedo,
             temp_day, temp_night, temp_annual, tmin, vpd_day, vpd_night,
@@ -697,6 +692,28 @@ class CalibrationAPI(object):
         NOTE that `MOD16StochasticSampler` inherits methods from the `mod17`
         module, including [run()](https://arthur-e.github.io/MOD17/calibration.html#mod17.calibration.StochasticSampler).
         '''
+        def constrain_by_map(pred_le, years, lhv, annual_precip):
+            # Constraint the results by (mean) annual precipitation
+            # pred_le : np.ndarray - (T,N) array of predicted latent heat flux
+            # years : np.ndarray - (T,) array indicating year, out of Y years
+            # lhv : np.ndarray - (T,N) array of latent heat of vaporization
+            # annual_precip : np.ndarray -
+            #   (Y,N) array of the annual precipitation at the site
+            mass_rate = (pred_le * 60 * 60 * 24) / lhv # Convert [W m-2] to [mm day-1]
+            mass_rate[mass_rate < 0] = 0
+            annual_mass_rate = []
+            for y in np.unique(years):
+                a = np.apply_along_axis(
+                    lambda x: x.sum(), 0, mass_rate[years == y])
+                annual_mass_rate.append(a)
+            pred_precip = np.stack(annual_mass_rate, axis = 0)
+            diff = pred_precip - annual_precip
+            diff = np.where(diff < 0, 0, diff)
+            # Return the (negative) normalized RMSD; it's negative because
+            #   we are maximizing the objective function
+            nrmsd = 100 * ((diff**2).mean() / annual_precip.sum())
+            return -nrmsd
+
         assert pft in self.config['data']['classes'], f'Invalid PFT: {pft}'
         # Pass configuration parameters to MOD16StochasticSampler.run()
         for key in ('chains', 'draws', 'tune', 'scaling'):
@@ -715,34 +732,25 @@ class CalibrationAPI(object):
         else:
             tower_obs, drivers, weights = self._load_data(pft)
 
-        # TODO MOVE
-        def constrain_by_map(pred_le, years, lhv, mean_annual_precip):
-            mass_rate = pred_le / lhv # Convert [W m-2] to [mm s-1]
-            years -= years.min()
-            for y in np.unique(years):
-                # np.apply_along_axis(lambda x: mass_rate[years == y]
-                pass
-
-            if (pred_map <= mean_annual_precip).all():
-                return 0
-            # TODO Return a steep penalty (for now)
-            diff = (pred_map - mean_annual_precip)
-            diff = np.where(diff < 0, 0, diff)
-
         constraints = None
         if len(self.config['constraints']) > 0:
             constraints = []
-            if self.config['constraints']['mean_annual_precipitation']:
-                # Get the mean annual temperature, to derive LHV
-                idx = MOD16StochasticSampler.required_drivers['ET']\
-                    .index('temp_annual')
-                air_temp = drivers[idx]
-                lhv = latent_heat_vaporization(air_temp)
-                # Unpack sequence of years (e.g., 2000, 2001, ...), MAP data (mm)
-                years, maprecip = constr['mean_annual_precipitation']
+            if self.config['constraints']['annual_precipitation']:
+                # Get the mean daily temperature, to derive LHV
+                air_t_day = drivers[MOD16StochasticSampler.required_drivers['ET']\
+                    .index('temp_day')]
+                air_t_night = drivers[MOD16StochasticSampler.required_drivers['ET']\
+                    .index('temp_night')]
+                air_t = np.stack(
+                    [air_t_day, air_t_night], axis = 0).mean(axis = 0)
+                lhv = latent_heat_vaporization(air_t)
+                # Unpack sequence of years (e.g., 2000, 2001, ...), precip
+                #   data (mm year-1)
+                years, ann_precip = constr['annual_precipitation']
+                # Add a version of constrain_by_map() function as a constraint
                 constraints.append(partial(
                     constrain_by_map, years = years, lhv = lhv,
-                    mean_annual_precip = maprecip))
+                    annual_precip = ann_precip))
 
         if k_folds > 1:
             print(f'NOTE: Using k-folds CV with k={k_folds}...')
