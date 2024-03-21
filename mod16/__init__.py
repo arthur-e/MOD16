@@ -565,7 +565,8 @@ class MOD16(object):
         Returns
         -------
         tuple
-            Sequence of (daytime, nighttime) ET flux(es)
+            Sequence of (daytime, nighttime) ET flux(es); units are in
+            (kg m-2 s-1) or (mm s-1)
         '''
         # Get radiation intercepted by the soil surface
         rad_soil_all = self.radiation_soil(
@@ -675,7 +676,7 @@ class MOD16(object):
         Returns
         -------
         float or numpy.ndarray
-            Evaporation from bare soil (kg m-2 s-1)
+            Evaporation from bare soil; (kg m-2 s-1) or (mm s-1)
         '''
         if lhv is None:
             lhv = latent_heat_vaporization(temp_k)
@@ -721,8 +722,8 @@ class MOD16(object):
         e += np.where(
             evap_unsat < 0, 0,
             evap_unsat * np.power(rhumidity, vpd / self.beta))
-        # Divide by the latent heat of vaporization (J kg-1) to obtain mass
-        #   flux (kg m-2 s-1)
+        # Divide (W m-2) by the latent heat of vaporization (J kg-1) to obtain
+        #   mass flux (kg m-2 s-1)
         return e / lhv
 
     def evaporation_wet_canopy(
@@ -784,7 +785,7 @@ class MOD16(object):
         Returns
         -------
         float or numpy.ndarray
-            Evaporation from the wet canopy surface (kg m-2 s-1)
+            Evaporation from the wet canopy surface; (kg m-2 s-1) or (mm s-1)
         '''
         if lhv is None:
             lhv = latent_heat_vaporization(temp_k)
@@ -1068,7 +1069,7 @@ class MOD16(object):
         Returns
         -------
         float or numpy.ndarray
-            Transpiration (kg m-2 s-1)
+            Transpiration; (kg m-2 s-1) or (mm s-1)
         '''
         if lhv is None:
             lhv = latent_heat_vaporization(temp_k)
