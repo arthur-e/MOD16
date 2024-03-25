@@ -490,10 +490,12 @@ class CalibrationAPI(object):
                 hdf[f'{group}/QV10M_daytime'][:][:,site_mask],
                 hdf[f'{group}/PS_daytime'][:][:,site_mask],
                 temp_day)
+            vpd_day = np.where(vpd_day < 0, 0, vpd_day)
             vpd_night = MOD16.vpd(
                 hdf[f'{group}/QV10M_nighttime'][:][:,site_mask],
                 hdf[f'{group}/PS_nighttime'][:][:,site_mask],
                 temp_night)
+            vpd_night = np.where(vpd_night < 0, 0, vpd_night)
 
             # After VPD is calculated, air pressure is based solely
             #   on elevation
@@ -734,7 +736,13 @@ class CalibrationAPI(object):
 
         constraints = None
         if len(self.config['constraints']) > 0:
-            constraints = []
+            # Constraints may be defined in the config file but actually
+            #   set to false; if none are set true, there are no constraints
+            if any([
+                self.config['constraints'][k]
+                for k in self.config['constraints'].keys()
+            ]):
+                constraints = []
             if self.config['constraints']['annual_precipitation']:
                 # Get the mean daily temperature, to derive LHV
                 air_t_day = drivers[MOD16StochasticSampler.required_drivers['ET']\

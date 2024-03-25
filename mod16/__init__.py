@@ -623,7 +623,7 @@ class MOD16(object):
                 et_total.append((e_canopy[i], e_soil[i], transpiration[i]))
             else:
                 et_total.append((e_canopy[i] + e_soil[i] + transpiration[i]))
-        return et_total
+        return tuple(et_total)
 
     def evaporation_soil(
             self, pressure: Number, temp_k: Number, vpd: Number, fpar: Number,
