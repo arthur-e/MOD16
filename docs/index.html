@@ -242,7 +242,7 @@ latent_heat_vaporization = lambda temp_k: (2.501 - 0.002361 * (temp_k - 273.15))
 
 
 class MOD16(object):
-    &#39;&#39;&#39;
+    r&#39;&#39;&#39;
     The MODIS MxD16 Evapotranspiration model. The required model parameters are:
 
     - `tmin_close`: Temperature at which stomata are almost completely
@@ -506,11 +506,9 @@ class MOD16(object):
         &#39;&#39;&#39;
         NIST simplified air density formula with buoyancy correction from:
 
-            National Physical Laboratory (2021),
-              &#34;Buoyancy Correction and Air Density Measurement.&#34;
-              http://resource.npl.co.uk/docs/science_technology/
-                mass_force_pressure/clubs_groups/instmc_weighing_panel/
-                buoycornote.pdf
+        - National Physical Laboratory (2021),
+            [&#34;Buoyancy Correction and Air Density Measurement.&#34;](http://resource.npl.co.uk/docs/science_technology/mass_force_pressure/clubs_groups/instmc_weighing_panel/buoycornote.pdf)
+
 
         Parameters
         ----------
@@ -537,9 +535,9 @@ class MOD16(object):
         Atmospheric pressure as a function of elevation. From the discussion on
         atmospheric statics (p. 168) in:
 
-            Iribane, J.V., and W.L. Godson, 1981. Atmospheric Thermodynamics
-                2nd Edition. D. Reidel Publishing Company, Dordrecht,
-                The Netherlands.
+        - Iribane, J.V., and W.L. Godson, 1981. Atmospheric Thermodynamics
+            2nd Edition. D. Reidel Publishing Company, Dordrecht,
+            The Netherlands.
 
         It is calculated:
 
@@ -1152,8 +1150,8 @@ class MOD16(object):
         Equaiton 13. See `MOD16.evapotranspiration()` for how `r_corr` is
         calculated.
 
-        At nighttime, $g_s$ is assumed to be zero, which may impact the
-        calculation of $C_C$ in the denominator of the PM equation above.
+        At nighttime, \(g_s\) is assumed to be zero, which may impact the
+        calculation of \(C_C\) in the denominator of the PM equation above.
 
         Parameters
         ----------
@@ -1285,7 +1283,7 @@ def radiation_net(
     \quad\mbox{where}\quad \varepsilon_s = 0.97
     $$
 
-    Where \(\alpha\) is the MODIS albedo, `R_S` is down-welling short-wave
+    Where \(\alpha\) is the MODIS albedo, \(R_S\) is down-welling short-wave
     radiation, \(\sigma\) is the Stefan-Boltzmann constant, and:
 
     $$
@@ -1496,7 +1494,7 @@ R_{net} = (1 - \alpha)\times R_{S\downarrow} +
 (\varepsilon_a - \varepsilon_s) \times \sigma \times T^4
 \quad\mbox{where}\quad \varepsilon_s = 0.97
 </script></span></p>
-<p>Where <span><span class="MathJax_Preview">\alpha</span><script type="math/tex">\alpha</script></span> is the MODIS albedo, <code>R_S</code> is down-welling short-wave
+<p>Where <span><span class="MathJax_Preview">\alpha</span><script type="math/tex">\alpha</script></span> is the MODIS albedo, <span><span class="MathJax_Preview">R_S</span><script type="math/tex">R_S</script></span> is down-welling short-wave
 radiation, <span><span class="MathJax_Preview">\sigma</span><script type="math/tex">\sigma</script></span> is the Stefan-Boltzmann constant, and:</p>
 <p><span><span class="MathJax_Preview">
 \varepsilon_a = 1 - 0.26\,\mathrm{exp}\left(
@@ -1542,7 +1540,7 @@ radiation, <span><span class="MathJax_Preview">\sigma</span><script type="math/t
     \quad\mbox{where}\quad \varepsilon_s = 0.97
     $$
 
-    Where \(\alpha\) is the MODIS albedo, `R_S` is down-welling short-wave
+    Where \(\alpha\) is the MODIS albedo, \(R_S\) is down-welling short-wave
     radiation, \(\sigma\) is the Stefan-Boltzmann constant, and:
 
     $$
@@ -1739,7 +1737,7 @@ evaporation, i.e., (VPD / beta); from Bouchet (1963)</li>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class MOD16(object):
-    &#39;&#39;&#39;
+    r&#39;&#39;&#39;
     The MODIS MxD16 Evapotranspiration model. The required model parameters are:
 
     - `tmin_close`: Temperature at which stomata are almost completely
@@ -2003,11 +2001,9 @@ evaporation, i.e., (VPD / beta); from Bouchet (1963)</li>
         &#39;&#39;&#39;
         NIST simplified air density formula with buoyancy correction from:
 
-            National Physical Laboratory (2021),
-              &#34;Buoyancy Correction and Air Density Measurement.&#34;
-              http://resource.npl.co.uk/docs/science_technology/
-                mass_force_pressure/clubs_groups/instmc_weighing_panel/
-                buoycornote.pdf
+        - National Physical Laboratory (2021),
+            [&#34;Buoyancy Correction and Air Density Measurement.&#34;](http://resource.npl.co.uk/docs/science_technology/mass_force_pressure/clubs_groups/instmc_weighing_panel/buoycornote.pdf)
+
 
         Parameters
         ----------
@@ -2034,9 +2030,9 @@ evaporation, i.e., (VPD / beta); from Bouchet (1963)</li>
         Atmospheric pressure as a function of elevation. From the discussion on
         atmospheric statics (p. 168) in:
 
-            Iribane, J.V., and W.L. Godson, 1981. Atmospheric Thermodynamics
-                2nd Edition. D. Reidel Publishing Company, Dordrecht,
-                The Netherlands.
+        - Iribane, J.V., and W.L. Godson, 1981. Atmospheric Thermodynamics
+            2nd Edition. D. Reidel Publishing Company, Dordrecht,
+            The Netherlands.
 
         It is calculated:
 
@@ -2649,8 +2645,8 @@ evaporation, i.e., (VPD / beta); from Bouchet (1963)</li>
         Equaiton 13. See `MOD16.evapotranspiration()` for how `r_corr` is
         calculated.
 
-        At nighttime, $g_s$ is assumed to be zero, which may impact the
-        calculation of $C_C$ in the denominator of the PM equation above.
+        At nighttime, \(g_s\) is assumed to be zero, which may impact the
+        calculation of \(C_C\) in the denominator of the PM equation above.
 
         Parameters
         ----------
@@ -2746,12 +2742,10 @@ evaporation, i.e., (VPD / beta); from Bouchet (1963)</li>
 </code></dt>
 <dd>
 <div class="desc"><p>NIST simplified air density formula with buoyancy correction from:</p>
-<pre><code>National Physical Laboratory (2021),
-  "Buoyancy Correction and Air Density Measurement."
-  &lt;http://resource.npl.co.uk/docs/science_technology/&gt;
-    mass_force_pressure/clubs_groups/instmc_weighing_panel/
-    buoycornote.pdf
-</code></pre>
+<ul>
+<li>National Physical Laboratory (2021),
+<a href="http://resource.npl.co.uk/docs/science_technology/mass_force_pressure/clubs_groups/instmc_weighing_panel/buoycornote.pdf">"Buoyancy Correction and Air Density Measurement."</a></li>
+</ul>
 <h2 id="parameters">Parameters</h2>
 <dl>
 <dt><strong><code>temp_k</code></strong> :&ensp;<code>int</code> or <code>float</code> or <code>numpy.ndarray</code></dt>
@@ -2777,11 +2771,9 @@ def air_density(
     &#39;&#39;&#39;
     NIST simplified air density formula with buoyancy correction from:
 
-        National Physical Laboratory (2021),
-          &#34;Buoyancy Correction and Air Density Measurement.&#34;
-          http://resource.npl.co.uk/docs/science_technology/
-            mass_force_pressure/clubs_groups/instmc_weighing_panel/
-            buoycornote.pdf
+    - National Physical Laboratory (2021),
+        [&#34;Buoyancy Correction and Air Density Measurement.&#34;](http://resource.npl.co.uk/docs/science_technology/mass_force_pressure/clubs_groups/instmc_weighing_panel/buoycornote.pdf)
+
 
     Parameters
     ----------
@@ -2809,10 +2801,11 @@ def air_density(
 <dd>
 <div class="desc"><p>Atmospheric pressure as a function of elevation. From the discussion on
 atmospheric statics (p. 168) in:</p>
-<pre><code>Iribane, J.V., and W.L. Godson, 1981. Atmospheric Thermodynamics
-    2nd Edition. D. Reidel Publishing Company, Dordrecht,
-    The Netherlands.
-</code></pre>
+<ul>
+<li>Iribane, J.V., and W.L. Godson, 1981. Atmospheric Thermodynamics
+2nd Edition. D. Reidel Publishing Company, Dordrecht,
+The Netherlands.</li>
+</ul>
 <p>It is calculated:</p>
 <p><span><span class="MathJax_Preview">
 P_a = P_{\text{std}}\times \left(
@@ -2847,9 +2840,9 @@ def air_pressure(elevation_m: Number) -&gt; Number:
     Atmospheric pressure as a function of elevation. From the discussion on
     atmospheric statics (p. 168) in:
 
-        Iribane, J.V., and W.L. Godson, 1981. Atmospheric Thermodynamics
-            2nd Edition. D. Reidel Publishing Company, Dordrecht,
-            The Netherlands.
+    - Iribane, J.V., and W.L. Godson, 1981. Atmospheric Thermodynamics
+        2nd Edition. D. Reidel Publishing Company, Dordrecht,
+        The Netherlands.
 
     It is calculated:
 
@@ -3867,8 +3860,8 @@ defined in Equation 13 in the MOD16 C61 User's Guide. For numerical
 stability, <code>r_corr</code> equals 1/r where r is the quantity defined in
 Equaiton 13. See <code><a title="mod16.MOD16.evapotranspiration" href="#mod16.MOD16.evapotranspiration">MOD16.evapotranspiration()</a></code> for how <code>r_corr</code> is
 calculated.</p>
-<p>At nighttime, $g_s$ is assumed to be zero, which may impact the
-calculation of $C_C$ in the denominator of the PM equation above.</p>
+<p>At nighttime, <span><span class="MathJax_Preview">g_s</span><script type="math/tex">g_s</script></span> is assumed to be zero, which may impact the
+calculation of <span><span class="MathJax_Preview">C_C</span><script type="math/tex">C_C</script></span> in the denominator of the PM equation above.</p>
 <h2 id="parameters">Parameters</h2>
 <dl>
 <dt><strong><code>pressure</code></strong> :&ensp;<code>float</code> or <code>numpy.ndarray</code></dt>
@@ -3933,8 +3926,8 @@ to calculate night-time (sun-down) transpiration (Default: True)</dd>
     Equaiton 13. See `MOD16.evapotranspiration()` for how `r_corr` is
     calculated.
 
-    At nighttime, $g_s$ is assumed to be zero, which may impact the
-    calculation of $C_C$ in the denominator of the PM equation above.
+    At nighttime, \(g_s\) is assumed to be zero, which may impact the
+    calculation of \(C_C\) in the denominator of the PM equation above.
 
     Parameters
     ----------
