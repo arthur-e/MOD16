@@ -24,8 +24,7 @@ from mod16 import MOD16, latent_heat_vaporization, svp
 from mod16.utils import pft_dominant, restore_bplut
 
 BPLUT = os.path.join(os.path.dirname(mod16.__file__), 'data/MOD16_BPLUT_C5.1_05deg_MCD43B_Albedo_MERRA_GMAO.csv')
-FLUXNET_HDF5 = '/anx_lagr4/MODIS_VIIRS/calibration/VIIRS_MOD16_tower_site_latent_heat_and_drivers_v5.h5'
-L4C_HDF5 = '/home/arthur.endsley/Remotes/arthur.endsley/DATA/L4_C_tower_site_drivers_NRv8-3_for_356_sites.h5'
+FLUXNET_HDF5 = '/home/arthur/Downloads/VIIRS_MOD16_tower_site_latent_heat_and_drivers_v4.h5'
 SITE_ID = 'AR-SLu' # Focus on one site for now
 
 def main():
@@ -46,36 +45,35 @@ def main():
     model = MOD16(params)
     ##################################################
     # Begin defining quantities to test against C code
-    LAI = np.array((0.3, 0.6, 1.0))
+    A = 253.396
+    A_day = np.array((253.396, 253.396, 253.396))
+    A_night = np.array((253.396, 253.396, 0))
     Tday = np.array((286.20189, 292.52667, 298.3286))
-    Tnight = np.array((284.20189, 290.52667, 292.3286))
+    Tnight = Tday
     pressure = np.array((92753.47, 92753.47, 92753.47))
     VPD_day = np.array((710.9, 1249.4, 1979.))
-    AIR_DENSITY_day = np.array((1.12791642, 1.10072136, 1.07518633))
-    SVP_day = np.array((1502.86379395, 2249.56542969, 3201.63623047))
+    VPD_night = VPD_day
     Tmin = np.array((278.92, 284.43, 289.88))
     day_length = 1
-    A = 255.27261
-    A_day = np.array((255.27261, 255.27261, 255.27261))
-    A_night = np.array((255.27261, 255.27261, 0))
-    G = 0.0
     Fc = 0.35839
+    LAI = np.array((0.3, 0.6, 1.0))
     Fwet_day = np.array((0, 0.4, 0.8))
-    rad_soil = (1 - Fc) * A - G
     Tavg_ann = 289.74402 # Annual mean temperature
     lamda = latent_heat_vaporization(Tday)
-    print('Lambda:', lamda)
-    print('RH:', (SVP_day - VPD_day) / SVP_day)
+    # print('Lambda:', lamda)
+    # print('RH:', (SVP_day - VPD_day) / SVP_day)
     lw_net_day = -117
     sw_rad_day = 419
     sw_albedo = 0.116
     result = model.evapotranspiration(
         lw_net_day, -65, sw_rad_day, 0, sw_albedo, Tday, Tnight,
-        Tavg_ann, Tmin, VPD_day, 512, pressure, Fc, LAI,
+        Tavg_ann, Tmin, VPD_day, VPD_night, pressure, Fc, LAI,
         f_wet = Fwet_day, separate = True)
     # i.e., only Daytime results
     e_canopy, e_soil, trans = result[0]
+    e_canopy2, e_soil2, trans2 = result[1]
     print('Transpiration..: ', list(map(lambda x: '%.6f' % x, trans)))
+    print('      (night)..: ', list(map(lambda x: '%.6f' % x, trans2)))
     print('Canopy Evap....: ', list(map(lambda x: '%.6f' % x, e_canopy)))
     print('Soil Evapo.....: ', list(map(lambda x: '%.6f' % x, e_soil)))
     print('TOTAL ET.......: ', list(map(lambda x: '%.6f' % x, trans + e_canopy + e_soil)))

@@ -6,7 +6,7 @@ the operational C implementation.
 
 To compile:
 
-  gcc -Wall baresoil.c -lm
+  gcc -Wall baresoil.c -lm -o baresoil
 
  */
 
@@ -87,17 +87,17 @@ int baresoil_et_night(double *ET, double *LE, double *PET, double *PLE,
 
 int main() {
   int i;
-  double A = 255.27261;
+  double A = 419 * (1 - 0.116) + -117;
   double lamda[3] = {2470184.48771, 2455251.68213, 2441553.3254};
   double a_Tday[3] = {286.20189, 292.52667, 298.3286};
   double a_pressure[3] = {92753.47, 92753.47, 92753.47};
   double a_VPD_day[3] = {710.9, 1249.4, 1979.};
-  double a_AIR_DENSITY_day[3] = {1.12791642, 1.10072136, 1.07518633};
-  double a_SVP_day[3] = {1502.86379395, 2249.56542969, 3201.63623047};
-  double a_RH_day[3] = {0.52696977, 0.44460384, 0.38187856};
+  double a_AIR_DENSITY_day[3] = {1.12699, 1.10054, 1.07786};
+  double a_SVP_day[3] = {1502.86, 2249.56, 3201.63};
+  double a_RH_day[3] = {0.52697, 0.4446 , 0.38188};
   double SWrad = 419; /* Short-wave radiation */
-  double G = 0.0;           /* Soil heat flux */
-  double Fc = 0.35839;      /* fPAR */
+  double G[3] = {0.0, 0.0, 0.0}; /* Soil heat flux */
+  double Fc = 0.35839; /* fPAR */
   double Fwet_day[3] = {0, 0.4, 0.8};
 
   /* Outputs */
@@ -109,27 +109,28 @@ int main() {
   /* Met array defaults */
   met_array.day_length = 1;
 
+  printf("Parameter Sweep\n");
   for (i = 0; i < 3; i++) {
-    printf("----- Iteration %d of 3\n", i + 1);
+    /*printf("----- Parameter sweep %d of 3\n", i + 1);*/
     met_array.AIR_DENSITY_day = a_AIR_DENSITY_day[i];
     met_array.pressure = a_pressure[i];
 	  met_array.VPD_day = a_VPD_day[i];
 	  met_array.SWrad = SWrad;
-	  met_array.Tday = a_Tday[i];
-	  met_array.RH_day = a_RH_day[i];
+	  met_array.Tday = a_Tday[i] - 273.15;
+	  met_array.RH_day = a_RH_day[i] * 100;
 	  met_array.SVP_day = a_SVP_day[i];
 
 	  baresoil_et_day(
-	      ET, LE, PET, PLE, lamda[i], &met_array, &VNP16BPLUT, A, Fc, G, Fwet_day[i]);
+	      ET, LE, PET, PLE, lamda[i], &met_array, &VNP16BPLUT,
+        A, Fc, G[i], Fwet_day[i]);
 
+    /*
     printf("Soil LE: %f\n", (float)*LE);
     printf("Soil PLE: %f\n", (float)*PLE);
-    /*
     printf("PLE_soil: %f\n", (float)PLE_soil);
     printf("PLE_water: %f\n", (float)PLE_water);
     */
-    printf("Soil ET: %f\n", (float)*ET);
-
+    printf("--- Soil ET: %f\n", (float)*ET);
 
 	}
 
@@ -160,6 +161,9 @@ int baresoil_et_day(double *ET, double *LE, double *PET, double *PLE,
                  met_array->pressure);
 
   /* January 12, 2013, Qiaozhen Mu */
+  /* VERIFIED 2024-02, as VPD is really a proxy for soil moisture
+      here; hence "boundary-layer resistance" (really surface
+      resistance) should be low when VPD is low (soil is "wet") */
   if (met_array->VPD_day < bplut->VPD_min)
     rbl = bplut->RBL_MIN * rcorr;
   else if (met_array->VPD_day >= bplut->VPD_min &&

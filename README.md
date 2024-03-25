@@ -56,11 +56,13 @@ Algorithm Details
 
 ### Surface Energy Balance
 
-Net radiation intercepted by the earth's surface, $R$, can be partitioned into fluxes of sensible heat ($H$), latent heat ($\lambda E$), ground heat ($G$), and the change in heat storage ($\Delta S$):
+For a large, homogeneous surface, net radiation intercepted by the earth's surface, $R$, can be partitioned into fluxes of sensible heat ($H$), latent heat ($\lambda E$), ground heat ($G$), and the change in heat storage ($\Delta S$):
 
 $$
 R = H + \lambda E + G + \Delta S
 $$
+
+In this expression, positive values of $R$ represent energy provided to the earth’s surface while positive values of $H$, \lambda E, $G$, and $\Delta S$ represent energy removed from the surface. Generally, these quantities are positive during the daytime and zero or negative at night.
 
 Latent heat, or heat that has been used to vaporize water, is the quantity of interest in the MOD16 algorithm and it can generally be described in terms:
 
@@ -129,10 +131,8 @@ There are a number of quantities used in calculating all three components that m
 The **saturation vapor pressure (SVP)** is calculated based on the August-Roche-Magnus equation, also used by [the Food and Agriculture Organization (FAO) (Equation 13)](http://www.fao.org/3/X0490E/x0490e07.htm):
 
 $$
-\text{SVP} = 1\times 10^3\left(
-  0.6108\times \text{exp}\left(
-    \frac{17.27 (T - 273.15)}{(T - 273.15) + 237.3}
-    \right)
+\text{SVP} = 610.7\times \text{exp}\left(
+  \frac{17.38 (T - 273.15)}{239 + (T - 273.15)}
   \right)
 $$
 
@@ -144,29 +144,29 @@ $$
 \text{AVP} = \frac{\text{QV10M}\times \text{P}}{0.622 + 0.379\times \text{QV10M}}
 $$
 
-Where QV10M is the water vapor mixing ratio at 10-meter height (units: Pa) and P is the surface pressure (units: Pa). Currently, MOD16 uses a slightly different formula for the calculation of SVP when calculating VPD (units: Pa):
+Where QV10M is the water vapor mixing ratio at 10-meter height (units: kg kg$^{-1}$) and P is the surface pressure (units: Pa). Whereas surface pressure elsewhere in the MOD16 algorithm is calculated based on elevation, in the AVP calculation, above, $P$ is derived from a gridded climate re-analysis dataset.
+
+Finally, VPD is the difference between SVP and AVP:
 
 $$
-\text{VPD} = \left(610.7\times \text{exp}\left(
-  \frac{17.38\times T}{239 + T}
-\right) - \text{AVP}\right)
+\text{VPD} = \text{SVP} - \text{AVP}
 $$
 
 **Relative humidity (RH)** can then be calculated as the difference between VPD and SVP, normalized by the SVP:
 
 $$
-\text{RH} = \frac{\text{SVP} - \text{VPD}}{\text{SVP}}
+\text{RH} = 100\times \frac{\text{SVP} - \text{VPD}}{\text{SVP}}
 $$
 
 After Fisher et al. (2008), we calculate **the fraction of the land surface that is saturated, $F_{\text{wet}}$,** based on the relative humidity:
 
 - $F_{\text{wet}} = 0$ iff RH < 70%
-- Otherwise, $F_{\text{wet}} = \text{RH}^4$
+- Otherwise, $F_{\text{wet}} = (\text{RH}/100)^4$
 
 **The latent heat of vaporization, $\lambda$** (units: Joules per kilogram), is a key term that quantifies the amount of energy required to vaporize a kilogram of water, based on the current temperature of the water:
 
 $$
-\lambda = (2.501 - 0.002361\times (T - 273.15))\times 10^6
+\lambda = (2.501 - 0.002361\times (T + 273.15))\times 10^6
 $$
 
 **The psychrometric constant,** which relates the vapor pressure of air to its temperature, is calculated:
@@ -197,7 +197,7 @@ In MODIS Collection 6.1, MOD16 used air pressure as given by the surface meteoro
 
 $$
 P_a = P_{\text{std}}\times \left(
-    1 - \ell z T_{\text{std}}^{-1}
+    1 + \ell z T_{\text{std}}^{-1}
   \right)^{5.256}
 $$
 
@@ -242,7 +242,7 @@ We now have all the quantities necessary to calculate the **wet canopy evaporati
 
 $$
 \lambda E_{\text{canopy}} = F_{\text{wet}} \frac{
-        s  A_{\text{canopy}}  F_c + \rho  C_p  [\text{VPD}]  (F_c / r_{\text{wet}})
+        s  A_{\text{canopy}} + \rho  C_p  [\text{VPD}]  (F_c / r_{\text{wet}})
       }{s + (P_a  C_p  r_{WV})(0.622  \lambda  r_{\text{wet}})^{-1}}
 $$
 
@@ -253,19 +253,19 @@ Again 0.622 is the ratio of molecular weights, water vapor to dry air. **Note th
 
 Calculating evaporation from bare soil surfaces requires calculating both potential evaporation (PET) from the unsaturated soil surface and actual evaporation from the saturated soil surface. As with evaporation from wet canopy, we begin with calculating the resistances to water vapor fluxes.
 
-**The total aerodynamic resistance to water vapor,** $r_{\text{total}}$, was shown by van de Griend & Owe (1994) to be the sum of surface resistance and the aerodynamic resistance to water vapor transport. In MOD16, we assume this sum is equivalent to the boundary-layer resistance, but that it is not constant; instead, there are biome-specific limits on this resistance and the role of VPD in driving changes in the stomatal aperture:
+**The total aerodynamic resistance to water vapor,** $r_{\text{total}}$, was shown by van de Griend & Owe (1994) to be the sum of surface resistance and the aerodynamic resistance to water vapor transport. In MOD16, we assume this sum is equivalent to the boundary-layer resistance, but that it is not constant; instead, there are biome-specific limits on this resistance and the role of VPD:
 
 - $r_{\text{BL,max}}$, the maximum boundary-layer resistance;
 - $r_{\text{BL,min}}$, the minimum boundary-layer resistance;
 - $\text{VPD}^{\text{close}}$, the vapor pressure deficit (VPD) at which stomata are almost completely closed due to water stress;
 - $\text{VPD}^{\text{open}}$, the VPD at which stomata are almost completely open, i.e., experiencing no water stress.
 
-$r_{\text{total}}$ strongly depends on the atmospheric demand for water vapor (i.e., VPD or $D$):
+The calculation of $r_{\text{total}}$ is based on the assumption that the near-surface air is in equilibrium with the soil surface; i.e., that near-surface humidity is a good proxy for the surface soil moisture. Hence, $r_{\text{total}}$ is assumed to be an increasing function of VPD:
 
 - iff VPD $\le \text{VPD}^{\text{open}}$:
-  - $r_{\text{total}} = r_{\text{corr}} r_{\text{BL,max}}$
-- iff VPD $\ge \text{VPD}^{\text{close}}$:
   - $r_{\text{total}} = r_{\text{corr}} r_{\text{BL,min}}$
+- iff VPD $\ge \text{VPD}^{\text{close}}$:
+  - $r_{\text{total}} = r_{\text{corr}} r_{\text{BL,max}}$
 - And if and only if VPD is between these values:
 
 $$
@@ -274,7 +274,7 @@ r_{\text{total}} = r_{\text{corr}} r_{\text{BL,max}} - \frac{(r_{\text{BL,max}} 
      \text{VPD}^{\text{close}} - \text{VPD}^{\text{open}}}
 $$
 
-Essentially, when VPD is low, the boundary-layer resistance is at its maximum ($r_{\text{BL,max}}$); the atmosphere's demand for water is very low, so there is greater resistance to accepting more water vapor from the surface. When VPD is high, (greater than or equal to $\text{VPD}^{\text{close}}$), atmospheric water vapor is relatively scarce and the boundary-layer resistance is at a minimum. In between these two extremes, we linearly interpolate the boundary layer resistance.
+The form of $r_{\text{total}}$, above, may be counter-intuitive. While aerodynamic resistance would be expected to decrease with increasing VPD (because the atmosphere's demand for water increases), surface resistance should increase with increasing VPD (as in the equation above). Because accurate soil moisture information at global extent was not available when MOD16 was first developed, $r_{\text{total}}$ is computed, as above, assuming that near-surface humidity is a good proxy for the surface soil moisture state at the level of spatial (500-m) and temporal (8-day) integration used in MOD16.
 
 **As the conductance of water vapor through the air varies with the air's temperature and pressure, and because prescribed values are assumed to be representative of standard temperature (293.15 deg K) and pressure (101300 Pa) conditions, a correction factor, $r_{\text{corr}}$, is applied; this is used elsewhere as well:**
 
@@ -290,7 +290,7 @@ $$
 r_{\text{AS}} = \frac{r_R\times r_{\text{total}}}{r_R + r_{\text{total}}}
 $$
 
-Evaporation from the soil consists of the same, core PM equation:
+Potential evaporation from the soil consists of the same, core PM equation:
 
 $$
 \lambda E_{\text{soil}}^* = \frac{s A_{\text{soil}} + \rho C_p (1 - F_C) [\text{VPD}] r_{\text{AS}}^{-1}}{s + \gamma r_{\text{total}}r_{\text{AS}}^{-1}}
@@ -381,10 +381,11 @@ $$
 
 $$
 \lambda E_{\text{trans}} = (1 - F_{\text{wet}})
-  \frac{s A_C + \rho C_p F_C [\text{VPD}] r_{\text{dry}}^{-1}}{s + \gamma(1 + C_C^{-1} r_{\text{dry}}^{-1})}
+  \frac{s A_C + \rho C_p F_C [\text{VPD}] r_{\text{dry}}^{-1}}
+    {s + \gamma(1 + C_C^{-1} r_{\text{dry}}^{-1})}
 $$
 
-Note that, at nighttime, the denominator of $\lambda E_{\text{trans}}$ simplifies to $(s + \gamma)$, as canopy conductance is assumed to be zero. Also, if $F_{\text{wet}} = 1$, then $\lambda E_{\text{trans}} = 0$.
+Note that, at nighttime, $g_s \equiv 0$ and therefore $C_C$ in the denominator may be impacted. Also, if $F_{\text{wet}} = 1$, then $\lambda E_{\text{trans}} = 0$.
 
 
 ### Total Daily ET and Potential ET

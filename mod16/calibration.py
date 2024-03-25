@@ -102,6 +102,10 @@ surrounding a tower:
           -- (T x N x P) Fraction of photosynthetically active radiation [%]
 >>>>>>> master
 
+    *IMERG/
+      *mean_annual_precip
+          -- (Y x N) Mean annual precipitation in each year (Y years)
+
     coordinates/
       lng_lat       -- (2 x N) Longitude, latitude coordinates of each tower
 
@@ -130,12 +134,13 @@ import pymc as pm
 import pytensor.tensor as pt
 import arviz as az
 import mod16
-from multiprocessing import get_context, set_start_method
+from functools import partial
+from statistics import mode
 from pathlib import Path
 from typing import Sequence
 from scipy import signal
 from matplotlib import pyplot
-from mod16 import MOD16
+from mod16 import MOD16, latent_heat_vaporization
 from mod16.utils import restore_bplut, pft_dominant
 from mod17.calibration import BlackBoxLikelihood, StochasticSampler
 
@@ -215,7 +220,9 @@ class MOD16StochasticSampler(StochasticSampler):
         '''
         # Define the objective/ likelihood function
         log_likelihood = BlackBoxLikelihood(
-            self.model, observed, x = drivers, weights = self.weights)
+            self.model, observed, x = drivers, weights = self.weights,
+            objective = self.config['optimization']['objective'],
+            constraints = self.constraints)
         # With this context manager, "all PyMC3 objects introduced in the indented
         #   code block...are added to the model behind the scenes."
         with pm.Model() as model:
@@ -234,14 +241,27 @@ class MOD16StochasticSampler(StochasticSampler):
             rbl_max =     pm.Uniform('rbl_max', **self.prior['rbl_max'])
             beta =        pm.Uniform('beta', **self.prior['beta'])
             # (Stochstic) Priors for unknown model parameters
-            # Convert model parameters to a tensor vector
             params_list = [
                 tmin_close, tmin_open, vpd_open, vpd_close, gl_sh, gl_wv,
                 g_cuticular, csl, rbl_min, rbl_max, beta
             ]
+            # Convert model parameters to a tensor vector
             params = pt.as_tensor_variable(params_list)
             # Key step: Define the log-likelihood as an added potential
             pm.Potential('likelihood', log_likelihood(params))
+        # If the value for this parameter (and this PFT) is fixed...
+        fixed = dict()
+        for i, name in enumerate(self.required_parameters['ET']):
+            if self.fixed is not None:
+                if name in self.fixed.keys():
+                    if self.fixed[name] is not None:
+                        # e.g., {beta: fixed_value}
+                        fixed[getattr(model, name)] = self.fixed[name]
+        if len(fixed) > 0:
+            # i.e., Return "a distinct PyMC model with the relevant variables
+            #   replaced by the intervention expressions; all remaining
+            #   variables are cloned"
+            return pm.do(model, fixed)
         return model
 
 
@@ -301,7 +321,7 @@ class CalibrationAPI(object):
                 if blacklist is not None:
                     if len(blacklist) > 0:
                         blacklist = np.array(blacklist)
-                        blacklist[None,:].repeat(pft_map.shape[0], axis = 0)
+                        blacklist = blacklist[None,:].repeat(pft_map.shape[0], axis = 0)
             else:
                 # For a static PFT map, sub-site land-cover heterogeneity is
                 #   allowed; get the dominant (single) PFT at each site
@@ -346,6 +366,7 @@ class CalibrationAPI(object):
             temp_day = hdf[f'{group}/T10M_daytime'][:][pft_mask]
             temp_night = hdf[f'{group}/T10M_nighttime'][:][pft_mask]
             tmin = hdf[f'{group}/Tmin'][:][pft_mask]
+
             # As long as the time series is balanced w.r.t. years (i.e., same
             #   number of records per year), the overall mean is the annual mean
             temp_annual = hdf[f'{group}/T10M'][:][pft_mask].mean(axis = 0)
@@ -357,10 +378,18 @@ class CalibrationAPI(object):
                 hdf[f'{group}/QV10M_nighttime'][:][pft_mask],
                 hdf[f'{group}/PS_nighttime'][:][pft_mask],
                 temp_night)
-            pressure = hdf[f'{group}/PS'][:][pft_mask]
+
+            # After VPD is calculated, air pressure is based solely
+            #   on elevation
+            elevation = hdf[self.config['data']['datasets']['elevation']][:]
+            elevation = elevation[np.newaxis,:]\
+                .repeat(nsteps, axis = 0)[pft_mask]
+            pressure = MOD16.air_pressure(elevation.mean(axis = -1))
+
             # Read in fPAR, LAI, and convert from (%) to [0,1]
             fpar = hdf[self.config['data']['datasets']['fPAR']][:][pft_mask]
             lai = hdf[self.config['data']['datasets']['LAI']][:][pft_mask]
+
             # If a heterogeneous sub-grid is used at each tower (i.e., there
             #   is a third axis to these datasets), then average over that
             #   sub-grid
@@ -379,6 +408,146 @@ class CalibrationAPI(object):
             pressure, fpar, lai
         ]
         return (tower_obs, drivers, weights)
+
+    def _load_data_annual(self, pft: int):
+        'Read in driver datasets from the HDF5 file, structured by years'
+        constraints = dict()
+        with h5py.File(self.hdf5, 'r') as hdf:
+            sites = hdf['FLUXNET/site_id'][:].tolist()
+            if hasattr(sites[0], 'decode'):
+                sites = [s.decode('utf-8') for s in sites]
+            # Number of time steps
+            nsteps = hdf['time'].shape[0]
+            # In case some tower sites should not be used
+            blacklist = self.config['data']['sites_blacklisted']
+            # Get dominant PFT across a potentially heterogenous sub-grid,
+            #   centered on the eddy covariance flux tower
+            pft_map = hdf[self.config['data']['class_map']][:]
+            # Also, ensure the blacklist matches the shape of this mask;
+            #   i.e., blacklisted sites should NEVER be used
+            if blacklist is not None:
+                if len(blacklist) > 0:
+                    blacklist = np.array(blacklist)
+                    blacklist = blacklist[None,:].repeat(pft_map.shape[0], axis = 0)
+
+            years = np.array([
+                datetime.date(*ymd).year for ymd in hdf['time'][:].tolist()
+            ])
+            # If any days of this year correspond to the current PFT, select
+            #   that year for calibration
+            year_masks = []
+            valid = self.config['data']['classes'] # Valid PFT classes
+            for y in np.unique(years):
+                # NOTE: This is where we select the current year
+                pft_map_now = pft_map[years == y].swapaxes(0,1)
+                pft_map_now = pft_map_now.reshape(
+                    (pft_map_now.shape[0], pft_map_now.size // pft_map_now.shape[0]))
+                # Update the PFT map (this year) to handle invalid PFT classes
+                for i in range(pft_map_now.shape[0]):
+                    if not np.in1d(pft_map_now[i], valid).all():
+                        # Replace invalid PFTs (this year) with most common
+                        #   valid PFT
+                        potential = pft_map_now[i,np.in1d(pft_map_now[i], valid)]
+                        if potential.size == 0:
+                            continue # Skip this for now
+                        pft_map_now[i,~np.in1d(pft_map_now[i], valid)] =\
+                            mode(potential)
+                # Now, with (mostly) good PFTs (this year), find the dominant
+                pft_map_now = np.apply_along_axis(mode, 1, pft_map_now)
+                year_masks.append(pft_map_now == pft)
+
+            year_masks = np.stack(year_masks, axis = 0)
+            # "Average" over the subgrid, then select years where a site has
+            #   that PFT for any part of the year; to verify that this has
+            #   resulted in an array that indicates which (full) years a PFT
+            #   occurs at each site, try:
+            # np.apply_along_axis(lambda x: x.sum(), 0, year_masks)
+            pft_mask = year_masks[years - years.min()]
+            # Set as False any tower-days where the tower is blacklisted
+            if blacklist is not None:
+                pft_mask[:,np.in1d(sites, blacklist)] = False
+            # Finally, get an (N,) selection mask for the towers we want
+            site_mask = pft_mask.any(axis = 0)
+
+            # Get tower weights, for when towers are too close together
+            weights = hdf['weights'][:]
+            # If only a single value is given for each site, repeat the weight
+            #   along the time axis
+            if weights.ndim == 1:
+                weights = weights[None,...].repeat(nsteps, axis = 0)
+            weights = weights[:,site_mask]
+
+            # Read in tower observations; we select obs of interest in three
+            #   steps because we want *only* matching tower-day observations
+            #   but we'll want driver data for a full year if that year
+            #   contains *any* matching tower-day observations
+            print('Masking out validation data...')
+            tower_obs = hdf['FLUXNET/latent_heat'][:]
+            tower_obs[~pft_mask] = np.nan # Step 1: Mask out invalid days
+            # Step 2: Mask out validation samples
+            tower_obs[hdf['FLUXNET/validation_mask'][pft]] = np.nan
+            tower_obs = tower_obs[:,site_mask] # Step 3: Select matching sites
+
+            # Read in driver datasets0
+            print('Loading driver datasets...')
+            group = self.config['data']['met_group']
+            lw_net_day = hdf[f'{group}/LWGNT_daytime'][:][:,site_mask]
+            lw_net_night = hdf[f'{group}/LWGNT_nighttime'][:][:,site_mask]
+            sw_albedo = hdf[self.config['data']['datasets']['albedo']][:][:,site_mask]
+            sw_rad_day = hdf[f'{group}/SWGDN_daytime'][:][:,site_mask]
+            sw_rad_night = hdf[f'{group}/SWGDN_nighttime'][:][:,site_mask]
+            temp_day = hdf[f'{group}/T10M_daytime'][:][:,site_mask]
+            temp_night = hdf[f'{group}/T10M_nighttime'][:][:,site_mask]
+            tmin = hdf[f'{group}/Tmin'][:][:,site_mask]
+
+            if self.config['constraints']['annual_precipitation']:
+                # Convert mean annual precip (Y x N) to a (T x N) array,
+                #   then subset
+                ann_precip = hdf[self.config['data']['datasets']['annual_precip']][:]
+                constraints['annual_precipitation'] = (years, ann_precip[:,site_mask])
+
+            # As long as the time series is balanced w.r.t. years (i.e., same
+            #   number of records per year), the overall mean is the annual mean
+            temp_annual = hdf[f'{group}/T10M'][:][:,site_mask].mean(axis = 0)
+            vpd_day = MOD16.vpd(
+                hdf[f'{group}/QV10M_daytime'][:][:,site_mask],
+                hdf[f'{group}/PS_daytime'][:][:,site_mask],
+                temp_day)
+            vpd_day = np.where(vpd_day < 0, 0, vpd_day)
+            vpd_night = MOD16.vpd(
+                hdf[f'{group}/QV10M_nighttime'][:][:,site_mask],
+                hdf[f'{group}/PS_nighttime'][:][:,site_mask],
+                temp_night)
+            vpd_night = np.where(vpd_night < 0, 0, vpd_night)
+
+            # After VPD is calculated, air pressure is based solely
+            #   on elevation
+            elevation = hdf[self.config['data']['datasets']['elevation']][:]
+            elevation = elevation[np.newaxis,:]\
+                .repeat(nsteps, axis = 0)[:,site_mask]
+            pressure = MOD16.air_pressure(elevation.mean(axis = -1))
+
+            # Read in fPAR, LAI, and convert from (%) to [0,1]
+            fpar = hdf[self.config['data']['datasets']['fPAR']][:][:,site_mask]
+            lai = hdf[self.config['data']['datasets']['LAI']][:][:,site_mask]
+
+            # If a heterogeneous sub-grid is used at each tower (i.e., there
+            #   is a third axis to these datasets), then average over that
+            #   sub-grid
+            if sw_albedo.ndim == 3 and fpar.ndim == 3 and lai.ndim == 3:
+                sw_albedo = np.nanmean(sw_albedo, axis = -1)
+                fpar = np.nanmean(fpar, axis = -1)
+                lai = np.nanmean(lai, axis = -1)
+            # Convert fPAR from (%) to [0,1] and re-scale LAI; reshape fPAR and LAI
+            fpar /= 100
+            lai /= 10
+
+        drivers = [
+            lw_net_day, lw_net_night, sw_rad_day, sw_rad_night, sw_albedo,
+            temp_day, temp_night, temp_annual, tmin, vpd_day, vpd_night,
+            pressure, fpar, lai
+        ]
+        return (tower_obs, drivers, weights, constraints)
 
     def clean_observed(
             self, raw: Sequence, drivers: Sequence, protocol: str = 'ET',
@@ -548,6 +717,28 @@ class CalibrationAPI(object):
         NOTE that `MOD16StochasticSampler` inherits methods from the `mod17`
         module, including [run()](https://arthur-e.github.io/MOD17/calibration.html#mod17.calibration.StochasticSampler).
         '''
+        def constrain_by_map(pred_le, years, lhv, annual_precip):
+            # Constraint the results by (mean) annual precipitation
+            # pred_le : np.ndarray - (T,N) array of predicted latent heat flux
+            # years : np.ndarray - (T,) array indicating year, out of Y years
+            # lhv : np.ndarray - (T,N) array of latent heat of vaporization
+            # annual_precip : np.ndarray -
+            #   (Y,N) array of the annual precipitation at the site
+            mass_rate = (pred_le * 60 * 60 * 24) / lhv # Convert [W m-2] to [mm day-1]
+            mass_rate[mass_rate < 0] = 0
+            annual_mass_rate = []
+            for y in np.unique(years):
+                a = np.apply_along_axis(
+                    lambda x: x.sum(), 0, mass_rate[years == y])
+                annual_mass_rate.append(a)
+            pred_precip = np.stack(annual_mass_rate, axis = 0)
+            diff = pred_precip - annual_precip
+            diff = np.where(diff < 0, 0, diff)
+            # Return the (negative) normalized RMSD; it's negative because
+            #   we are maximizing the objective function
+            nrmsd = 100 * ((diff**2).mean() / annual_precip.sum())
+            return -nrmsd
+
         assert pft in self.config['data']['classes'], f'Invalid PFT: {pft}'
         # Pass configuration parameters to MOD16StochasticSampler.run()
         for key in ('chains', 'draws', 'tune', 'scaling'):
@@ -560,7 +751,37 @@ class CalibrationAPI(object):
         if np.isnan(params_dict['beta']):
             params_dict['beta'] = 250
 
-        tower_obs, drivers, weights = self._load_data(pft)
+        # There may be additional constraints when dynamic classes are used
+        if self.config['data']['classes_are_dynamic']:
+            tower_obs, drivers, weights, constr = self._load_data_annual(pft)
+        else:
+            tower_obs, drivers, weights = self._load_data(pft)
+
+        constraints = None
+        if len(self.config['constraints']) > 0:
+            # Constraints may be defined in the config file but actually
+            #   set to false; if none are set true, there are no constraints
+            if any([
+                self.config['constraints'][k]
+                for k in self.config['constraints'].keys()
+            ]):
+                constraints = []
+            if self.config['constraints']['annual_precipitation']:
+                # Get the mean daily temperature, to derive LHV
+                air_t_day = drivers[MOD16StochasticSampler.required_drivers['ET']\
+                    .index('temp_day')]
+                air_t_night = drivers[MOD16StochasticSampler.required_drivers['ET']\
+                    .index('temp_night')]
+                air_t = np.stack(
+                    [air_t_day, air_t_night], axis = 0).mean(axis = 0)
+                lhv = latent_heat_vaporization(air_t)
+                # Unpack sequence of years (e.g., 2000, 2001, ...), precip
+                #   data (mm year-1)
+                years, ann_precip = constr['annual_precipitation']
+                # Add a version of constrain_by_map() function as a constraint
+                constraints.append(partial(
+                    constrain_by_map, years = years, lhv = lhv,
+                    annual_precip = ann_precip))
 
         if k_folds > 1:
             print(f'NOTE: Using k-folds CV with k={k_folds}...')
@@ -620,7 +841,7 @@ class CalibrationAPI(object):
             print('Initializing sampler...')
             sampler = MOD16StochasticSampler(
                 self.config, MOD16._et, params_dict, backend = backend,
-                weights = weights)
+                weights = weights, constraints = constraints)
 
             # Either: Enter diagnostic mode or run the sampler
             if plot_trace or ipdb:
@@ -636,6 +857,7 @@ class CalibrationAPI(object):
 
             # Clean the tower observations, run the sampler
             tower_obs = self.clean_observed(tower_obs, drivers)
+
             # Get (informative) priors for just those parameters that have them
             with open(self.config['optimization']['prior'], 'r') as file:
                 prior = yaml.safe_load(file)
@@ -645,14 +867,31 @@ class CalibrationAPI(object):
                 (p, dict([(k, v[pft]) for k, v in prior[p].items()]))
                 for p in prior_params
             ])
+
+            # Determine whether any parameters are fixed
+            fixed = []
+            for name in MOD16.required_parameters:
+                if self.config['optimization']['fixed'] is None:
+                    break
+                if name in self.config['optimization']['fixed'].keys():
+                    fixed.append(
+                        (name, self.config['optimization']['fixed'][name][pft]))
+            fixed = dict(fixed)
+
             # Set var_names to tell ArviZ to plot only the free parameters; i.e.,
-            #   those with priors
+            #   those with priors and which are not fixed
             var_names = list(filter(
                 lambda x: x in prior.keys(), MOD16.required_parameters))
+            # Remove any random variables that have fixed values from the list
+            #   of variables to be plotted
+            for key in fixed.keys():
+                if fixed[key] is not None:
+                    var_names.remove(key)
             kwargs.update({'var_names': var_names})
+
             sampler.run( # Only show the trace plot if not using k-folds
-                tower_obs, drivers, prior = prior, save_fig = save_fig,
-                show_fig = (k_folds == 1), **kwargs)
+                tower_obs, drivers, prior = prior, fixed = fixed,
+                save_fig = save_fig, show_fig = (k_folds == 1), **kwargs)
 
 
 if __name__ == '__main__':
