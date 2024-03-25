@@ -61,10 +61,16 @@ elevation.</li>
 (Equation 7, page 4); it is no longer based on surface emissivity and is
 instead based on the sum of short-wave and long-wave radiation; see
 <code><a title="mod16.MOD16.radiation_soil" href="#mod16.MOD16.radiation_soil">MOD16.radiation_soil()</a></code>.</li>
-<li>MOD16 C6.1 User's Guide has an error in the calculation of boundary-layer
-resistance to bare soil evaporation (Equation 19, page 9); instead of what
-is written there: When VPD &lt;= <code>VPD_open</code>, then <code>rbl_max</code> should be used
-and when VPD &gt;= <code>VPD_close</code>, then <code>rbl_min</code> should be used.</li>
+<li>Mu et al. (2011), Equation 26 is incorrect. This part of the algorithm is
+confusing because it conflates aerodynamic and surface resistances. While
+it seems that <code>rbl_max</code> should be used when VPD is low (because the
+atmospheric demand for water vapor is low, therefore resistance of water
+vapor transport should be high), this is already accounted for in the
+Penman-Monteith algorithm where VPD is in the numerator. Instead, what
+this section of the algorithm really represents is the surface resistance,
+using VPD as a (poor) proxy for the surface soil moisture. Hence, wet
+soils (low VPD) have low surface resistance and dry soils (high VPD) have
+high surface resistance.</li>
 <li>MOD16 C6.1 User's Guide suggested that, in calculating the radiation
 received by the soil (Equation 8), only net radiation is modulated by
 bare soil area, <span><span class="MathJax_Preview">(1 - fPAR)</span><script type="math/tex">(1 - fPAR)</script></span>. In fact, the difference between net
@@ -79,6 +85,10 @@ Equation 13). Here, <code>r_corr</code> is a large number (greater than 1), equa
 1/r, where r is the value provided in the User Guide; this avoids
 numerical instability associated with keeping track of a very small
 number.</li>
+<li>[ ] Surface pressure is calculated in two different ways: throughout most of
+MOD16, it is calculated based on the elevation of the land surface; but
+when calculating the actual vapor pressure (AVP), the NASA GMAO surface
+pressure (from MERRA-2 or GEOS-5) is used.</li>
 <li>Calculation of canopy conductance has changed since C6.1, see below.</li>
 </ol>
 <p>In MOD16 C6.1, canopy conductance was calculated as:
@@ -100,7 +110,7 @@ G_0 = gl_{sh} \times \text{LAI}(1 - F_{wet})
 G_0 = gl_{sh} \times \text{LAI}(1 - F_{wet})
 </script></span></p>
 <p>Based on [2], <code><a title="mod16.MOD16.radiation_soil" href="#mod16.MOD16.radiation_soil">MOD16.radiation_soil()</a></code> was updated. Based on [4],
-<code><a title="mod16.MOD16.soil_heat_flux" href="#mod16.MOD16.soil_heat_flux">MOD16.soil_heat_flux()</a></code> was updated. Based on [7], <code><a title="mod16.MOD16.transpiration" href="#mod16.MOD16.transpiration">MOD16.transpiration()</a></code>
+<code><a title="mod16.MOD16.soil_heat_flux" href="#mod16.MOD16.soil_heat_flux">MOD16.soil_heat_flux()</a></code> was updated. Based on [8], <code><a title="mod16.MOD16.transpiration" href="#mod16.MOD16.transpiration">MOD16.transpiration()</a></code>
 was updated.</p>
 <p>TODO:</p>
 <ul>
@@ -152,10 +162,16 @@ NOTES:
     (Equation 7, page 4); it is no longer based on surface emissivity and is
     instead based on the sum of short-wave and long-wave radiation; see
     `MOD16.radiation_soil()`.
-3. MOD16 C6.1 User&#39;s Guide has an error in the calculation of boundary-layer
-    resistance to bare soil evaporation (Equation 19, page 9); instead of what
-    is written there: When VPD &lt;= `VPD_open`, then `rbl_max` should be used
-    and when VPD &gt;= `VPD_close`, then `rbl_min` should be used.
+3. Mu et al. (2011), Equation 26 is incorrect. This part of the algorithm is
+    confusing because it conflates aerodynamic and surface resistances. While
+    it seems that `rbl_max` should be used when VPD is low (because the
+    atmospheric demand for water vapor is low, therefore resistance of water
+    vapor transport should be high), this is already accounted for in the
+    Penman-Monteith algorithm where VPD is in the numerator. Instead, what
+    this section of the algorithm really represents is the surface resistance,
+    using VPD as a (poor) proxy for the surface soil moisture. Hence, wet
+    soils (low VPD) have low surface resistance and dry soils (high VPD) have
+    high surface resistance.
 4. MOD16 C6.1 User&#39;s Guide suggested that, in calculating the radiation
     received by the soil (Equation 8), only net radiation is modulated by
     bare soil area, \((1 - fPAR)\). In fact, the difference between net
@@ -170,7 +186,11 @@ NOTES:
     1/r, where r is the value provided in the User Guide; this avoids
     numerical instability associated with keeping track of a very small
     number.
-7. Calculation of canopy conductance has changed since C6.1, see below.
+7. [ ] Surface pressure is calculated in two different ways: throughout most of
+    MOD16, it is calculated based on the elevation of the land surface; but
+    when calculating the actual vapor pressure (AVP), the NASA GMAO surface
+    pressure (from MERRA-2 or GEOS-5) is used.
+8. Calculation of canopy conductance has changed since C6.1, see below.
 
 In MOD16 C6.1, canopy conductance was calculated as:
 $$
@@ -188,7 +208,7 @@ G_0 = gl_{sh} \times \text{LAI}(1 - F_{wet})
 $$
 
 Based on [2], `MOD16.radiation_soil()` was updated. Based on [4],
-`MOD16.soil_heat_flux()` was updated. Based on [7], `MOD16.transpiration()`
+`MOD16.soil_heat_flux()` was updated. Based on [8], `MOD16.transpiration()`
 was updated.
 
 TODO:
@@ -263,7 +283,7 @@ class MOD16(object):
     def _et(
             params, lw_net_day, lw_net_night, sw_rad_day, sw_rad_night,
             sw_albedo, temp_day, temp_night, temp_annual, tmin, vpd_day,
-            vpd_night, pressure, fpar, lai, f_wet = None, tiny = 1e-9,
+            vpd_night, pressure, fpar, lai, f_wet = None, tiny = 1e-7,
             r_corr_list = None
         ) -&gt; Number:
         &#39;&#39;&#39;
@@ -288,7 +308,7 @@ class MOD16(object):
         day, night = MOD16._evapotranspiration(
             params, lw_net_day, lw_net_night, sw_rad_day, sw_rad_night,
             sw_albedo, temp_day, temp_night, temp_annual, tmin, vpd_day,
-            vpd_night, pressure, fpar, lai, f_wet = None, tiny = 1e-9,
+            vpd_night, pressure, fpar, lai, f_wet = None, tiny = 1e-7,
             r_corr_list = r_corr_list)
         return np.add(day, night)
 
@@ -296,7 +316,7 @@ class MOD16(object):
     def _evapotranspiration(
             params, lw_net_day, lw_net_night, sw_rad_day, sw_rad_night,
             sw_albedo, temp_day, temp_night, temp_annual, tmin, vpd_day,
-            vpd_night, pressure, fpar, lai, f_wet = None, tiny = 1e-9,
+            vpd_night, pressure, fpar, lai, f_wet = None, tiny = 1e-7,
             r_corr_list = None
         ) -&gt; Iterable[Tuple[Sequence, Sequence]]:
         &#39;&#39;&#39;
@@ -441,11 +461,7 @@ class MOD16(object):
             if np.any(g_surf &gt; 0):
                 t = (1 - f_wet) * ((s * rad_canopy) +\
                     (rho * SPECIFIC_HEAT_CAPACITY_AIR * fpar * (vpd / r_a_dry)))
-                if daytime:
-                    t /= (s + gamma * (1 + (1 / g_canopy) / r_a_dry))
-                else:
-                    # Simplify calculation because g_canopy := 0 at night
-                    t /= (s + gamma)
+                t /= (s + gamma * (1 + (1 / g_canopy) / r_a_dry))
             else:
                 t = 0
             transpiration.append(t)
@@ -453,6 +469,9 @@ class MOD16(object):
             # BARE SOIL EVAPORATION
             # -- Total aerodynamic resistance as a function of VPD and the
             #   atmospheric boundary layer resistance...
+            # VERIFIED 2024-02, as VPD is really a proxy for soil moisture
+            #   here; hence &#34;boundary-layer resistance&#34; (really surface
+            #   resistance) should be low when VPD is low (soil is &#34;wet&#34;)
             r_tot = np.where(vpd &lt;= params[2], params[8], # rbl_min
                 np.where(vpd &gt;= params[3], params[9], # rbl_max
                 params[9] - (
@@ -477,6 +496,7 @@ class MOD16(object):
 
             # Result is the sum of the three components
             et_total.append((transpiration[i] + e_canopy[i] + e_soil[i]))
+
         return et_total
 
     @staticmethod
@@ -529,7 +549,7 @@ class MOD16(object):
           \right)^{5.256}
         $$
 
-        Where \(\ell\) is the standard temperature lapse rate (-0.0065 deg K
+        Where \(\ell\) is the standard temperature lapse rate (0.0065 deg K
         per meter), \(z\) is the elevation in meters, and \(P_{\text{std}}\),
         \(T_{\text{std}}\) are the standard pressure (101325 Pa) and
         temperature (288.15 deg K) at sea level.
@@ -544,7 +564,7 @@ class MOD16(object):
             Air pressure in Pascals
         &#39;&#39;&#39;
         temp_ratio = 1 - ((TEMP_LAPSE_RATE * elevation_m) / STD_TEMP_K)
-        return STD_PRESSURE_PASCALS * np.pow(temp_ratio, AIR_PRESSURE_RATE)
+        return STD_PRESSURE_PASCALS * np.power(temp_ratio, AIR_PRESSURE_RATE)
 
     @staticmethod
     def vpd(qv10m: Number, pressure: Number, tmean: Number) -&gt; Number:
@@ -667,7 +687,8 @@ class MOD16(object):
         Returns
         -------
         tuple
-            Sequence of (daytime, nighttime) ET flux(es)
+            Sequence of (daytime, nighttime) ET flux(es); units are in
+            (kg m-2 s-1) or (mm s-1)
         &#39;&#39;&#39;
         # Get radiation intercepted by the soil surface
         rad_soil_all = self.radiation_soil(
@@ -706,6 +727,7 @@ class MOD16(object):
             # Correction for atmospheric temperature and pressure
             #   (Equation 13, MOD16 C6.1 User&#39;s Guide)
             r_corr = (101300 / pressure) * (temp_k / 293.15)**1.75
+
             # EVAPORATION FROM WET CANOPY
             e_canopy.append(self.evaporation_wet_canopy(
                 pressure, temp_k, vpd, lai, fpar, rad_canopy, lhv, rhumidity,
@@ -723,7 +745,7 @@ class MOD16(object):
                 et_total.append((e_canopy[i], e_soil[i], transpiration[i]))
             else:
                 et_total.append((e_canopy[i] + e_soil[i] + transpiration[i]))
-        return et_total
+        return tuple(et_total)
 
     def evaporation_soil(
             self, pressure: Number, temp_k: Number, vpd: Number, fpar: Number,
@@ -776,7 +798,7 @@ class MOD16(object):
         Returns
         -------
         float or numpy.ndarray
-            Evaporation from bare soil (kg m-2 s-1)
+            Evaporation from bare soil; (kg m-2 s-1) or (mm s-1)
         &#39;&#39;&#39;
         if lhv is None:
             lhv = latent_heat_vaporization(temp_k)
@@ -795,6 +817,9 @@ class MOD16(object):
             4 * STEFAN_BOLTZMANN * temp_k**3)
         # Total aerodynamic resistance as a function of VPD and the
         #   atmospheric boundary layer resistance...
+        # VERIFIED 2024-02, as VPD is really a proxy for soil moisture
+        #   here; hence &#34;boundary-layer resistance&#34; (really surface
+        #   resistance) should be low when VPD is low (soil is &#34;wet&#34;)
         r_tot = np.where(vpd &lt;= self.vpd_open, self.rbl_min,
             np.where(vpd &gt;= self.vpd_close, self.rbl_max,
             self.rbl_max - (
@@ -819,23 +844,24 @@ class MOD16(object):
         e += np.where(
             evap_unsat &lt; 0, 0,
             evap_unsat * np.power(rhumidity, vpd / self.beta))
-        # Divide by the latent heat of vaporization (J kg-1) to obtain mass
-        #   flux (kg m-2 s-1)
+        # Divide (W m-2) by the latent heat of vaporization (J kg-1) to obtain
+        #   mass flux (kg m-2 s-1)
         return e / lhv
 
     def evaporation_wet_canopy(
             self, pressure: Number, temp_k: Number, vpd: Number, lai: Number,
             fpar: Number, rad_canopy: Number, lhv: Number = None,
-            rhumidity: Number = None, f_wet: Number = None, tiny: float = 1e-9
+            rhumidity: Number = None, f_wet: Number = None, tiny: float = 1e-7
         ) -&gt; Number:
         r&#39;&#39;&#39;
         Wet canopy evaporation calculated according to the MODIS MOD16
         framework:
 
         $$
-        \lambda E = F_{wet} \frac{
-            s\, A_c\, F_c + \rho\, C_p\, D\, (F_c / r_w)
-          }{s + (P_a\, C_p\, r_e)(\lambda\, \varepsilon\, r_w)^{-1}}
+        \lambda E_{\text{canopy}} = F_{\text{wet}} \frac{
+          s A_{\text{canopy}} + \rho\, C_p [\text{VPD}]
+            (F_c / r_{\text{wet}})
+        }{s + (P_a\, C_p\, r_{WV})(0.622\, \lambda\, r_{\text{wet}})^{-1}}
         $$
 
         Where:
@@ -876,12 +902,12 @@ class MOD16(object):
             (Optional) The fraction of the surface that has standing water
         tiny : float
             (Optional) A very small number, the numerical tolerance for zero
-            (Default: 1e-9)
+            (Default: 1e-7)
 
         Returns
         -------
         float or numpy.ndarray
-            Evaporation from the wet canopy surface (kg m-2 s-1)
+            Evaporation from the wet canopy surface; (kg m-2 s-1) or (mm s-1)
         &#39;&#39;&#39;
         if lhv is None:
             lhv = latent_heat_vaporization(temp_k)
@@ -909,7 +935,7 @@ class MOD16(object):
         #   surface (&#34;rhrc&#34;)
         r_a_wet = np.divide(r_h * r_r, r_h + r_r) # (s m-1)
         numer = f_wet * ((s * rad_canopy) +\
-            (rho * SPECIFIC_HEAT_CAPACITY_AIR * fpar * (vpd * 1/r_a_wet)))
+            (rho * SPECIFIC_HEAT_CAPACITY_AIR * fpar * vpd * 1/r_a_wet))
         denom = s + ((pressure * SPECIFIC_HEAT_CAPACITY_AIR * r_e) *\
             1/(lhv * MOL_WEIGHT_WET_DRY_RATIO_AIR * r_a_wet))
         # Mu et al. (2011), Equation 17; PET (J m-2 s-1) is divided by the
@@ -1053,12 +1079,12 @@ class MOD16(object):
         tuple
             A 2-element tuple of (daytime, nighttime) soil heat flux
         &#39;&#39;&#39;
-        # See ca. Line 4355 in MODPR16_main.c
+        # See ca. Line 4355 in MODPR16_main.c and ca. User Guide Eq. 9
         g_soil = []
         condition = np.logical_and(
             np.logical_and(
                 temp_annual &lt; (273.15 + 25),
-                temp_annual &gt; (273.15 + self.tmin_close)
+                temp_annual &gt;= (273.15 + self.tmin_close)
             ), (temp_day - temp_night) &gt;= 5)
         for rad_i, temp_i in zip(
                 (rad_net_day, rad_net_night), (temp_day, temp_night)):
@@ -1108,15 +1134,16 @@ class MOD16(object):
             self, pressure: Number, temp_k: Number, vpd: Number, lai: Number,
             fpar: Number, rad_canopy: Number, tmin: Number, r_corr: Number,
             lhv: Number = None, rhumidity: Number = None,
-            f_wet: Number = None, daytime: bool = True, tiny = 1e-9
+            f_wet: Number = None, daytime: bool = True, tiny: float = 1e-7
         ) -&gt; Number:
         r&#39;&#39;&#39;
         Plant transpiration over daytime or night-time hours, in mass flux
         units (kg m-2 s-1), according to:
 
         $$
-        \lambda E_T = \frac{s A_c + \rho C_p F_c D r_d^{-1}}
-          {s + \gamma(1 + r_s r_d^{-1})}
+        \lambda E_{\text{trans}} = (1 - F_{\text{wet}})
+          \frac{s A_C + \rho C_p F_C [\text{VPD}] r_{\text{dry}}^{-1}}
+            {s + \gamma(1 + C_C^{-1} r_{\text{dry}}^{-1})}
         $$
 
         NOTE: The `r_corr` argument to this function is different from that
@@ -1124,6 +1151,9 @@ class MOD16(object):
         stability, `r_corr` equals 1/r where r is the quantity defined in
         Equaiton 13. See `MOD16.evapotranspiration()` for how `r_corr` is
         calculated.
+
+        At nighttime, $g_s$ is assumed to be zero, which may impact the
+        calculation of $C_C$ in the denominator of the PM equation above.
 
         Parameters
         ----------
@@ -1156,12 +1186,12 @@ class MOD16(object):
             to calculate night-time (sun-down) transpiration (Default: True)
         tiny : float
             (Optional) A very small number, the numerical tolerance for zero
-            (Default: 1e-9)
+            (Default: 1e-7)
 
         Returns
         -------
         float or numpy.ndarray
-            Transpiration (kg m-2 s-1)
+            Transpiration; (kg m-2 s-1) or (mm s-1)
         &#39;&#39;&#39;
         if lhv is None:
             lhv = latent_heat_vaporization(temp_k)
@@ -1178,7 +1208,7 @@ class MOD16(object):
         # Resistance to radiative heat transfer through air (&#34;rrc&#34;)
         r_r = (rho * SPECIFIC_HEAT_CAPACITY_AIR) / (
             4 * STEFAN_BOLTZMANN * temp_k**3)
-        # Surface conductance (zero at nighttime)
+        # Surface conductance (assumed to be zero at nighttime)
         g_surf = 0 # (Equation 13, MOD16 C6.1 User&#39;s Guide)
         if daytime:
             # NOTE: C_L (self.csl) is included in self.surface_conductance()
@@ -1200,11 +1230,7 @@ class MOD16(object):
         # PLANT TRANSPIRATION
         t = (1 - f_wet) * ((s * rad_canopy) +\
             (rho * SPECIFIC_HEAT_CAPACITY_AIR * fpar * (vpd / r_a_dry)))
-        if daytime:
-            t /= (s + gamma * (1 + (1 / g_canopy) / r_a_dry))
-        else:
-            # At nighttime, g_canopy is zero, so simplify the calculation
-            t /= (s + gamma) # (Equation 17, MOD16 C6.1 User&#39;s Guide)
+        t /= (s + gamma * (1 + (1 / g_canopy) / r_a_dry))
         # Divide by the latent heat of vaporization (J kg-1) to obtain mass
         #   flux (kg m-2 s-1)
         return np.where(g_canopy &lt;= tiny, 0, t / lhv)
@@ -1754,7 +1780,7 @@ evaporation, i.e., (VPD / beta); from Bouchet (1963)</li>
     def _et(
             params, lw_net_day, lw_net_night, sw_rad_day, sw_rad_night,
             sw_albedo, temp_day, temp_night, temp_annual, tmin, vpd_day,
-            vpd_night, pressure, fpar, lai, f_wet = None, tiny = 1e-9,
+            vpd_night, pressure, fpar, lai, f_wet = None, tiny = 1e-7,
             r_corr_list = None
         ) -&gt; Number:
         &#39;&#39;&#39;
@@ -1779,7 +1805,7 @@ evaporation, i.e., (VPD / beta); from Bouchet (1963)</li>
         day, night = MOD16._evapotranspiration(
             params, lw_net_day, lw_net_night, sw_rad_day, sw_rad_night,
             sw_albedo, temp_day, temp_night, temp_annual, tmin, vpd_day,
-            vpd_night, pressure, fpar, lai, f_wet = None, tiny = 1e-9,
+            vpd_night, pressure, fpar, lai, f_wet = None, tiny = 1e-7,
             r_corr_list = r_corr_list)
         return np.add(day, night)
 
@@ -1787,7 +1813,7 @@ evaporation, i.e., (VPD / beta); from Bouchet (1963)</li>
     def _evapotranspiration(
             params, lw_net_day, lw_net_night, sw_rad_day, sw_rad_night,
             sw_albedo, temp_day, temp_night, temp_annual, tmin, vpd_day,
-            vpd_night, pressure, fpar, lai, f_wet = None, tiny = 1e-9,
+            vpd_night, pressure, fpar, lai, f_wet = None, tiny = 1e-7,
             r_corr_list = None
         ) -&gt; Iterable[Tuple[Sequence, Sequence]]:
         &#39;&#39;&#39;
@@ -1932,11 +1958,7 @@ evaporation, i.e., (VPD / beta); from Bouchet (1963)</li>
             if np.any(g_surf &gt; 0):
                 t = (1 - f_wet) * ((s * rad_canopy) +\
                     (rho * SPECIFIC_HEAT_CAPACITY_AIR * fpar * (vpd / r_a_dry)))
-                if daytime:
-                    t /= (s + gamma * (1 + (1 / g_canopy) / r_a_dry))
-                else:
-                    # Simplify calculation because g_canopy := 0 at night
-                    t /= (s + gamma)
+                t /= (s + gamma * (1 + (1 / g_canopy) / r_a_dry))
             else:
                 t = 0
             transpiration.append(t)
@@ -1944,6 +1966,9 @@ evaporation, i.e., (VPD / beta); from Bouchet (1963)</li>
             # BARE SOIL EVAPORATION
             # -- Total aerodynamic resistance as a function of VPD and the
             #   atmospheric boundary layer resistance...
+            # VERIFIED 2024-02, as VPD is really a proxy for soil moisture
+            #   here; hence &#34;boundary-layer resistance&#34; (really surface
+            #   resistance) should be low when VPD is low (soil is &#34;wet&#34;)
             r_tot = np.where(vpd &lt;= params[2], params[8], # rbl_min
                 np.where(vpd &gt;= params[3], params[9], # rbl_max
                 params[9] - (
@@ -1968,6 +1993,7 @@ evaporation, i.e., (VPD / beta); from Bouchet (1963)</li>
 
             # Result is the sum of the three components
             et_total.append((transpiration[i] + e_canopy[i] + e_soil[i]))
+
         return et_total
 
     @staticmethod
@@ -2020,7 +2046,7 @@ evaporation, i.e., (VPD / beta); from Bouchet (1963)</li>
           \right)^{5.256}
         $$
 
-        Where \(\ell\) is the standard temperature lapse rate (-0.0065 deg K
+        Where \(\ell\) is the standard temperature lapse rate (0.0065 deg K
         per meter), \(z\) is the elevation in meters, and \(P_{\text{std}}\),
         \(T_{\text{std}}\) are the standard pressure (101325 Pa) and
         temperature (288.15 deg K) at sea level.
@@ -2035,7 +2061,7 @@ evaporation, i.e., (VPD / beta); from Bouchet (1963)</li>
             Air pressure in Pascals
         &#39;&#39;&#39;
         temp_ratio = 1 - ((TEMP_LAPSE_RATE * elevation_m) / STD_TEMP_K)
-        return STD_PRESSURE_PASCALS * np.pow(temp_ratio, AIR_PRESSURE_RATE)
+        return STD_PRESSURE_PASCALS * np.power(temp_ratio, AIR_PRESSURE_RATE)
 
     @staticmethod
     def vpd(qv10m: Number, pressure: Number, tmean: Number) -&gt; Number:
@@ -2158,7 +2184,8 @@ evaporation, i.e., (VPD / beta); from Bouchet (1963)</li>
         Returns
         -------
         tuple
-            Sequence of (daytime, nighttime) ET flux(es)
+            Sequence of (daytime, nighttime) ET flux(es); units are in
+            (kg m-2 s-1) or (mm s-1)
         &#39;&#39;&#39;
         # Get radiation intercepted by the soil surface
         rad_soil_all = self.radiation_soil(
@@ -2197,6 +2224,7 @@ evaporation, i.e., (VPD / beta); from Bouchet (1963)</li>
             # Correction for atmospheric temperature and pressure
             #   (Equation 13, MOD16 C6.1 User&#39;s Guide)
             r_corr = (101300 / pressure) * (temp_k / 293.15)**1.75
+
             # EVAPORATION FROM WET CANOPY
             e_canopy.append(self.evaporation_wet_canopy(
                 pressure, temp_k, vpd, lai, fpar, rad_canopy, lhv, rhumidity,
@@ -2214,7 +2242,7 @@ evaporation, i.e., (VPD / beta); from Bouchet (1963)</li>
                 et_total.append((e_canopy[i], e_soil[i], transpiration[i]))
             else:
                 et_total.append((e_canopy[i] + e_soil[i] + transpiration[i]))
-        return et_total
+        return tuple(et_total)
 
     def evaporation_soil(
             self, pressure: Number, temp_k: Number, vpd: Number, fpar: Number,
@@ -2267,7 +2295,7 @@ evaporation, i.e., (VPD / beta); from Bouchet (1963)</li>
         Returns
         -------
         float or numpy.ndarray
-            Evaporation from bare soil (kg m-2 s-1)
+            Evaporation from bare soil; (kg m-2 s-1) or (mm s-1)
         &#39;&#39;&#39;
         if lhv is None:
             lhv = latent_heat_vaporization(temp_k)
@@ -2286,6 +2314,9 @@ evaporation, i.e., (VPD / beta); from Bouchet (1963)</li>
             4 * STEFAN_BOLTZMANN * temp_k**3)
         # Total aerodynamic resistance as a function of VPD and the
         #   atmospheric boundary layer resistance...
+        # VERIFIED 2024-02, as VPD is really a proxy for soil moisture
+        #   here; hence &#34;boundary-layer resistance&#34; (really surface
+        #   resistance) should be low when VPD is low (soil is &#34;wet&#34;)
         r_tot = np.where(vpd &lt;= self.vpd_open, self.rbl_min,
             np.where(vpd &gt;= self.vpd_close, self.rbl_max,
             self.rbl_max - (
@@ -2310,23 +2341,24 @@ evaporation, i.e., (VPD / beta); from Bouchet (1963)</li>
         e += np.where(
             evap_unsat &lt; 0, 0,
             evap_unsat * np.power(rhumidity, vpd / self.beta))
-        # Divide by the latent heat of vaporization (J kg-1) to obtain mass
-        #   flux (kg m-2 s-1)
+        # Divide (W m-2) by the latent heat of vaporization (J kg-1) to obtain
+        #   mass flux (kg m-2 s-1)
         return e / lhv
 
     def evaporation_wet_canopy(
             self, pressure: Number, temp_k: Number, vpd: Number, lai: Number,
             fpar: Number, rad_canopy: Number, lhv: Number = None,
-            rhumidity: Number = None, f_wet: Number = None, tiny: float = 1e-9
+            rhumidity: Number = None, f_wet: Number = None, tiny: float = 1e-7
         ) -&gt; Number:
         r&#39;&#39;&#39;
         Wet canopy evaporation calculated according to the MODIS MOD16
         framework:
 
         $$
-        \lambda E = F_{wet} \frac{
-            s\, A_c\, F_c + \rho\, C_p\, D\, (F_c / r_w)
-          }{s + (P_a\, C_p\, r_e)(\lambda\, \varepsilon\, r_w)^{-1}}
+        \lambda E_{\text{canopy}} = F_{\text{wet}} \frac{
+          s A_{\text{canopy}} + \rho\, C_p [\text{VPD}]
+            (F_c / r_{\text{wet}})
+        }{s + (P_a\, C_p\, r_{WV})(0.622\, \lambda\, r_{\text{wet}})^{-1}}
         $$
 
         Where:
@@ -2367,12 +2399,12 @@ evaporation, i.e., (VPD / beta); from Bouchet (1963)</li>
             (Optional) The fraction of the surface that has standing water
         tiny : float
             (Optional) A very small number, the numerical tolerance for zero
-            (Default: 1e-9)
+            (Default: 1e-7)
 
         Returns
         -------
         float or numpy.ndarray
-            Evaporation from the wet canopy surface (kg m-2 s-1)
+            Evaporation from the wet canopy surface; (kg m-2 s-1) or (mm s-1)
         &#39;&#39;&#39;
         if lhv is None:
             lhv = latent_heat_vaporization(temp_k)
@@ -2400,7 +2432,7 @@ evaporation, i.e., (VPD / beta); from Bouchet (1963)</li>
         #   surface (&#34;rhrc&#34;)
         r_a_wet = np.divide(r_h * r_r, r_h + r_r) # (s m-1)
         numer = f_wet * ((s * rad_canopy) +\
-            (rho * SPECIFIC_HEAT_CAPACITY_AIR * fpar * (vpd * 1/r_a_wet)))
+            (rho * SPECIFIC_HEAT_CAPACITY_AIR * fpar * vpd * 1/r_a_wet))
         denom = s + ((pressure * SPECIFIC_HEAT_CAPACITY_AIR * r_e) *\
             1/(lhv * MOL_WEIGHT_WET_DRY_RATIO_AIR * r_a_wet))
         # Mu et al. (2011), Equation 17; PET (J m-2 s-1) is divided by the
@@ -2544,12 +2576,12 @@ evaporation, i.e., (VPD / beta); from Bouchet (1963)</li>
         tuple
             A 2-element tuple of (daytime, nighttime) soil heat flux
         &#39;&#39;&#39;
-        # See ca. Line 4355 in MODPR16_main.c
+        # See ca. Line 4355 in MODPR16_main.c and ca. User Guide Eq. 9
         g_soil = []
         condition = np.logical_and(
             np.logical_and(
                 temp_annual &lt; (273.15 + 25),
-                temp_annual &gt; (273.15 + self.tmin_close)
+                temp_annual &gt;= (273.15 + self.tmin_close)
             ), (temp_day - temp_night) &gt;= 5)
         for rad_i, temp_i in zip(
                 (rad_net_day, rad_net_night), (temp_day, temp_night)):
@@ -2599,15 +2631,16 @@ evaporation, i.e., (VPD / beta); from Bouchet (1963)</li>
             self, pressure: Number, temp_k: Number, vpd: Number, lai: Number,
             fpar: Number, rad_canopy: Number, tmin: Number, r_corr: Number,
             lhv: Number = None, rhumidity: Number = None,
-            f_wet: Number = None, daytime: bool = True, tiny = 1e-9
+            f_wet: Number = None, daytime: bool = True, tiny: float = 1e-7
         ) -&gt; Number:
         r&#39;&#39;&#39;
         Plant transpiration over daytime or night-time hours, in mass flux
         units (kg m-2 s-1), according to:
 
         $$
-        \lambda E_T = \frac{s A_c + \rho C_p F_c D r_d^{-1}}
-          {s + \gamma(1 + r_s r_d^{-1})}
+        \lambda E_{\text{trans}} = (1 - F_{\text{wet}})
+          \frac{s A_C + \rho C_p F_C [\text{VPD}] r_{\text{dry}}^{-1}}
+            {s + \gamma(1 + C_C^{-1} r_{\text{dry}}^{-1})}
         $$
 
         NOTE: The `r_corr` argument to this function is different from that
@@ -2615,6 +2648,9 @@ evaporation, i.e., (VPD / beta); from Bouchet (1963)</li>
         stability, `r_corr` equals 1/r where r is the quantity defined in
         Equaiton 13. See `MOD16.evapotranspiration()` for how `r_corr` is
         calculated.
+
+        At nighttime, $g_s$ is assumed to be zero, which may impact the
+        calculation of $C_C$ in the denominator of the PM equation above.
 
         Parameters
         ----------
@@ -2647,12 +2683,12 @@ evaporation, i.e., (VPD / beta); from Bouchet (1963)</li>
             to calculate night-time (sun-down) transpiration (Default: True)
         tiny : float
             (Optional) A very small number, the numerical tolerance for zero
-            (Default: 1e-9)
+            (Default: 1e-7)
 
         Returns
         -------
         float or numpy.ndarray
-            Transpiration (kg m-2 s-1)
+            Transpiration; (kg m-2 s-1) or (mm s-1)
         &#39;&#39;&#39;
         if lhv is None:
             lhv = latent_heat_vaporization(temp_k)
@@ -2669,7 +2705,7 @@ evaporation, i.e., (VPD / beta); from Bouchet (1963)</li>
         # Resistance to radiative heat transfer through air (&#34;rrc&#34;)
         r_r = (rho * SPECIFIC_HEAT_CAPACITY_AIR) / (
             4 * STEFAN_BOLTZMANN * temp_k**3)
-        # Surface conductance (zero at nighttime)
+        # Surface conductance (assumed to be zero at nighttime)
         g_surf = 0 # (Equation 13, MOD16 C6.1 User&#39;s Guide)
         if daytime:
             # NOTE: C_L (self.csl) is included in self.surface_conductance()
@@ -2691,11 +2727,7 @@ evaporation, i.e., (VPD / beta); from Bouchet (1963)</li>
         # PLANT TRANSPIRATION
         t = (1 - f_wet) * ((s * rad_canopy) +\
             (rho * SPECIFIC_HEAT_CAPACITY_AIR * fpar * (vpd / r_a_dry)))
-        if daytime:
-            t /= (s + gamma * (1 + (1 / g_canopy) / r_a_dry))
-        else:
-            # At nighttime, g_canopy is zero, so simplify the calculation
-            t /= (s + gamma) # (Equation 17, MOD16 C6.1 User&#39;s Guide)
+        t /= (s + gamma * (1 + (1 / g_canopy) / r_a_dry))
         # Divide by the latent heat of vaporization (J kg-1) to obtain mass
         #   flux (kg m-2 s-1)
         return np.where(g_canopy &lt;= tiny, 0, t / lhv)</code></pre>
@@ -2791,7 +2823,7 @@ P_a = P_{\text{std}}\times \left(
 1 - \ell z T_{\text{std}}^{-1}
 \right)^{5.256}
 </script></span></p>
-<p>Where <span><span class="MathJax_Preview">\ell</span><script type="math/tex">\ell</script></span> is the standard temperature lapse rate (-0.0065 deg K
+<p>Where <span><span class="MathJax_Preview">\ell</span><script type="math/tex">\ell</script></span> is the standard temperature lapse rate (0.0065 deg K
 per meter), <span><span class="MathJax_Preview">z</span><script type="math/tex">z</script></span> is the elevation in meters, and <span><span class="MathJax_Preview">P_{\text{std}}</span><script type="math/tex">P_{\text{std}}</script></span>,
 <span><span class="MathJax_Preview">T_{\text{std}}</span><script type="math/tex">T_{\text{std}}</script></span> are the standard pressure (101325 Pa) and
 temperature (288.15 deg K) at sea level.</p>
@@ -2827,7 +2859,7 @@ def air_pressure(elevation_m: Number) -&gt; Number:
       \right)^{5.256}
     $$
 
-    Where \(\ell\) is the standard temperature lapse rate (-0.0065 deg K
+    Where \(\ell\) is the standard temperature lapse rate (0.0065 deg K
     per meter), \(z\) is the elevation in meters, and \(P_{\text{std}}\),
     \(T_{\text{std}}\) are the standard pressure (101325 Pa) and
     temperature (288.15 deg K) at sea level.
@@ -2842,7 +2874,7 @@ def air_pressure(elevation_m: Number) -&gt; Number:
         Air pressure in Pascals
     &#39;&#39;&#39;
     temp_ratio = 1 - ((TEMP_LAPSE_RATE * elevation_m) / STD_TEMP_K)
-    return STD_PRESSURE_PASCALS * np.pow(temp_ratio, AIR_PRESSURE_RATE)</code></pre>
+    return STD_PRESSURE_PASCALS * np.power(temp_ratio, AIR_PRESSURE_RATE)</code></pre>
 </details>
 </dd>
 <dt id="mod16.MOD16.rhumidity"><code class="name flex">
@@ -3042,7 +3074,7 @@ conductance</dd>
 <h2 id="returns">Returns</h2>
 <dl>
 <dt><code>float</code> or <code>numpy.ndarray</code></dt>
-<dd>Evaporation from bare soil (kg m-2 s-1)</dd>
+<dd>Evaporation from bare soil; (kg m-2 s-1) or (mm s-1)</dd>
 </dl></div>
 <details class="source">
 <summary>
@@ -3099,7 +3131,7 @@ conductance</dd>
     Returns
     -------
     float or numpy.ndarray
-        Evaporation from bare soil (kg m-2 s-1)
+        Evaporation from bare soil; (kg m-2 s-1) or (mm s-1)
     &#39;&#39;&#39;
     if lhv is None:
         lhv = latent_heat_vaporization(temp_k)
@@ -3118,6 +3150,9 @@ conductance</dd>
         4 * STEFAN_BOLTZMANN * temp_k**3)
     # Total aerodynamic resistance as a function of VPD and the
     #   atmospheric boundary layer resistance...
+    # VERIFIED 2024-02, as VPD is really a proxy for soil moisture
+    #   here; hence &#34;boundary-layer resistance&#34; (really surface
+    #   resistance) should be low when VPD is low (soil is &#34;wet&#34;)
     r_tot = np.where(vpd &lt;= self.vpd_open, self.rbl_min,
         np.where(vpd &gt;= self.vpd_close, self.rbl_max,
         self.rbl_max - (
@@ -3142,25 +3177,27 @@ conductance</dd>
     e += np.where(
         evap_unsat &lt; 0, 0,
         evap_unsat * np.power(rhumidity, vpd / self.beta))
-    # Divide by the latent heat of vaporization (J kg-1) to obtain mass
-    #   flux (kg m-2 s-1)
+    # Divide (W m-2) by the latent heat of vaporization (J kg-1) to obtain
+    #   mass flux (kg m-2 s-1)
     return e / lhv</code></pre>
 </details>
 </dd>
 <dt id="mod16.MOD16.evaporation_wet_canopy"><code class="name flex">
-<span>def <span class="ident">evaporation_wet_canopy</span></span>(<span>self, pressure: numbers.Number, temp_k: numbers.Number, vpd: numbers.Number, lai: numbers.Number, fpar: numbers.Number, rad_canopy: numbers.Number, lhv: numbers.Number = None, rhumidity: numbers.Number = None, f_wet: numbers.Number = None, tiny: float = 1e-09) ‑> numbers.Number</span>
+<span>def <span class="ident">evaporation_wet_canopy</span></span>(<span>self, pressure: numbers.Number, temp_k: numbers.Number, vpd: numbers.Number, lai: numbers.Number, fpar: numbers.Number, rad_canopy: numbers.Number, lhv: numbers.Number = None, rhumidity: numbers.Number = None, f_wet: numbers.Number = None, tiny: float = 1e-07) ‑> numbers.Number</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Wet canopy evaporation calculated according to the MODIS MOD16
 framework:</p>
 <p><span><span class="MathJax_Preview">
-\lambda E = F_{wet} \frac{
-s\, A_c\, F_c + \rho\, C_p\, D\, (F_c / r_w)
-}{s + (P_a\, C_p\, r_e)(\lambda\, \varepsilon\, r_w)^{-1}}
+\lambda E_{\text{canopy}} = F_{\text{wet}} \frac{
+s A_{\text{canopy}} + \rho\, C_p [\text{VPD}]
+(F_c / r_{\text{wet}})
+}{s + (P_a\, C_p\, r_{WV})(0.622\, \lambda\, r_{\text{wet}})^{-1}}
 </span><script type="math/tex; mode=display">
-\lambda E = F_{wet} \frac{
-s\, A_c\, F_c + \rho\, C_p\, D\, (F_c / r_w)
-}{s + (P_a\, C_p\, r_e)(\lambda\, \varepsilon\, r_w)^{-1}}
+\lambda E_{\text{canopy}} = F_{\text{wet}} \frac{
+s A_{\text{canopy}} + \rho\, C_p [\text{VPD}]
+(F_c / r_{\text{wet}})
+}{s + (P_a\, C_p\, r_{WV})(0.622\, \lambda\, r_{\text{wet}})^{-1}}
 </script></span></p>
 <p>Where:</p>
 <ul>
@@ -3200,12 +3237,12 @@ the vegetation canopy</dd>
 <dd>(Optional) The fraction of the surface that has standing water</dd>
 <dt><strong><code>tiny</code></strong> :&ensp;<code>float</code></dt>
 <dd>(Optional) A very small number, the numerical tolerance for zero
-(Default: 1e-9)</dd>
+(Default: 1e-7)</dd>
 </dl>
 <h2 id="returns">Returns</h2>
 <dl>
 <dt><code>float</code> or <code>numpy.ndarray</code></dt>
-<dd>Evaporation from the wet canopy surface (kg m-2 s-1)</dd>
+<dd>Evaporation from the wet canopy surface; (kg m-2 s-1) or (mm s-1)</dd>
 </dl></div>
 <details class="source">
 <summary>
@@ -3214,16 +3251,17 @@ the vegetation canopy</dd>
 <pre><code class="python">def evaporation_wet_canopy(
         self, pressure: Number, temp_k: Number, vpd: Number, lai: Number,
         fpar: Number, rad_canopy: Number, lhv: Number = None,
-        rhumidity: Number = None, f_wet: Number = None, tiny: float = 1e-9
+        rhumidity: Number = None, f_wet: Number = None, tiny: float = 1e-7
     ) -&gt; Number:
     r&#39;&#39;&#39;
     Wet canopy evaporation calculated according to the MODIS MOD16
     framework:
 
     $$
-    \lambda E = F_{wet} \frac{
-        s\, A_c\, F_c + \rho\, C_p\, D\, (F_c / r_w)
-      }{s + (P_a\, C_p\, r_e)(\lambda\, \varepsilon\, r_w)^{-1}}
+    \lambda E_{\text{canopy}} = F_{\text{wet}} \frac{
+      s A_{\text{canopy}} + \rho\, C_p [\text{VPD}]
+        (F_c / r_{\text{wet}})
+    }{s + (P_a\, C_p\, r_{WV})(0.622\, \lambda\, r_{\text{wet}})^{-1}}
     $$
 
     Where:
@@ -3264,12 +3302,12 @@ the vegetation canopy</dd>
         (Optional) The fraction of the surface that has standing water
     tiny : float
         (Optional) A very small number, the numerical tolerance for zero
-        (Default: 1e-9)
+        (Default: 1e-7)
 
     Returns
     -------
     float or numpy.ndarray
-        Evaporation from the wet canopy surface (kg m-2 s-1)
+        Evaporation from the wet canopy surface; (kg m-2 s-1) or (mm s-1)
     &#39;&#39;&#39;
     if lhv is None:
         lhv = latent_heat_vaporization(temp_k)
@@ -3297,7 +3335,7 @@ the vegetation canopy</dd>
     #   surface (&#34;rhrc&#34;)
     r_a_wet = np.divide(r_h * r_r, r_h + r_r) # (s m-1)
     numer = f_wet * ((s * rad_canopy) +\
-        (rho * SPECIFIC_HEAT_CAPACITY_AIR * fpar * (vpd * 1/r_a_wet)))
+        (rho * SPECIFIC_HEAT_CAPACITY_AIR * fpar * vpd * 1/r_a_wet))
     denom = s + ((pressure * SPECIFIC_HEAT_CAPACITY_AIR * r_e) *\
         1/(lhv * MOL_WEIGHT_WET_DRY_RATIO_AIR * r_a_wet))
     # Mu et al. (2011), Equation 17; PET (J m-2 s-1) is divided by the
@@ -3354,7 +3392,8 @@ sum (Default: False)</dd>
 <h2 id="returns">Returns</h2>
 <dl>
 <dt><code>tuple</code></dt>
-<dd>Sequence of (daytime, nighttime) ET flux(es)</dd>
+<dd>Sequence of (daytime, nighttime) ET flux(es); units are in
+(kg m-2 s-1) or (mm s-1)</dd>
 </dl></div>
 <details class="source">
 <summary>
@@ -3412,7 +3451,8 @@ sum (Default: False)</dd>
     Returns
     -------
     tuple
-        Sequence of (daytime, nighttime) ET flux(es)
+        Sequence of (daytime, nighttime) ET flux(es); units are in
+        (kg m-2 s-1) or (mm s-1)
     &#39;&#39;&#39;
     # Get radiation intercepted by the soil surface
     rad_soil_all = self.radiation_soil(
@@ -3451,6 +3491,7 @@ sum (Default: False)</dd>
         # Correction for atmospheric temperature and pressure
         #   (Equation 13, MOD16 C6.1 User&#39;s Guide)
         r_corr = (101300 / pressure) * (temp_k / 293.15)**1.75
+
         # EVAPORATION FROM WET CANOPY
         e_canopy.append(self.evaporation_wet_canopy(
             pressure, temp_k, vpd, lai, fpar, rad_canopy, lhv, rhumidity,
@@ -3468,7 +3509,7 @@ sum (Default: False)</dd>
             et_total.append((e_canopy[i], e_soil[i], transpiration[i]))
         else:
             et_total.append((e_canopy[i] + e_soil[i] + transpiration[i]))
-    return et_total</code></pre>
+    return tuple(et_total)</code></pre>
 </details>
 </dd>
 <dt id="mod16.MOD16.radiation_soil"><code class="name flex">
@@ -3721,12 +3762,12 @@ integrated while the sun is down [MJ m-2]</dd>
     tuple
         A 2-element tuple of (daytime, nighttime) soil heat flux
     &#39;&#39;&#39;
-    # See ca. Line 4355 in MODPR16_main.c
+    # See ca. Line 4355 in MODPR16_main.c and ca. User Guide Eq. 9
     g_soil = []
     condition = np.logical_and(
         np.logical_and(
             temp_annual &lt; (273.15 + 25),
-            temp_annual &gt; (273.15 + self.tmin_close)
+            temp_annual &gt;= (273.15 + self.tmin_close)
         ), (temp_day - temp_night) &gt;= 5)
     for rad_i, temp_i in zip(
             (rad_net_day, rad_net_night), (temp_day, temp_night)):
@@ -3807,23 +3848,27 @@ area.</p>
 </details>
 </dd>
 <dt id="mod16.MOD16.transpiration"><code class="name flex">
-<span>def <span class="ident">transpiration</span></span>(<span>self, pressure: numbers.Number, temp_k: numbers.Number, vpd: numbers.Number, lai: numbers.Number, fpar: numbers.Number, rad_canopy: numbers.Number, tmin: numbers.Number, r_corr: numbers.Number, lhv: numbers.Number = None, rhumidity: numbers.Number = None, f_wet: numbers.Number = None, daytime: bool = True, tiny=1e-09) ‑> numbers.Number</span>
+<span>def <span class="ident">transpiration</span></span>(<span>self, pressure: numbers.Number, temp_k: numbers.Number, vpd: numbers.Number, lai: numbers.Number, fpar: numbers.Number, rad_canopy: numbers.Number, tmin: numbers.Number, r_corr: numbers.Number, lhv: numbers.Number = None, rhumidity: numbers.Number = None, f_wet: numbers.Number = None, daytime: bool = True, tiny: float = 1e-07) ‑> numbers.Number</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Plant transpiration over daytime or night-time hours, in mass flux
 units (kg m-2 s-1), according to:</p>
 <p><span><span class="MathJax_Preview">
-\lambda E_T = \frac{s A_c + \rho C_p F_c D r_d^{-1}}
-{s + \gamma(1 + r_s r_d^{-1})}
+\lambda E_{\text{trans}} = (1 - F_{\text{wet}})
+\frac{s A_C + \rho C_p F_C [\text{VPD}] r_{\text{dry}}^{-1}}
+{s + \gamma(1 + C_C^{-1} r_{\text{dry}}^{-1})}
 </span><script type="math/tex; mode=display">
-\lambda E_T = \frac{s A_c + \rho C_p F_c D r_d^{-1}}
-{s + \gamma(1 + r_s r_d^{-1})}
+\lambda E_{\text{trans}} = (1 - F_{\text{wet}})
+\frac{s A_C + \rho C_p F_C [\text{VPD}] r_{\text{dry}}^{-1}}
+{s + \gamma(1 + C_C^{-1} r_{\text{dry}}^{-1})}
 </script></span></p>
 <p>NOTE: The <code>r_corr</code> argument to this function is different from that
 defined in Equation 13 in the MOD16 C61 User's Guide. For numerical
 stability, <code>r_corr</code> equals 1/r where r is the quantity defined in
 Equaiton 13. See <code><a title="mod16.MOD16.evapotranspiration" href="#mod16.MOD16.evapotranspiration">MOD16.evapotranspiration()</a></code> for how <code>r_corr</code> is
 calculated.</p>
+<p>At nighttime, $g_s$ is assumed to be zero, which may impact the
+calculation of $C_C$ in the denominator of the PM equation above.</p>
 <h2 id="parameters">Parameters</h2>
 <dl>
 <dt><strong><code>pressure</code></strong> :&ensp;<code>float</code> or <code>numpy.ndarray</code></dt>
@@ -3855,12 +3900,12 @@ conductance</dd>
 to calculate night-time (sun-down) transpiration (Default: True)</dd>
 <dt><strong><code>tiny</code></strong> :&ensp;<code>float</code></dt>
 <dd>(Optional) A very small number, the numerical tolerance for zero
-(Default: 1e-9)</dd>
+(Default: 1e-7)</dd>
 </dl>
 <h2 id="returns">Returns</h2>
 <dl>
 <dt><code>float</code> or <code>numpy.ndarray</code></dt>
-<dd>Transpiration (kg m-2 s-1)</dd>
+<dd>Transpiration; (kg m-2 s-1) or (mm s-1)</dd>
 </dl></div>
 <details class="source">
 <summary>
@@ -3870,15 +3915,16 @@ to calculate night-time (sun-down) transpiration (Default: True)</dd>
         self, pressure: Number, temp_k: Number, vpd: Number, lai: Number,
         fpar: Number, rad_canopy: Number, tmin: Number, r_corr: Number,
         lhv: Number = None, rhumidity: Number = None,
-        f_wet: Number = None, daytime: bool = True, tiny = 1e-9
+        f_wet: Number = None, daytime: bool = True, tiny: float = 1e-7
     ) -&gt; Number:
     r&#39;&#39;&#39;
     Plant transpiration over daytime or night-time hours, in mass flux
     units (kg m-2 s-1), according to:
 
     $$
-    \lambda E_T = \frac{s A_c + \rho C_p F_c D r_d^{-1}}
-      {s + \gamma(1 + r_s r_d^{-1})}
+    \lambda E_{\text{trans}} = (1 - F_{\text{wet}})
+      \frac{s A_C + \rho C_p F_C [\text{VPD}] r_{\text{dry}}^{-1}}
+        {s + \gamma(1 + C_C^{-1} r_{\text{dry}}^{-1})}
     $$
 
     NOTE: The `r_corr` argument to this function is different from that
@@ -3886,6 +3932,9 @@ to calculate night-time (sun-down) transpiration (Default: True)</dd>
     stability, `r_corr` equals 1/r where r is the quantity defined in
     Equaiton 13. See `MOD16.evapotranspiration()` for how `r_corr` is
     calculated.
+
+    At nighttime, $g_s$ is assumed to be zero, which may impact the
+    calculation of $C_C$ in the denominator of the PM equation above.
 
     Parameters
     ----------
@@ -3918,12 +3967,12 @@ to calculate night-time (sun-down) transpiration (Default: True)</dd>
         to calculate night-time (sun-down) transpiration (Default: True)
     tiny : float
         (Optional) A very small number, the numerical tolerance for zero
-        (Default: 1e-9)
+        (Default: 1e-7)
 
     Returns
     -------
     float or numpy.ndarray
-        Transpiration (kg m-2 s-1)
+        Transpiration; (kg m-2 s-1) or (mm s-1)
     &#39;&#39;&#39;
     if lhv is None:
         lhv = latent_heat_vaporization(temp_k)
@@ -3940,7 +3989,7 @@ to calculate night-time (sun-down) transpiration (Default: True)</dd>
     # Resistance to radiative heat transfer through air (&#34;rrc&#34;)
     r_r = (rho * SPECIFIC_HEAT_CAPACITY_AIR) / (
         4 * STEFAN_BOLTZMANN * temp_k**3)
-    # Surface conductance (zero at nighttime)
+    # Surface conductance (assumed to be zero at nighttime)
     g_surf = 0 # (Equation 13, MOD16 C6.1 User&#39;s Guide)
     if daytime:
         # NOTE: C_L (self.csl) is included in self.surface_conductance()
@@ -3962,11 +4011,7 @@ to calculate night-time (sun-down) transpiration (Default: True)</dd>
     # PLANT TRANSPIRATION
     t = (1 - f_wet) * ((s * rad_canopy) +\
         (rho * SPECIFIC_HEAT_CAPACITY_AIR * fpar * (vpd / r_a_dry)))
-    if daytime:
-        t /= (s + gamma * (1 + (1 / g_canopy) / r_a_dry))
-    else:
-        # At nighttime, g_canopy is zero, so simplify the calculation
-        t /= (s + gamma) # (Equation 17, MOD16 C6.1 User&#39;s Guide)
+    t /= (s + gamma * (1 + (1 / g_canopy) / r_a_dry))
     # Divide by the latent heat of vaporization (J kg-1) to obtain mass
     #   flux (kg m-2 s-1)
     return np.where(g_canopy &lt;= tiny, 0, t / lhv)</code></pre>
