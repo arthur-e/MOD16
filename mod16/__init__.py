@@ -120,7 +120,7 @@ latent_heat_vaporization = lambda temp_k: (2.501 - 0.002361 * (temp_k - 273.15))
 
 
 class MOD16(object):
-    '''
+    r'''
     The MODIS MxD16 Evapotranspiration model. The required model parameters are:
 
     - `tmin_close`: Temperature at which stomata are almost completely
@@ -384,11 +384,9 @@ class MOD16(object):
         '''
         NIST simplified air density formula with buoyancy correction from:
 
-            National Physical Laboratory (2021),
-              "Buoyancy Correction and Air Density Measurement."
-              http://resource.npl.co.uk/docs/science_technology/
-                mass_force_pressure/clubs_groups/instmc_weighing_panel/
-                buoycornote.pdf
+        - National Physical Laboratory (2021),
+            ["Buoyancy Correction and Air Density Measurement."](http://resource.npl.co.uk/docs/science_technology/mass_force_pressure/clubs_groups/instmc_weighing_panel/buoycornote.pdf)
+
 
         Parameters
         ----------
@@ -415,9 +413,9 @@ class MOD16(object):
         Atmospheric pressure as a function of elevation. From the discussion on
         atmospheric statics (p. 168) in:
 
-            Iribane, J.V., and W.L. Godson, 1981. Atmospheric Thermodynamics
-                2nd Edition. D. Reidel Publishing Company, Dordrecht,
-                The Netherlands.
+        - Iribane, J.V., and W.L. Godson, 1981. Atmospheric Thermodynamics
+            2nd Edition. D. Reidel Publishing Company, Dordrecht,
+            The Netherlands.
 
         It is calculated:
 
@@ -1030,8 +1028,8 @@ class MOD16(object):
         Equaiton 13. See `MOD16.evapotranspiration()` for how `r_corr` is
         calculated.
 
-        At nighttime, $g_s$ is assumed to be zero, which may impact the
-        calculation of $C_C$ in the denominator of the PM equation above.
+        At nighttime, \(g_s\) is assumed to be zero, which may impact the
+        calculation of \(C_C\) in the denominator of the PM equation above.
 
         Parameters
         ----------
@@ -1163,7 +1161,7 @@ def radiation_net(
     \quad\mbox{where}\quad \varepsilon_s = 0.97
     $$
 
-    Where \(\alpha\) is the MODIS albedo, `R_S` is down-welling short-wave
+    Where \(\alpha\) is the MODIS albedo, \(R_S\) is down-welling short-wave
     radiation, \(\sigma\) is the Stefan-Boltzmann constant, and:
 
     $$
