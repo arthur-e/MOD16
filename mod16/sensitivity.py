@@ -3,6 +3,7 @@
 
 import json
 import os
+import yaml
 import numpy as np
 import h5py
 import mod16
@@ -10,13 +11,13 @@ from tqdm import tqdm
 from mod16 import MOD16
 from mod16.utils import restore_bplut, pft_dominant
 from mod17.science import nash_sutcliffe
-from SALib.sample import saltelli
+from SALib.sample.sobol import sample as sobol_sample
 from SALib.analyze import sobol
 
-OUTPUT_TPL = '/home/arthur/Workspace/NTSG/projects/Y2021_MODIS-VIIRS/data/MOD16_sensitivity_%s_analysis.json'
+OUTPUT_TPL = '/home/arthur/Workspace/NTSG/projects/Y2021_MODIS-VIIRS/data/MOD16_sensitivity_%s_analysis_rbl-switch.json'
 MOD16_DIR = os.path.dirname(mod16.__file__)
-with open(os.path.join(MOD16_DIR, 'data/MOD16_calibration_config.json'), 'r') as file:
-    CONFIG = json.load(file)
+with open(os.path.join(MOD16_DIR, 'data/MOD16_calibration_config.yaml'), 'r') as file:
+    CONFIG = yaml.safe_load(file)
 BOUNDS = {
     "tmin_close": [-35, 0],
     "tmin_open": [0, 25],
@@ -26,9 +27,9 @@ BOUNDS = {
     "gl_wv": [0.001, 0.2],
     "g_cuticular": [1e-7, 1e-2],
     "csl": [0.0001, 0.1],
-    "rbl_min": [10, 99],
-    "rbl_max": [100, 1000],
-    "beta": [0, 1000]
+    "rbl_min": [10, 1000],
+    "rbl_max": [100, 2000],
+    "beta": [0, 2000]
 }
 
 
@@ -46,7 +47,7 @@ def main(pft = None):
         ]
     }
     # NOTE: Number of samples must be a power of 2
-    param_sweep = saltelli.sample(problem, 256 if pft is None else 128)
+    param_sweep = sobol_sample(problem, 256 if pft is None else 128)
     Y = np.zeros([param_sweep.shape[0]])
     for i, X in enumerate(tqdm(param_sweep)):
         yhat = MOD16._et(X, *drivers)
@@ -61,7 +62,9 @@ def main(pft = None):
 
 def load_data(pft, validation_mask_only = False):
     print('Loading driver datasets...')
+    met_group = CONFIG['data']['met_group']
     with h5py.File(CONFIG['data']['file'], 'r') as hdf:
+        nsteps = hdf['time'].shape[0]
         if pft is not None:
             site_list = hdf['FLUXNET/site_id'][:].tolist()
             if hasattr(site_list[0], 'decode'):
@@ -69,34 +72,40 @@ def load_data(pft, validation_mask_only = False):
             sites = pft_dominant(hdf['state/PFT'][:], site_list = site_list)
             sites = sites == pft
         else:
-            shp = hdf['MERRA2/Tmin'].shape
+            shp = hdf[f'{met_group}/Tmin'].shape
             sites = np.ones(shp[1]).astype(bool)
-        lw_net_day = hdf['MERRA2/LWGNT_daytime'][:][:,sites]
-        lw_net_night = hdf['MERRA2/LWGNT_nighttime'][:][:,sites]
-        sw_albedo = hdf['MODIS/MCD43A3_black_sky_sw_albedo'][:][:,sites]
-        sw_rad_day = hdf['MERRA2/SWGDN_daytime'][:][:,sites]
-        sw_rad_night = hdf['MERRA2/SWGDN_nighttime'][:][:,sites]
-        temp_day = hdf['MERRA2/T10M_daytime'][:][:,sites]
-        temp_night = hdf['MERRA2/T10M_nighttime'][:][:,sites]
-        tmin = hdf['MERRA2/Tmin'][:][:,sites]
+        lw_net_day = hdf[f'{met_group}/LWGNT_daytime'][:][:,sites]
+        lw_net_night = hdf[f'{met_group}/LWGNT_nighttime'][:][:,sites]
+        sw_albedo = np.nanmean(
+            hdf[CONFIG['data']['datasets']['albedo']][:][:,sites], axis = -1)
+        sw_rad_day = hdf[f'{met_group}/SWGDN_daytime'][:][:,sites]
+        sw_rad_night = hdf[f'{met_group}/SWGDN_nighttime'][:][:,sites]
+        temp_day = hdf[f'{met_group}/T10M_daytime'][:][:,sites]
+        temp_night = hdf[f'{met_group}/T10M_nighttime'][:][:,sites]
+        tmin = hdf[f'{met_group}/Tmin'][:][:,sites]
         # As long as the time series is balanced w.r.t. years (i.e., same
         #   number of records per year), the overall mean is the annual mean
-        temp_annual = hdf['MERRA2/T10M'][:][:,sites].mean(axis = 0)[None,:]\
+        temp_annual = hdf[f'{met_group}/T10M'][:][:,sites].mean(axis = 0)[None,:]\
             .repeat(tmin.shape[0], axis = 0)
         vpd_day = MOD16.vpd(
-            hdf['MERRA2/QV10M_daytime'][:][:,sites],
-            hdf['MERRA2/PS_daytime'][:][:,sites],
+            hdf[f'{met_group}/QV10M_daytime'][:][:,sites],
+            hdf[f'{met_group}/PS_daytime'][:][:,sites],
             temp_day)
         vpd_night = MOD16.vpd(
-            hdf['MERRA2/QV10M_nighttime'][:][:,sites],
-            hdf['MERRA2/PS_nighttime'][:][:,sites],
+            hdf[f'{met_group}/QV10M_nighttime'][:][:,sites],
+            hdf[f'{met_group}/PS_nighttime'][:][:,sites],
             temp_night)
-        pressure = hdf['MERRA2/PS'][:][:,sites]
+        # After VPD is calculated, air pressure is based solely
+        #   on elevation
+        elevation = hdf[CONFIG['data']['datasets']['elevation']][:]
+        elevation = elevation[np.newaxis,:]\
+            .repeat(nsteps, axis = 0)[:,sites]
+        pressure = MOD16.air_pressure(elevation.mean(axis = -1))
         # Read in fPAR, LAI, and convert from (%) to [0,1]
         fpar = np.nanmean(
-            hdf['MODIS/MOD15A2HGF_fPAR_interp'][:][:,sites], axis = -1)
+            hdf[CONFIG['data']['datasets']['fPAR']][:][:,sites], axis = -1)
         lai = np.nanmean(
-            hdf['MODIS/MOD15A2HGF_LAI_interp'][:][:,sites], axis = -1)
+            hdf[CONFIG['data']['datasets']['LAI']][:][:,sites], axis = -1)
         # Convert fPAR from (%) to [0,1] and re-scale LAI; reshape fPAR and LAI
         fpar /= 100
         lai /= 10

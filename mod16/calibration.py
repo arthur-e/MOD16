@@ -315,7 +315,7 @@ class CalibrationAPI(object):
                 pft_mask = pft_map == pft
             if self.config['data']['classes_are_dynamic']:
                 assert pft_mask.ndim == 2 and pft_mask.shape[0] == nsteps,\
-                    'Configuration setting "classes_are_dynamic" implies the "class_map" should be (T x N) but it is not'
+                    'Configuration setting "classes_are_dynamic" implies the "class_map" should be (T x N)'
 
             # Get tower weights, for when towers are too close together
             weights = hdf['weights'][:]
@@ -862,7 +862,7 @@ class CalibrationAPI(object):
             # Remove any random variables that have fixed values from the list
             #   of variables to be plotted
             for key in fixed.keys():
-                if fixed[key] is not None:
+                if fixed[key] is not None and key in var_names:
                     var_names.remove(key)
             kwargs.update({'var_names': var_names})
 
