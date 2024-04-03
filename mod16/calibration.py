@@ -26,9 +26,16 @@ Instead of changing `draws` and `scaling` at the command line, as above, you
 could change these parameters in the configuration file.
 
 Once a good mixture is obtained, it is necessary to prune the samples to
-eliminate autocorrelation, e.g., in Python:
+eliminate autocorrelation, e.g., from the command line:
 
     python calibration.py plot-autocorr --pft=1 --burn=1000 --thin=10
+
+Or in Python (use `--ipdb` to get an interactive session):
+
+    # sampler is already available if you used --ipdb, otherwise:
+    sampler = MOD16StochasticSampler(...)
+    sampler.plot_autocorr(burn = 1000, thin = 10)
+    trace = sampler.get_trace(burn = 1000, thin = 10)
 
 A thinned posterior can be exported from the command line, e.g.:
 
@@ -214,8 +221,8 @@ class MOD16StochasticSampler(StochasticSampler):
             g_cuticular = pm.LogNormal(
                 'g_cuticular', **self.prior['g_cuticular'])
             csl =         pm.LogNormal('csl', **self.prior['csl'])
-            rbl_min =     pm.Uniform('rbl_min', **self.prior['rbl_min'])
-            rbl_max =     pm.Uniform('rbl_max', **self.prior['rbl_max'])
+            rbl_min =     pm.Triangular('rbl_min', **self.prior['rbl_min'])
+            rbl_max =     pm.Triangular('rbl_max', **self.prior['rbl_max'])
             beta =        pm.Uniform('beta', **self.prior['beta'])
             # (Stochstic) Priors for unknown model parameters
             params_list = [

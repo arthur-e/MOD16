@@ -15,13 +15,17 @@ g_cuticular:
 csl:
   mu: [~, -5.5, -5.5, -5.5, -5.5, -5.5, -5.5, -5.5, -5.5, -5.5, -5.11, ~, -4.29]
   sigma: [~, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.89, ~, 0.65]
-# These parameters have a Uniform prior, so we specify the lower and upper bounds
-rbl_min:
+# These parameters have a Triangular prior, so we specify the lower and upper bounds;
+# rbl_max: MOD16 has little to no sensitivity to the rbl_max or rbl_min parameters;
+#   1000 [s m-1] was chosen based on literature reports for dry soils
+rbl_min: # Increases from a minimum of 10 [s m-1]
   lower: [~, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, ~, 10]
-  upper: [~, 2000, 2000, 2000, 2000, 2000, 2000, 2000, 2000, 2000, 2000, ~, 2000]
-rbl_max:
+  upper: [~, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, ~, 1000]
+  c:     [~, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, ~, 10]
+rbl_max: # Decreases from a maximum of 1000 [s m-1]
   lower: [~, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, ~, 100]
-  upper: [~, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, ~, 4000]
+  upper: [~, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, ~, 1000]
+  c:     [~, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, ~, 1000]
 beta:
   lower: [~, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ~, 0]
-  upper: [~, 2000, 2000, 2000, 2000, 2000, 2000, 2000, 2000, 2000, 2000, ~, 2000]
+  upper: [~, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, ~, 1000]
