@@ -37,5 +37,5 @@ dependencies = [
 
 [project.optional-dependencies]
 docs = ["pdoc3>=0.9.2"]
-calibration = ["pymc>=5.0.0", "arviz>=0.12.1", "matplotlib>=3.5.2"]
 sensitivity = ["SALib>=1.4.5"]
+calibration = ["pymc>=5.0.0", "pytensor>=2.18.0", "arviz>=0.13.0"]
