@@ -1,6 +1,6 @@
 ---
 BPLUT:
-  ET: "/usr/local/dev/MOD16/mod16/data/MOD16_BPLUT_CX.X_05deg_MCD43B_Albedo_MERRA.csv"
+  ET: "/home/arthur.endsley/src/MOD16/mod16/data/MOD16_BPLUT_CX.X_05deg_MCD43B_Albedo_MERRA.csv"
 data:
   file: "/anx_lagr4/MODIS_VIIRS/calibration/VIIRS_MOD16_tower_site_latent_heat_and_drivers_v5.h5"
   class_map: state/PFT_annual # HDF5 field name for PFT map
@@ -29,13 +29,13 @@ data:
 constraints:
   # True to constrain annual ET: Cannot exceed annual precipitation;
   #   must then provide a data/datasets/annual_precip field, above
-  annual_precipitation: false
+  annual_precipitation: true
 optimization:
   platform: MODIS
-  backend_template: "/home/arthur/20240325_MOD16_%s_calibration_PFT%d.nc4"
-  prior: "/usr/local/dev/MOD16/mod16/data/MOD16_BPLUT_prior_20231218.yaml"
+  backend_template: "/anx_lagr4/MODIS_VIIRS/calibration/pymc_backends/20240325_MOD16_%s_calibration_PFT%d.nc4"
+  prior: "/home/arthur.endsley/src/MOD16/mod16/data/MOD16_BPLUT_prior_20231218.yaml"
   chains: 3
-  draws: 5000
+  draws: 20000
   tune: scaling
   scaling: 0.001
   objective: RMSD # Use nRMSD if there are "constraints"
@@ -43,4 +43,4 @@ optimization:
   fixed:
     # beta: MOD16 is mostly insensitive to beta, but CSH and OSH are
     #   somewhat sensitive
-    beta: [~, 250, 250, 250, 250, 250, ~, ~, 250, 250, 250, ~, 250]
+    beta: [~, 250, 250, 250, 250, 250, 250, 250, 250, 250, 250, ~, 250]

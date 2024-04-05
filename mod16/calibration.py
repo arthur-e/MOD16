@@ -325,14 +325,21 @@ class CalibrationAPI(object):
                 weights = weights[None,:].repeat(nsteps, axis = 0)[pft_mask]
 
             # Read in tower observations
-            tower_obs = hdf['FLUXNET/latent_heat'][:][pft_mask]
+            tower_obs = hdf['FLUXNET/latent_heat'][:]
+            # Clean the tower observations, subset to PFT of interest
+            tower_obs = self.clean_observed(tower_obs)
+            tower_obs = tower_obs[pft_mask]
+
             # Read the validation mask; mask out observations that are
             #   reserved for validation
             print('Masking out validation data...')
             mask = hdf['FLUXNET/validation_mask'][pft]
-            tower_obs[mask] = np.nan
+            if np.isnan(tower_obs[~mask]).all():
+                print(f'WARNING: Validation mask for PFT={pft} leaves no valid data for training; ignoring mask')
+            else:
+                tower_obs[mask] = np.nan
 
-            # Read in driver datasets0
+            # Read in driver datasets
             print('Loading driver datasets...')
             group = self.config['data']['met_group']
             lw_net_day = hdf[f'{group}/LWGNT_daytime'][:][pft_mask]
@@ -524,11 +531,12 @@ class CalibrationAPI(object):
             temp_day, temp_night, temp_annual, tmin, vpd_day, vpd_night,
             pressure, fpar, lai
         ]
+        # Clean the tower observations
+        tower_obs = self.clean_observed(tower_obs)
         return (tower_obs, drivers, weights, constraints)
 
     def clean_observed(
-            self, raw: Sequence, drivers: Sequence, protocol: str = 'ET',
-            filter_length: int = 2) -> Sequence:
+            self, raw: Sequence, filter_length: int = 2) -> Sequence:
         '''
         Cleans observed tower flux data according to a prescribed protocol.
         NOT intended to be called from the command line.
@@ -536,8 +544,6 @@ class CalibrationAPI(object):
         Parameters
         ----------
         raw : Sequence
-        drivers : Sequence
-        protocol : str
         filter_length : int
             The window size for the smoothing filter, applied to the observed
             data
@@ -548,6 +554,7 @@ class CalibrationAPI(object):
         '''
         # Read in the observed data and apply smoothing filter; then mask out
         #   negative latent heat observations
+        assert raw.ndim == 2, 'Expected 2D input raw observations'
         obs = self._filter(raw, filter_length)
         return np.where(obs < 0, np.nan, obs)
 
@@ -831,9 +838,6 @@ class CalibrationAPI(object):
                 az.plot_trace(trace, var_names = MOD16.required_parameters)
                 pyplot.show()
                 return
-
-            # Clean the tower observations, run the sampler
-            tower_obs = self.clean_observed(tower_obs, drivers)
 
             # Get (informative) priors for just those parameters that have them
             with open(self.config['optimization']['prior'], 'r') as file:
