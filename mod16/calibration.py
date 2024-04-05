@@ -404,8 +404,6 @@ class CalibrationAPI(object):
             nsteps = hdf['time'].shape[0]
             # In case some tower sites should not be used
             blacklist = self.config['data']['sites_blacklisted']
-            # Get dominant PFT across a potentially heterogenous sub-grid,
-            #   centered on the eddy covariance flux tower
             pft_map = hdf[self.config['data']['class_map']][:]
             # Also, ensure the blacklist matches the shape of this mask;
             #   i.e., blacklisted sites should NEVER be used
@@ -417,6 +415,17 @@ class CalibrationAPI(object):
             years = np.array([
                 datetime.date(*ymd).year for ymd in hdf['time'][:].tolist()
             ])
+            #
+            if pft_map.shape[0] != years.size:
+                # NOTE: This is a generalization of a very specific case,
+                #   PFT = 3 (Deciduous Needleleaf), which is not a dominant
+                #   land-cover class anywhere
+                if not (pft_map == pft).any():
+                    # Assume the problem will be fixed by special-case
+                    #   handling, i.e., assigning PFT to certain sites
+                    pft_map = pft_dominant(pft_map, sites)
+                print('WARNING: First axis of class_map does not match the length of the "time" vector; reshaping to fit')
+                pft_map = pft_map[np.newaxis,...].repeat(years.size, axis = 0)
             # If any days of this year correspond to the current PFT, select
             #   that year for calibration
             year_masks = []
