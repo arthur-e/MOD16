@@ -107,6 +107,11 @@ surrounding a tower:
 NOTE: A star, `*`, indicates that this dataset or group's name can be changed
 in the configuration file. All others are currently required to match this
 specification exactly.
+
+NOTE: For now, constraints (like an annual precipitation constraint) cannot be
+used unless `classes_are_dynamic = True` in the configuration file. This is
+because the only supported constraint (annual precipitation) requires a
+`(T x N)` data structure.
 '''
 
 import datetime
@@ -298,20 +303,11 @@ class CalibrationAPI(object):
             #   dynamic land-cover map, in which case it is assumed
             #   (required) that there is only one PFT value per site
             pft_array = hdf[self.config['data']['class_map']][:]
-            if self.config['data']['classes_are_dynamic']:
-                pft_map = pft_array.copy()
-                # Also, ensure the blacklist matches the shape of this mask;
-                #   i.e., blacklisted sites should NEVER be used
-                if blacklist is not None:
-                    if len(blacklist) > 0:
-                        blacklist = np.array(blacklist)
-                        blacklist = blacklist[None,:].repeat(pft_map.shape[0], axis = 0)
-            else:
-                # For a static PFT map, sub-site land-cover heterogeneity is
-                #   allowed; get the dominant (single) PFT at each site
-                pft_map = pft_dominant(pft_array, site_list = sites)
-                # But do create a (T x N) selection mask
-                pft_map = pft_map[np.newaxis,:].repeat(nsteps, axis = 0)
+            # For a static PFT map, sub-site land-cover heterogeneity is
+            #   allowed; get the dominant (single) PFT at each site
+            pft_map = pft_dominant(pft_array, site_list = sites)
+            # But do create a (T x N) selection mask
+            pft_map = pft_map[np.newaxis,:].repeat(nsteps, axis = 0)
 
             # Get a binary mask that indicates which tower-days should be used
             #   to calibrate the current PFT class
@@ -320,9 +316,6 @@ class CalibrationAPI(object):
                     pft_map == pft, ~np.in1d(sites, blacklist))
             else:
                 pft_mask = pft_map == pft
-            if self.config['data']['classes_are_dynamic']:
-                assert pft_mask.ndim == 2 and pft_mask.shape[0] == nsteps,\
-                    'Configuration setting "classes_are_dynamic" implies the "class_map" should be (T x N)'
 
             # Get tower weights, for when towers are too close together
             weights = hdf['weights'][:]
@@ -472,7 +465,7 @@ class CalibrationAPI(object):
             tower_obs[hdf['FLUXNET/validation_mask'][pft]] = np.nan
             tower_obs = tower_obs[:,site_mask] # Step 3: Select matching sites
 
-            # Read in driver datasets0
+            # Read in driver datasets
             print('Loading driver datasets...')
             group = self.config['data']['met_group']
             lw_net_day = hdf[f'{group}/LWGNT_daytime'][:][:,site_mask]
