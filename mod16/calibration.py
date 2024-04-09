@@ -326,9 +326,8 @@ class CalibrationAPI(object):
 
             # Read in tower observations
             tower_obs = hdf['FLUXNET/latent_heat'][:]
-            # Clean the tower observations, subset to PFT of interest
+            # Clean the tower observations (smoothing)
             tower_obs = self.clean_observed(tower_obs)
-            tower_obs = tower_obs[pft_mask]
 
             # Read the validation mask; mask out observations that are
             #   reserved for validation
@@ -338,6 +337,8 @@ class CalibrationAPI(object):
                 print(f'WARNING: Validation mask for PFT={pft} leaves no valid data for training; ignoring mask')
             else:
                 tower_obs[mask] = np.nan
+            # Subset to the PFT of interest
+            tower_obs = tower_obs[pft_mask]
 
             # Read in driver datasets
             print('Loading driver datasets...')
