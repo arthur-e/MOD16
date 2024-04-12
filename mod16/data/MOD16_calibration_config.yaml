@@ -39,7 +39,7 @@ optimization:
   draws: 20000
   tune: scaling
   scaling: 0.001
-  objective: RMSD # Use nRMSD if there are "constraints"
+  objective: nRMSD # Use nRMSD if there are "constraints"
   # Parameter values that are fixed in advance (i.e., not calibrated)
   fixed:
     # beta: MOD16 is mostly insensitive to beta, but CSH and OSH are
