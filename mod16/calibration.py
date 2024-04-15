@@ -220,7 +220,7 @@ class MOD16StochasticSampler(StochasticSampler):
             tmin_close = self.params['tmin_close']
             tmin_open = self.params['tmin_open']
             vpd_open = self.params['vpd_open']
-            vpd_close = self.params['vpd_close']
+            vpd_close =   pm.Uniform('vpd_close', **self.prior['vpd_close'])
             gl_sh =       pm.LogNormal('gl_sh', **self.prior['gl_sh'])
             gl_wv =       pm.LogNormal('gl_wv', **self.prior['gl_wv'])
             g_cuticular = pm.LogNormal(
