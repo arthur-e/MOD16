@@ -563,8 +563,10 @@ class MOD16(object):
         Returns
         -------
         tuple
-            Sequence of (daytime, nighttime) ET flux(es); units are in
-            (kg m-2 s-1) or (mm s-1)
+            Sequence of (daytime, nighttime) ET flux(es); if
+            `separate = True`, the daytime or nighttime fluxes are a sequence
+            of (Canopy evaporation, Soil evaporation, Transpiration) fluxes;
+            units are in (kg m-2 s-1) or (mm s-1)
         '''
         # Get radiation intercepted by the soil surface
         rad_soil_all = self.radiation_soil(
@@ -625,7 +627,7 @@ class MOD16(object):
 
     def evaporation_soil(
             self, pressure: Number, temp_k: Number, vpd: Number, fpar: Number,
-            rad_soil: Number, r_corr: Number, lhv: Number = None,
+            rad_soil: Number, r_corr: Number = None, lhv: Number = None,
             rhumidity: Number = None, f_wet: Number = None
         ) -> Number:
         r'''
@@ -682,6 +684,8 @@ class MOD16(object):
             rhumidity = MOD16.rhumidity(temp_k, vpd)
         if f_wet is None:
             f_wet = np.where(rhumidity < 0.7, 0, np.power(rhumidity, 4))
+        if r_corr is None:
+            r_corr = (101300 / pressure) * (temp_k / 293.15)**1.75
         # Slope of saturation vapor pressure curve
         s = svp_slope(temp_k)
         # Air density
@@ -1008,9 +1012,10 @@ class MOD16(object):
 
     def transpiration(
             self, pressure: Number, temp_k: Number, vpd: Number, lai: Number,
-            fpar: Number, rad_canopy: Number, tmin: Number, r_corr: Number,
-            lhv: Number = None, rhumidity: Number = None,
-            f_wet: Number = None, daytime: bool = True, tiny: float = 1e-7
+            fpar: Number, rad_canopy: Number, tmin: Number,
+            r_corr: Number = None, lhv: Number = None,
+            rhumidity: Number = None, f_wet: Number = None, daytime: bool = True,
+            tiny: float = 1e-7
         ) -> Number:
         r'''
         Plant transpiration over daytime or night-time hours, in mass flux
@@ -1075,6 +1080,8 @@ class MOD16(object):
             rhumidity = MOD16.rhumidity(temp_k, vpd)
         if f_wet is None:
             f_wet = np.where(rhumidity < 0.7, 0, np.power(rhumidity, 4))
+        if r_corr is None:
+            r_corr = (101300 / pressure) * (temp_k / 293.15)**1.75
         # Slope of saturation vapor pressure curve
         s = svp_slope(temp_k)
         # Air density

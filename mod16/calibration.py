@@ -416,7 +416,6 @@ class CalibrationAPI(object):
             years = np.array([
                 datetime.date(*ymd).year for ymd in hdf['time'][:].tolist()
             ])
-            #
             if pft_map.shape[0] != years.size:
                 # NOTE: This is a generalization of a very specific case,
                 #   PFT = 3 (Deciduous Needleleaf), which is not a dominant
