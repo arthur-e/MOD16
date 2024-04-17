@@ -33,7 +33,7 @@ constraints:
   annual_precipitation: true
 optimization:
   platform: MODIS
-  backend_template: "/anx_lagr4/MODIS_VIIRS/calibration/pymc_backends/with_weighted_precip_constraint/20240417_MOD16_%s_calibration_PFT%d.nc4"
+  backend_template: "/anx_lagr4/MODIS_VIIRS/calibration/pymc_backends/with_additive_precip_constraint/20240417_MOD16_%s_calibration_PFT%d.nc4"
   prior: "/home/arthur.endsley/src/MOD16/mod16/data/MOD16_BPLUT_prior_20240415.yaml"
   chains: 3
   draws: 20000

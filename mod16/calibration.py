@@ -229,7 +229,7 @@ class MOD16StochasticSampler(StochasticSampler):
             rbl_min =     pm.Triangular('rbl_min', **self.prior['rbl_min'])
             rbl_max =     pm.Triangular('rbl_max', **self.prior['rbl_max'])
             beta =        pm.Uniform('beta', **self.prior['beta'])
-            weight =      pm.Uniform('weight', lower = 0, upper = 10)
+            weight =      1 # Weight put on the annual precip. constraint
             # (Stochstic) Priors for unknown model parameters
             params_list = [
                 tmin_close, tmin_open, vpd_open, vpd_close, gl_sh, gl_wv,
