@@ -443,6 +443,103 @@ class MOD16(object):
         return STD_PRESSURE_PASCALS * np.power(temp_ratio, AIR_PRESSURE_RATE)
 
     @staticmethod
+    def potential_soil_evaporation(
+            pressure: Number, temp_k: Number, vpd: Number, fpar: Number,
+            rad_soil: Number, r_corr: Number = None, lhv: Number = None,
+            rhumidity: Number = None, f_wet: Number = None,
+            vpd_open: Number = None, vpd_close: Number = None,
+            rbl_min: Number = None, rbl_max: Number = None):
+        r'''
+        Computes the potential evaporation from unsaturated soil,
+        \(\lambda E_{\mathrm{unsat}}\), in addition to the actual evaporation
+        from wet soil, \(\lambda E_{\mathrm{sat}}\). Both are required for
+        computing the actual bare soil evaporation:
+
+        $$
+        \lambda E_{\mathrm{soil}} = \lambda E_{\mathrm{sat}} +
+            \lambda E_{\mathrm{unsat}}\phi^{D\beta^{-1}}
+        $$
+
+        Parameters
+        ----------
+        pressure : float or numpy.ndarray
+            The air pressure in Pascals
+        temp_k : float or numpy.ndarray
+            The air temperature in degrees K
+        vpd : float or numpy.ndarray
+            The vapor pressure deficit in Pascals
+        fpar : float or numpy.ndarray
+            Fraction of photosynthetically active radiation (PAR) absorbed by
+            the vegetation canopy
+        rad_soil : float or numpy.ndarray
+            Net radiation to the soil surface (J m-2 s-1)
+        r_corr : float or numpy.ndarray or None
+            (Optional) The temperature and pressure correction factor for
+            surface conductance
+        lhv : float or numpy.ndarray or None
+            (Optional) The latent heat of vaporization
+        rhumidity : float or numpy.ndarray or None
+            (Optional) The relative humidity
+        f_wet : float or numpy.ndarray or None
+            (Optional) The fraction of the surface that has standing water
+        vpd_open : float or numpy.ndarray or None
+            (Optional) The VPD at which stomata are completely open
+        vpd_close : float or numpy.ndarray or None
+            (Optional) The VPD at which stomata are almost completely closed
+        rbl_min : float or numpy.ndarray or None
+            (Optional) Minimum atmospheric boundary layer resistance (s m-1)
+        rbl_max : float or numpy.ndarray or None
+            (Optional) Maximum atmospheric boundary layer resistance (s m-1)
+
+        Returns
+        -------
+        tuple
+            Evaporation from bare soil, in [W m-2] units, as a 2-element
+            tuple, in order: Evaporation from saturated soil; Potential
+            evaporation from unsaturated soil
+        '''
+        if lhv is None:
+            lhv = latent_heat_vaporization(temp_k)
+        if rhumidity is None:
+            rhumidity = MOD16.rhumidity(temp_k, vpd)
+        if f_wet is None:
+            f_wet = np.where(rhumidity < 0.7, 0, np.power(rhumidity, 4))
+        if r_corr is None:
+            r_corr = (101300 / pressure) * (temp_k / 293.15)**1.75
+        # Slope of saturation vapor pressure curve
+        s = svp_slope(temp_k)
+        # Air density
+        rho = MOD16.air_density(temp_k, pressure, rhumidity)
+        # Psychrometric constant
+        gamma = psychrometric_constant(pressure, temp_k)
+        # Resistance to radiative heat transfer through air ("rrc" or "rrs")
+        r_r = (rho * SPECIFIC_HEAT_CAPACITY_AIR) / (
+            4 * STEFAN_BOLTZMANN * temp_k**3)
+        # Total aerodynamic resistance as a function of VPD and the
+        #   atmospheric boundary layer resistance...
+        # VERIFIED 2024-02, as VPD is really a proxy for soil moisture
+        #   here; hence "boundary-layer resistance" (really surface
+        #   resistance) should be low when VPD is low (soil is "wet")
+        r_tot = np.where(vpd <= vpd_open, rbl_min,
+            np.where(vpd >= vpd_close, rbl_max,
+            rbl_max - (
+                (rbl_max - rbl_min) * (vpd_close - vpd))\
+                    / (vpd_close - vpd_open)))
+        # ...CORRECTED for atmospheric temperature, pressure
+        r_tot = r_tot / r_corr
+        # -- Aerodynamic resistance at the soil surface
+        r_as = (r_tot * r_r) / (r_tot + r_r)
+        # -- Terms common to evaporation and potential evaporation
+        numer = (s * rad_soil) +\
+            (rho * SPECIFIC_HEAT_CAPACITY_AIR * (1 - fpar) * (vpd / r_as))
+        denom = (s + gamma * (r_tot / r_as))
+        # -- Evaporation from "wet" soil (saturated fraction)
+        evap_sat = (numer * f_wet) / denom
+        # -- (Potential) Evaporation from unsaturated fraction
+        evap_unsat = (numer * (1 - f_wet)) / denom
+        return (evap_sat, evap_unsat)
+
+    @staticmethod
     def potential_transpiration(
             lw_net: Number, sw_rad: Number, sw_albedo: Number,
             pressure: Number, temp_k: Number, vpd: Number, fpar: Number,
@@ -739,41 +836,9 @@ class MOD16(object):
             lhv = latent_heat_vaporization(temp_k)
         if rhumidity is None:
             rhumidity = MOD16.rhumidity(temp_k, vpd)
-        if f_wet is None:
-            f_wet = np.where(rhumidity < 0.7, 0, np.power(rhumidity, 4))
-        if r_corr is None:
-            r_corr = (101300 / pressure) * (temp_k / 293.15)**1.75
-        # Slope of saturation vapor pressure curve
-        s = svp_slope(temp_k)
-        # Air density
-        rho = MOD16.air_density(temp_k, pressure, rhumidity)
-        # Psychrometric constant
-        gamma = psychrometric_constant(pressure, temp_k)
-        # Resistance to radiative heat transfer through air ("rrc" or "rrs")
-        r_r = (rho * SPECIFIC_HEAT_CAPACITY_AIR) / (
-            4 * STEFAN_BOLTZMANN * temp_k**3)
-        # Total aerodynamic resistance as a function of VPD and the
-        #   atmospheric boundary layer resistance...
-        # VERIFIED 2024-02, as VPD is really a proxy for soil moisture
-        #   here; hence "boundary-layer resistance" (really surface
-        #   resistance) should be low when VPD is low (soil is "wet")
-        r_tot = np.where(vpd <= self.vpd_open, self.rbl_min,
-            np.where(vpd >= self.vpd_close, self.rbl_max,
-            self.rbl_max - (
-                (self.rbl_max - self.rbl_min) * (self.vpd_close - vpd))\
-                    / (self.vpd_close - self.vpd_open)))
-        # ...CORRECTED for atmospheric temperature, pressure
-        r_tot = r_tot / r_corr
-        # -- Aerodynamic resistance at the soil surface
-        r_as = (r_tot * r_r) / (r_tot + r_r)
-        # -- Terms common to evaporation and potential evaporation
-        numer = (s * rad_soil) +\
-            (rho * SPECIFIC_HEAT_CAPACITY_AIR * (1 - fpar) * (vpd / r_as))
-        denom = (s + gamma * (r_tot / r_as))
-        # -- Evaporation from "wet" soil (saturated fraction)
-        evap_sat = (numer * f_wet) / denom
-        # -- (Potential) Evaporation from unsaturated fraction
-        evap_unsat = (numer * (1 - f_wet)) / denom
+        evap_sat, evap_unsat = MOD16.potential_soil_evaporation(
+            pressure, temp_k, vpd, fpar, rad_soil, r_corr, lhv, rhumidity,
+            f_wet, self.vpd_open, self.vpd_close, self.rbl_min, self.rbl_max)
         # BARE SOIL EVAPORATION
         # -- Finally, apply the soil moisture constraint from Fisher et al.
         #   (2008); see MOD16 C6.1 User's Guide, pp. 9-10
