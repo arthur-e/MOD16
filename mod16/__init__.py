@@ -16,8 +16,8 @@ land-cover type:
 There is also a single, vectorized interface implemented as a static method
 of the `MOD16` class, which can handle multiple land-cover types:
 
-- `MOD16._evapotranspiration()`
-- `MOD16._et()` (alias for the function above)
+- `MOD16._evapotranspiration()` - Returns separate daytime, nighttime ET
+- `MOD16._et()` - Returns a single (day plus night), total ET
 
 The user-friendly, instance methods have code blocks that are easy to read and
 understand, but those methods might run slow for large spatial domains because
@@ -443,6 +443,63 @@ class MOD16(object):
         return STD_PRESSURE_PASCALS * np.power(temp_ratio, AIR_PRESSURE_RATE)
 
     @staticmethod
+    def potential_transpiration(
+            lw_net: Number, sw_rad: Number, sw_albedo: Number,
+            pressure: Number, temp_k: Number, vpd: Number, fpar: Number,
+            rhumidity: Number = None, f_wet: Number = None,
+            alpha: Number = 1.26):
+        r'''
+        Potential (daytime) transpiration; defined for daytime only. See
+        Page 9 and Equation 18 of the MODIS MOD16 Collection 6.1 User Guide.
+
+        $$
+        \hat{\lambda E}_{\text{trans}} = (1 - F_{\text{wet}})
+          \frac{\alpha s A_C}{s + \gamma}
+        $$
+
+        Parameters
+        ----------
+        lw_net : Number
+            Net downward long-wave radiation integrated during daylight hours
+        sw_rad : Number
+            Down-welling short-wave radiation integrated during daylight hours
+        sw_albedo : Number
+            Down-welling short-wave albedo (under "black-sky" conditions)
+        pressure : float or numpy.ndarray
+            The air pressure in Pascals
+        temp_k : float or numpy.ndarray
+            The air temperature in degrees K
+        vpd : float or numpy.ndarray
+            The vapor pressure deficit in Pascals
+        fpar : float or numpy.ndarray
+            Fraction of photosynthetically active radiation (PAR) absorbed by
+            the vegetation canopy
+        rhumidity : float or numpy.ndarray or None
+            (Optional) The relative humidity
+        f_wet : float or numpy.ndarray or None
+            (Optional) The fraction of the surface that has standing water
+
+        Returns
+        -------
+        Number
+            Potential transpiration in [W m-2]
+        '''
+        if rhumidity is None:
+            rhumidity = MOD16.rhumidity(temp_k, vpd)
+        if f_wet is None:
+            f_wet = np.where(rhumidity < 0.7, 0, np.power(rhumidity, 4))
+        # Net radiation to surface, based on down-welling short-wave
+        #   radiation and net long-wave radiation
+        rad_net = sw_rad * (1 - sw_albedo) + lw_net
+        # Radiation intercepted by the canopy
+        rad_canopy = fpar * rad_net
+        # Slope of saturation vapor pressure curve
+        s = svp_slope(temp_k)
+        # Psychrometric constant
+        gamma = psychrometric_constant(pressure, temp_k)
+        return (alpha * (s * rad_canopy) * (1 - f_wet)) / (s + gamma)
+
+    @staticmethod
     def vpd(qv10m: Number, pressure: Number, tmean: Number) -> Number:
         r'''
         Computes vapor pressure deficit (VPD) from surface meteorology:
@@ -664,8 +721,8 @@ class MOD16(object):
         rad_soil : float or numpy.ndarray
             Net radiation to the soil surface (J m-2 s-1)
         r_corr : float or numpy.ndarray or None
-            The temperature and pressure correction factor for surface
-            conductance
+            (Optional) The temperature and pressure correction factor for
+            surface conductance
         lhv : float or numpy.ndarray or None
             (Optional) The latent heat of vaporization
         rhumidity : float or numpy.ndarray or None
