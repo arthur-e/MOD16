@@ -5,14 +5,14 @@ Unit tests for the `mod16` Python utilities library.
 import os
 import unittest
 import numpy as np
-from mod16 import MOD16, psychrometric_constant, radiation_net, svp_slope
+from mod16 import MOD16, psychrometric_constant, radiation_net, svp_slope, latent_heat_vaporization
 
 # MOD17_BPLUT = os.path.join(
 #     os.path.dirname(mod17.__file__), 'data/MOD17_BPLUT_C5.1_MERRA_NASA.csv')
 
-class CanopyEvaporation(unittest.TestCase):
+class ETComponents(unittest.TestCase):
     '''
-    Suite of test cases related to wet canopy evaporation.
+    Suite of test cases related to components of ET.
     '''
 
     @classmethod
@@ -41,6 +41,17 @@ class CanopyEvaporation(unittest.TestCase):
         cls.rad_soil = 5000
         cls.f_wet = 0.5
         cls.r_corr = (101300 / cls.pressure) * (cls.temp_k / 293.15)**1.75
+        cls.lw_net_day = -50
+        cls.lw_net_night = -30
+        cls.sw_rad_day = 150
+        cls.sw_rad_night = 0
+        cls.sw_albedo = 0.3
+        cls.temp_day = 293
+        cls.temp_night = 290
+        cls.temp_annual = 285
+        cls.tmin = 285
+        cls.vpd_day = 1000
+        cls.vpd_night = 500
         # 5 levels of each
         cls._pressure = np.arange(98e3, 103e3, 1e3)
         cls._temp_k = 273.15 + np.array([0, 10, 20, 30, 40])
@@ -49,6 +60,34 @@ class CanopyEvaporation(unittest.TestCase):
         cls._fpar = np.array([0.1, 0.3, 0.5, 0.7, 0.9])
         cls._rad_canopy = np.arange(3e3, 8e3, 1e3)
         cls._f_wet = np.array([0.1, 0.3, 0.5, 0.7, 0.9])
+
+    def test_et_vectorized(self):
+        'Tests that the various ET interfaces produces consistent results.'
+        params_vector = [self.params[p] for p in MOD16.required_parameters]
+        _et = MOD16._et(
+            params_vector, self.lw_net_day, self.lw_net_night,
+            self.sw_rad_day, self.sw_rad_night, self.sw_albedo, self.temp_day,
+            self.temp_night, self.temp_annual, self.tmin, self.vpd_day,
+            self.vpd_night, self.pressure, self.fpar, self.lai)
+        _day, _night = MOD16._evapotranspiration(
+            params_vector, self.lw_net_day, self.lw_net_night,
+            self.sw_rad_day, self.sw_rad_night, self.sw_albedo, self.temp_day,
+            self.temp_night, self.temp_annual, self.tmin, self.vpd_day,
+            self.vpd_night, self.pressure, self.fpar, self.lai)
+        model = MOD16(self.params)
+        _day2, _night2 = model.evapotranspiration(
+            self.lw_net_day, self.lw_net_night, self.sw_rad_day,
+            self.sw_rad_night, self.sw_albedo, self.temp_day,
+            self.temp_night, self.temp_annual, self.tmin, self.vpd_day,
+            self.vpd_night, self.pressure, self.fpar, self.lai)
+        lhv_day = latent_heat_vaporization(self.temp_day)
+        lhv_night = latent_heat_vaporization(self.temp_night)
+        self.assertEqual(round(_et, 2), 36.76)
+        self.assertEqual(round(_day + _night, 2), 36.76)
+        # NOTE: Converting from mass-flux to radiation units incurs a loss
+        #   of precision
+        self.assertEqual(
+            round((_day2 * lhv_day) + (_night2 * lhv_night), 1), 36.8)
 
     def test_evaporation_soil(self):
         'Should accurately calculate evaporation from bare soil'

@@ -5,7 +5,7 @@ for full references.
 **There are two types of interfaces in the MOD16 Python code.**
 
 User-friendly methods of a `MOD16` instance, parameterized for a single
-land-cover type:
+land-cover type, which return ET in mass-flux units [kg (H2O) m-2 sec-1]:
 
 - `MOD16.evapotranspiration()`
 - `MOD16.transpiration()`
@@ -14,15 +14,15 @@ land-cover type:
 - And so on.
 
 There is also a single, vectorized interface implemented as a static method
-of the `MOD16` class, which can handle multiple land-cover types:
+of the `MOD16` class, which can handle multiple land-cover types and which
+return ET in radiation units [W m-2]:
 
 - `MOD16._evapotranspiration()` - Returns separate daytime, nighttime ET
 - `MOD16._et()` - Returns a single (day plus night), total ET
 
 The user-friendly, instance methods have code blocks that are easy to read and
 understand, but those methods might run slow for large spatial domains because
-they incur a lot of Python overhead. The values returned by those functions
-are in mass-flux units (kg [H2O] m-2 sec-1).
+they incur a lot of Python overhead.
 
 The vectorized interface is faster because it incurs less Python overhead; it
 is useful, for example, when calibrating MOD16, because this may require
