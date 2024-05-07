@@ -76,10 +76,10 @@ surrounding a tower:
       SWGDN             -- (T x N) Down-welling short-wave radiation [W m-2]
       SWGDN_daytime     -- (T x N) ... for daytime hours only
       SWGDN_nighttime   -- (T x N) ... for nighttime hours only
-      T10M              -- (T x N) Air temperature at 10-meter height [deg C]
+      T10M              -- (T x N) Air temperature at 10-meter height [deg K]
       T10M_daytime      -- (T x N) ... for daytime hours only
       T10M_nighttime    -- (T x N) ... for nighttime hours only
-      Tmin              -- (T x N) Daily minimum air temperature [deg C]
+      Tmin              -- (T x N) Daily minimum air temperature [deg K]
 
     *MODIS/
       *MCD43GF_black_sky_sw_albedo
