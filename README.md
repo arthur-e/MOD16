@@ -220,7 +220,7 @@ $$
 
 Where $\sigma$ is the Stefan-Boltzmann constant.
 
-**The resistant of wet canopy to sensible heat** is given in terms of the leaf area index (LAI), $F_{\text{wet}}$, and the leaf conductance to sensible heat (per unit LAI), $g_{SH}$, which is a free parameter:
+**The resistance of wet canopy to sensible heat** is given in terms of the leaf area index (LAI), $F_{\text{wet}}$, and the leaf conductance to sensible heat (per unit LAI), $g_{SH}$, which is a free parameter:
 
 $$
 r_{SH} = \frac{1}{g_{SH}\times \text{LAI}\times F_{\text{wet}}}
