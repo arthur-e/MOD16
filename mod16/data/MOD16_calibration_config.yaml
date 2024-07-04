@@ -2,7 +2,7 @@
 BPLUT:
   ET: "/home/arthur.endsley/src/MOD16/mod16/data/MOD16_BPLUT_CX.X_05deg_MCD43B_Albedo_MERRA.csv"
 data:
-  file: "/home/arthur/Downloads/VIIRS_MOD16_tower_site_latent_heat_and_drivers_v5.h5"
+  file: "/anx_lagr4/MODIS_VIIRS/calibration/VIIRS_MOD16_tower_site_latent_heat_and_drivers_v6.h5"
   # HDF5 field name for PFT map
   class_map: state/PFT_annual # For PFT=3, set this to state/PFT
   classes: [1,2,3,4,5,6,7,8,9,10,12] # The unique and valid PFT codes
@@ -18,8 +18,6 @@ data:
     "US-PFp", "US-PFq", "US-PFr", "US-PFs", "US-PFt", "US-xLE",
     "US-xMB", "US-xRN", "US-xSC", "US-xSR"
   ]
-  # The name of the HDF5 group that contains surface meteorology data
-  met_group: MERRA2
   # The name of the HDF5 datasets for albedo, fPAR, LAI, etc.
   datasets:
     annual_precip: IMERG/mean_annual_precip # Annual precipitation constraint (mm year-1)
@@ -27,19 +25,26 @@ data:
     albedo: MODIS/MCD43GF_black_sky_sw_albedo
     fPAR: MODIS/MOD15A2HGF_fPAR_interp
     LAI: MODIS/MOD15A2HGF_LAI_interp
+    Tmin: "GEOS-IT/Tmin"
+    # Should be lists of [daytime, nighttime] field names
+    SWGDN: ["GEOS-IT/SWGDN", ~] # No nighttime SWGDN
+    LWGNT: ["GEOS-IT/LWGNT_daytime", "GEOS-IT/LWGNT_nighttime"]
+    T10M: ["GEOS-IT/T10M_daytime", "GEOS-IT/T10M_nighttime"]
+    VPD: ["GEOS-IT/VPD_daytime", "GEOS-IT/VPD_nighttime"]
+    MAT: "GEOS-IT/T10M_annual_mean" # Mean annual temperature
 constraints:
   # True to constrain annual ET: Cannot exceed annual precipitation;
   #   must then provide a data/datasets/annual_precip field, above
-  annual_precipitation: true
+  annual_precipitation: false
 optimization:
   platform: MODIS
-  backend_template: "/anx_lagr4/MODIS_VIIRS/calibration/pymc_backends/without_precip_constraint/20240415_MOD16_%s_calibration_PFT%d.nc4"
+  backend_template: "/anx_lagr4/MODIS_VIIRS/calibration/pymc_backends/20240704_MOD16_%s_calibration_PFT%d.nc4"
   prior: "/home/arthur.endsley/src/MOD16/mod16/data/MOD16_BPLUT_prior_20240415.yaml"
   chains: 3
   draws: 20000
   tune: scaling
   scaling: 0.001
-  objective: nRMSD # Use nRMSD if there are "constraints"
+  objective: RMSD # Use nRMSD if there are "constraints"
   # Parameter values that are fixed in advance (i.e., not calibrated)
   fixed:
     # beta: MOD16 is mostly insensitive to beta, but CSH and OSH are

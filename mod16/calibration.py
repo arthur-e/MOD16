@@ -342,38 +342,41 @@ class CalibrationAPI(object):
 
             # Read in driver datasets
             print('Loading driver datasets...')
-            group = self.config['data']['met_group']
-            lw_net_day = hdf[f'{group}/LWGNT_daytime'][:][pft_mask]
-            lw_net_night = hdf[f'{group}/LWGNT_nighttime'][:][pft_mask]
-            sw_albedo = hdf[self.config['data']['datasets']['albedo']][:][pft_mask]
-            sw_rad_day = hdf[f'{group}/SWGDN_daytime'][:][pft_mask]
-            sw_rad_night = hdf[f'{group}/SWGDN_nighttime'][:][pft_mask]
-            temp_day = hdf[f'{group}/T10M_daytime'][:][pft_mask]
-            temp_night = hdf[f'{group}/T10M_nighttime'][:][pft_mask]
-            tmin = hdf[f'{group}/Tmin'][:][pft_mask]
+            lookup = self.config['data']['datasets']
+            lw_net_day = hdf[lookup['LWGNT'][0]][:][pft_mask]
+            lw_net_night = hdf[lookup['LWGNT'][1]][:][pft_mask]
+            sw_albedo = hdf[lookup['albedo']][:][pft_mask]
+            sw_rad_day = hdf[lookup['SWGDN'][0]][:][pft_mask]
+            sw_rad_night = np.zeros(sw_rad_day.shape, dtype = np.int16)
+            temp_day = hdf[lookup['T10M'][0]][:][pft_mask]
+            temp_night = hdf[lookup['T10M'][1]][:][pft_mask]
+            tmin = hdf[lookup['Tmin']][:][pft_mask]
 
             # As long as the time series is balanced w.r.t. years (i.e., same
             #   number of records per year), the overall mean is the annual mean
-            temp_annual = hdf[f'{group}/T10M'][:][pft_mask].mean(axis = 0)
-            vpd_day = MOD16.vpd(
-                hdf[f'{group}/QV10M_daytime'][:][pft_mask],
-                hdf[f'{group}/PS_daytime'][:][pft_mask],
-                temp_day)
-            vpd_night = MOD16.vpd(
-                hdf[f'{group}/QV10M_nighttime'][:][pft_mask],
-                hdf[f'{group}/PS_nighttime'][:][pft_mask],
-                temp_night)
+            temp_annual = hdf[lookup['MAT']][:][pft_mask].mean(axis = 0)
+            if 'VPD' in lookup.keys():
+                vpd_day = hdf[lookup['VPD'][0]][:][pft_mask]
+                vpd_night = hdf[lookup['VPD'][1]][:][pft_mask]
+            else:
+                vpd_day = MOD16.vpd(
+                    hdf[lookup['QV10M'][0]][:][pft_mask],
+                    hdf[lookup['PS'][0]][:][pft_mask], temp_day)
+                vpd_night = MOD16.vpd(
+                    hdf[lookup['QV10M'][1]][:][pft_mask],
+                    hdf[lookup['PS'][1]][:][pft_mask], temp_night)
+            vpd_night = np.where(vpd_night < 0, 0, vpd_night)
 
             # After VPD is calculated, air pressure is based solely
             #   on elevation
-            elevation = hdf[self.config['data']['datasets']['elevation']][:]
+            elevation = hdf[lookup['elevation']][:]
             elevation = elevation[np.newaxis,:]\
                 .repeat(nsteps, axis = 0)[pft_mask]
             pressure = MOD16.air_pressure(elevation.mean(axis = -1))
 
             # Read in fPAR, LAI, and convert from (%) to [0,1]
-            fpar = hdf[self.config['data']['datasets']['fPAR']][:][pft_mask]
-            lai = hdf[self.config['data']['datasets']['LAI']][:][pft_mask]
+            fpar = hdf[lookup['fPAR']][:][pft_mask]
+            lai = hdf[lookup['LAI']][:][pft_mask]
 
             # If a heterogeneous sub-grid is used at each tower (i.e., there
             #   is a third axis to these datasets), then average over that
@@ -483,46 +486,47 @@ class CalibrationAPI(object):
 
             # Read in driver datasets
             print('Loading driver datasets...')
-            group = self.config['data']['met_group']
-            lw_net_day = hdf[f'{group}/LWGNT_daytime'][:][:,site_mask]
-            lw_net_night = hdf[f'{group}/LWGNT_nighttime'][:][:,site_mask]
-            sw_albedo = hdf[self.config['data']['datasets']['albedo']][:][:,site_mask]
-            sw_rad_day = hdf[f'{group}/SWGDN_daytime'][:][:,site_mask]
-            sw_rad_night = hdf[f'{group}/SWGDN_nighttime'][:][:,site_mask]
-            temp_day = hdf[f'{group}/T10M_daytime'][:][:,site_mask]
-            temp_night = hdf[f'{group}/T10M_nighttime'][:][:,site_mask]
-            tmin = hdf[f'{group}/Tmin'][:][:,site_mask]
+            lookup = self.config['data']['datasets']
+            lw_net_day = hdf[lookup['LWGNT'][0]][:][:,site_mask]
+            lw_net_night = hdf[lookup['LWGNT'][1]][:][:,site_mask]
+            sw_albedo = hdf[lookup['albedo']][:][:,site_mask]
+            sw_rad_day = hdf[lookup['SWGDN'][0]][:][:,site_mask]
+            sw_rad_night = np.zeros(sw_rad_day.shape, dtype = np.int16)
+            temp_day = hdf[lookup['T10M'][0]][:][:,site_mask]
+            temp_night = hdf[lookup['T10M'][1]][:][:,site_mask]
+            tmin = hdf[lookup['Tmin']][:][:,site_mask]
 
             if self.config['constraints']['annual_precipitation']:
                 # Convert mean annual precip (Y x N) to a (T x N) array,
                 #   then subset
-                ann_precip = hdf[self.config['data']['datasets']['annual_precip']][:]
+                ann_precip = hdf[lookup['annual_precip']][:]
                 constraints['annual_precipitation'] = (years, ann_precip[:,site_mask])
 
             # As long as the time series is balanced w.r.t. years (i.e., same
             #   number of records per year), the overall mean is the annual mean
-            temp_annual = hdf[f'{group}/T10M'][:][:,site_mask].mean(axis = 0)
-            vpd_day = MOD16.vpd(
-                hdf[f'{group}/QV10M_daytime'][:][:,site_mask],
-                hdf[f'{group}/PS_daytime'][:][:,site_mask],
-                temp_day)
-            vpd_day = np.where(vpd_day < 0, 0, vpd_day)
-            vpd_night = MOD16.vpd(
-                hdf[f'{group}/QV10M_nighttime'][:][:,site_mask],
-                hdf[f'{group}/PS_nighttime'][:][:,site_mask],
-                temp_night)
+            temp_annual = hdf[lookup['MAT']][:][:,site_mask].mean(axis = 0)
+            if 'VPD' in lookup.keys():
+                vpd_day = hdf[lookup['VPD'][0]][:][:,site_mask]
+                vpd_night = hdf[lookup['VPD'][1]][:][:,site_mask]
+            else:
+                vpd_day = MOD16.vpd(
+                    hdf[lookup['QV10M'][0]][:][:,site_mask],
+                    hdf[lookup['PS'][0]][:][:,site_mask], temp_day)
+                vpd_night = MOD16.vpd(
+                    hdf[lookup['QV10M'][1]][:][:,site_mask],
+                    hdf[lookup['PS'][1]][:][:,site_mask], temp_night)
             vpd_night = np.where(vpd_night < 0, 0, vpd_night)
 
             # After VPD is calculated, air pressure is based solely
             #   on elevation
-            elevation = hdf[self.config['data']['datasets']['elevation']][:]
+            elevation = hdf[lookup['elevation']][:]
             elevation = elevation[np.newaxis,:]\
                 .repeat(nsteps, axis = 0)[:,site_mask]
             pressure = MOD16.air_pressure(elevation.mean(axis = -1))
 
             # Read in fPAR, LAI, and convert from (%) to [0,1]
-            fpar = hdf[self.config['data']['datasets']['fPAR']][:][:,site_mask]
-            lai = hdf[self.config['data']['datasets']['LAI']][:][:,site_mask]
+            fpar = hdf[lookup['fPAR']][:][:,site_mask]
+            lai = hdf[lookup['LAI']][:][:,site_mask]
 
             # If a heterogeneous sub-grid is used at each tower (i.e., there
             #   is a third axis to these datasets), then average over that
@@ -565,6 +569,9 @@ class CalibrationAPI(object):
         #   negative latent heat observations
         assert raw.ndim == 2, 'Expected 2D input raw observations'
         obs = self._filter(raw, filter_length)
+        # Filtering out negative latent heat fluxes, as these generally arise
+        #   during stable conditions, when EC tower measurements are less
+        #   reliable (see https://doi.org/10.5194/bg-21-2051-2024)
         return np.where(obs < 0, np.nan, obs)
 
     def export_posterior(
@@ -711,7 +718,7 @@ class CalibrationAPI(object):
         module, including [run()](https://arthur-e.github.io/MOD17/calibration.html#mod17.calibration.StochasticSampler).
         '''
         def constrain_by_map(pred_le, years, lhv, annual_precip):
-            # Constraint the results by (mean) annual precipitation
+            # Constrain the results by (mean) annual precipitation
             # pred_le : np.ndarray - (T,N) array of predicted latent heat flux
             # years : np.ndarray - (T,) array indicating year, out of Y years
             # lhv : np.ndarray - (T,N) array of latent heat of vaporization
