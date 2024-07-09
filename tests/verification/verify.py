@@ -24,7 +24,7 @@ from mod16 import MOD16, latent_heat_vaporization, svp
 from mod16.utils import pft_dominant, restore_bplut
 
 BPLUT = os.path.join(os.path.dirname(mod16.__file__), 'data/MOD16_BPLUT_C5.1_05deg_MCD43B_Albedo_MERRA_GMAO.csv')
-FLUXNET_HDF5 = '/home/arthur/Downloads/VIIRS_MOD16_tower_site_latent_heat_and_drivers_v4.h5'
+FLUXNET_HDF5 = '/anx_lagr4/MODIS_VIIRS/calibration/VIIRS_MOD16_tower_site_latent_heat_and_drivers_v7.h5'
 SITE_ID = 'AR-SLu' # Focus on one site for now
 
 def main():

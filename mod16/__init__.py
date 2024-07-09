@@ -276,8 +276,7 @@ class MOD16(object):
             #     --> RH = (VPsat - VPD) / VPsat
             _svp = svp(temp_k)
             rhumidity = (_svp - vpd) / _svp
-            if f_wet is None:
-                f_wet = np.where(rhumidity < 0.7, 0, rhumidity**4)
+            f_wet = np.where(rhumidity < 0.7, 0, np.power(rhumidity, 4))
             # Slope of saturation vapor pressure curve
             s = svp_slope(temp_k, _svp)
             # Latent heat of vaporization (J kg-1)
@@ -750,8 +749,7 @@ class MOD16(object):
             #   VPD = VPsat - VPactual; RH = VPactual / VPsat
             #     --> RH = (VPsat - VPD) / VPsat
             rhumidity = MOD16.rhumidity(temp_k, vpd)
-            if f_wet is None:
-                f_wet = np.where(rhumidity < 0.7, 0, np.power(rhumidity, 4))
+            f_wet = np.where(rhumidity < 0.7, 0, np.power(rhumidity, 4))
             # Slope of saturation vapor pressure curve
             s = svp_slope(temp_k)
             # Latent heat of vaporization (J kg-1)
@@ -764,15 +762,18 @@ class MOD16(object):
             e_canopy.append(self.evaporation_wet_canopy(
                 pressure, temp_k, vpd, lai, fpar, rad_canopy, lhv, rhumidity,
                 f_wet))
+
             # EVAPORATION FROM BARE SOIL
             e_soil.append(self.evaporation_soil(
                 pressure, temp_k, vpd, fpar, rad_soil, r_corr, lhv, rhumidity,
                 f_wet))
+
             # PLANT TRANSPIRATION
             transpiration.append(
                 self.transpiration(
                     pressure, temp_k, vpd, lai, fpar, rad_canopy, tmin,
                     r_corr, lhv, rhumidity, f_wet, daytime = daytime))
+
             if separate:
                 et_total.append((e_canopy[i], e_soil[i], transpiration[i]))
             else:
