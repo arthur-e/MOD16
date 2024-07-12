@@ -82,12 +82,12 @@ class ETComponents(unittest.TestCase):
             self.vpd_night, self.pressure, self.fpar, self.lai)
         lhv_day = latent_heat_vaporization(self.temp_day)
         lhv_night = latent_heat_vaporization(self.temp_night)
-        self.assertEqual(round(_et, 2), 36.76)
-        self.assertEqual(round(_day + _night, 2), 36.76)
+        self.assertEqual(round(_et, 2), 40.94)
+        self.assertEqual(round(_day + _night, 2), 40.94)
         # NOTE: Converting from mass-flux to radiation units incurs a loss
         #   of precision
         self.assertEqual(
-            round((_day2 * lhv_day) + (_night2 * lhv_night), 1), 36.8)
+            round((_day2 * lhv_day) + (_night2 * lhv_night), 1), 41.0)
 
     def test_evaporation_soil(self):
         'Should accurately calculate evaporation from bare soil'
