@@ -64,7 +64,7 @@ NOTES:
     1/r, where r is the value provided in the User Guide; this avoids
     numerical instability associated with keeping track of a very small
     number.
-7. [ ] Surface pressure is calculated in two different ways: throughout most of
+7. Surface pressure is calculated in two different ways: throughout most of
     MOD16, it is calculated based on the elevation of the land surface; but
     when calculating the actual vapor pressure (AVP), the NASA GMAO surface
     pressure (from MERRA-2 or GEOS-5) is used.
@@ -72,17 +72,17 @@ NOTES:
 
 In MOD16 C6.1, canopy conductance was calculated as:
 $$
-C_c = \frac{gl_{sh}(G_S + G_C)}{gl_{sh} + G_S + G_C} \text{LAI}(1 - F_{wet})
+C_c = \frac{gl_{sh}(g_S + g_C)}{gl_{sh} + g_S + g_C} \text{LAI}(1 - F_{wet})
 $$
 
 However, in the new VIIRS VNP16 and updated MOD16 it is calculated as:
 $$
-C_c = \frac{G_0(G_S + G_C)}{G_0 + G_S + G_C}
+C_c = \frac{g_{BL}(g_S + g_C)}{g_{BL} + g_S + g_C}
 $$
 
 Where:
 $$
-G_0 = gl_{sh} \times \text{LAI}(1 - F_{wet})
+g_{BL} = gl_{sh} \times \text{LAI}(1 - F_{wet})
 $$
 
 Based on [2], `MOD16.radiation_soil()` was updated. Based on [4],
@@ -276,6 +276,7 @@ class MOD16(object):
             #     --> RH = (VPsat - VPD) / VPsat
             _svp = svp(temp_k)
             rhumidity = (_svp - vpd) / _svp
+            rhumidity = np.where(rhumidity < 0, 0, rhumidity)
             f_wet = np.where(rhumidity < 0.7, 0, np.power(rhumidity, 4))
             # Slope of saturation vapor pressure curve
             s = svp_slope(temp_k, _svp)
@@ -294,6 +295,8 @@ class MOD16(object):
             # -- Resistance to radiative heat transfer through air ("rrc")
             r_r = (rho * SPECIFIC_HEAT_CAPACITY_AIR) / (
                 4 * STEFAN_BOLTZMANN * temp_k**3)
+            # Anticipate warnings because, in some cases, f_wet may be zero,
+            #   which would lead to zero in the denominator of r_h and r_e
             with warnings.catch_warnings():
                 warnings.simplefilter('ignore')
                 # -- Wet canopy resistance to sensible heat ("rhc")
