@@ -89,7 +89,7 @@ def main(pft = None, analysis = 'parameters'):
             ]
         }
         # NOTE: Number of samples must be a power of 2
-        param_sweep = sobol_sample(problem, 256 if pft is None else 128)
+        param_sweep = sobol_sample(problem, 512 if pft is None else 128)
         Y = np.zeros([param_sweep.shape[0]])
         for i, X in enumerate(tqdm(param_sweep)):
             yhat = MOD16._et(X, *drivers)
@@ -104,7 +104,7 @@ def main(pft = None, analysis = 'parameters'):
             'bounds': list(BOUNDS.values())
         }
         # NOTE: Number of samples must be a power of 2
-        param_sweep = sobol_sample(problem, 1024)
+        param_sweep = sobol_sample(problem, 2048)
         Y = np.zeros([param_sweep.shape[0]])
         # Exclude warnings, because some driver data combinations will lead
         #   to physically implausible situations
