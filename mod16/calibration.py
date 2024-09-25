@@ -819,7 +819,7 @@ class CalibrationAPI(object):
                         for i in range(0, len(out)):
                             out[i] = np.concatenate((out[i], [np.nan] * (size - out[i].size)))
                     hdf.create_dataset(
-                        'test_indices', (k_folds, size), np.int32, np.stack(out))
+                        'test_indices', (k_folds, size), np.uint32, np.stack(out))
                 # Restore the original tower dataset
                 if fold > 1:
                     tower_obs = _tower_obs.copy()
