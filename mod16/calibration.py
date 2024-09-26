@@ -123,6 +123,7 @@ import pymc as pm
 import pytensor.tensor as pt
 import arviz as az
 import mod16
+from collections import OrderedDict
 from functools import partial
 from statistics import mode
 from pathlib import Path
@@ -134,6 +135,10 @@ from mod16.utils import restore_bplut, pft_dominant
 from mod17.calibration import BlackBoxLikelihood, StochasticSampler
 
 MOD16_DIR = os.path.dirname(mod16.__file__)
+DRIVER_NAMES = ('lw_net_day', 'lw_net_night', 'sw_rad_day',
+    'sw_rad_night', 'sw_albedo', 'temp_day', 'temp_night',
+    'temp_annual', 'tmin', 'vpd_day', 'vpd_night',
+    'pressure', 'fpar', 'lai')
 
 
 class MOD16StochasticSampler(StochasticSampler):
@@ -390,11 +395,10 @@ class CalibrationAPI(object):
             lai /= 10
 
         # Compile driver datasets
-        drivers = [
+        drivers = dict(zip(DRIVER_NAMES, [
             lw_net_day, lw_net_night, sw_rad_day, sw_rad_night, sw_albedo,
             temp_day, temp_night, temp_annual, tmin, vpd_day, vpd_night,
-            pressure, fpar, lai
-        ]
+            pressure, fpar, lai]))
         return (tower_obs, drivers, weights)
 
     def _load_data_annual(self, pft: int):
@@ -522,7 +526,11 @@ class CalibrationAPI(object):
             elevation = hdf[lookup['elevation']][:]
             elevation = elevation[np.newaxis,:]\
                 .repeat(nsteps, axis = 0)[:,site_mask]
-            pressure = MOD16.air_pressure(elevation.mean(axis = -1))
+            # Assumed to be (T x N) or (T x N x ...)
+            if elevation.ndim == 3:
+                # If there is a site sub-grid...
+                elevation == elevation.mean(axis = -1)
+            pressure = MOD16.air_pressure(elevation)
 
             # Read in fPAR, LAI, and convert from (%) to [0,1]
             fpar = hdf[lookup['fPAR']][:][:,site_mask]
@@ -539,11 +547,10 @@ class CalibrationAPI(object):
             fpar /= 100
             lai /= 10
 
-        drivers = [
+        drivers = dict(zip(DRIVER_NAMES, [
             lw_net_day, lw_net_night, sw_rad_day, sw_rad_night, sw_albedo,
             temp_day, temp_night, temp_annual, tmin, vpd_day, vpd_night,
-            pressure, fpar, lai
-        ]
+            pressure, fpar, lai]))
         # Clean the tower observations
         tower_obs = self.clean_observed(tower_obs)
         return (tower_obs, drivers, weights, constraints)
@@ -768,10 +775,8 @@ class CalibrationAPI(object):
                 constraints = []
             if self.config['constraints']['annual_precipitation']:
                 # Get the mean daily temperature, to derive LHV
-                air_t_day = drivers[MOD16StochasticSampler.required_drivers['ET']\
-                    .index('temp_day')]
-                air_t_night = drivers[MOD16StochasticSampler.required_drivers['ET']\
-                    .index('temp_night')]
+                air_t_day = drivers['temp_day']
+                air_t_night = drivers['temp_night']
                 air_t = np.stack(
                     [air_t_day, air_t_night], axis = 0).mean(axis = 0)
                 lhv = latent_heat_vaporization(air_t)
@@ -788,7 +793,7 @@ class CalibrationAPI(object):
             # Back-up the original (complete) datasets; we do this so we can
             #   simply mask out the test samples (1/k), after restoring the
             #   original datasets
-            _drivers = [d.copy() for d in drivers]
+            _drivers = dict([(k, d.copy()) for k, d in drivers.items()])
             _tower_obs = tower_obs.copy()
             _weights = weights.copy()
             # Randomize the indices of the NPP data
@@ -828,10 +833,10 @@ class CalibrationAPI(object):
                 idx = idx_test[k]
                 tower_obs[idx] = np.nan
                 # Same for drivers, after restoring from the original
-                drivers = [
-                    d.copy()[~np.isnan(tower_obs)] if d.ndim > 0 else d.copy()
-                    for d in _drivers
-                ]
+                drivers = dict([
+                    (k, d.copy()[~np.isnan(tower_obs)]) if d.ndim > 0 else (k, d.copy())
+                    for k, d in _drivers.items()
+                ])
                 weights = weights[~np.isnan(tower_obs)] # NOTE: Do first
                 tower_obs = tower_obs[~np.isnan(tower_obs)]
             # Use a different naming scheme for the backend
@@ -886,8 +891,10 @@ class CalibrationAPI(object):
                     var_names.remove(key)
             kwargs.update({'var_names': var_names})
 
+            # TODO Someday, MOD17 will be updated to allow "drivers" to be a
+            #   dictionary instead of a sequence; until then: drivers.values()
             sampler.run( # Only show the trace plot if not using k-folds
-                tower_obs, drivers, prior = prior, fixed = fixed,
+                tower_obs, drivers.values(), prior = prior, fixed = fixed,
                 save_fig = save_fig, show_fig = (k_folds == 1), **kwargs)
 
 
