@@ -506,9 +506,10 @@ class CalibrationAPI(object):
                 ann_precip = hdf[lookup['annual_precip']][:]
                 constraints['annual_precipitation'] = (years, ann_precip[:,site_mask])
 
-            # As long as the time series is balanced w.r.t. years (i.e., same
-            #   number of records per year), the overall mean is the annual mean
-            temp_annual = hdf[lookup['MAT']][:][:,site_mask].mean(axis = 0)
+            # Assumed that annual mean is (T x N) array, with the same
+            #   annual value copied to each time step if time steps are
+            #   more frequent than one year
+            temp_annual = hdf[lookup['MAT']][:][:,site_mask]
             if 'VPD' in lookup.keys():
                 vpd_day = hdf[lookup['VPD'][0]][:][:,site_mask]
                 vpd_night = hdf[lookup['VPD'][1]][:][:,site_mask]
@@ -529,7 +530,7 @@ class CalibrationAPI(object):
             # Assumed to be (T x N) or (T x N x ...)
             if elevation.ndim == 3:
                 # If there is a site sub-grid...
-                elevation == elevation.mean(axis = -1)
+                elevation = elevation.mean(axis = -1)
             pressure = MOD16.air_pressure(elevation)
 
             # Read in fPAR, LAI, and convert from (%) to [0,1]
@@ -763,6 +764,17 @@ class CalibrationAPI(object):
             tower_obs, drivers, weights, constr = self._load_data_annual(pft)
         else:
             tower_obs, drivers, weights = self._load_data(pft)
+
+        # TODO The current k-folds code assumes that the observations
+        #   and driver datasets are 1D vectors; however, the functions
+        #   _load_data() and _load_data_annual() return datasets with
+        #   different dimensions; the former returns 1D vectors but
+        #   the latter returns 2D arrays
+        if self.config['data']['classes_are_dynamic'] and k_folds > 1:
+            tower_obs = tower_obs.ravel()
+            weights = weights.ravel()
+            for key in drivers.keys():
+                drivers[key] = drivers[key].ravel()
 
         constraints = None
         if len(self.config['constraints']) > 0:
