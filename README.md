@@ -284,7 +284,7 @@ r_{\text{corr}} = \left(
   \right)^{-1}
 $$
 
-**Aerodynamic resistance at the soil surface,** $r_{\text{AS}}$, is calculated as the parallel resistance of $r_R$ (from our wet-canopy evaporation calculations, above) and $r_{\text{total}}$:
+**Aerodynamic resistance at the soil surface,** $r_{\text{AS}}$, is calculated as the parallel resistance to heat transfer, $r_R$ (from our wet-canopy evaporation calculations, above), and the total resistance to water vapor transport, $r_{\text{total}}$:
 
 $$
 r_{\text{AS}} = \frac{r_R\times r_{\text{total}}}{r_R + r_{\text{total}}}
