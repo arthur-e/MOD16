@@ -48,6 +48,10 @@ Documentation
 
 [You can read the online module documentation here.](https://arthur-e.github.io/MOD16/) Below, an overview of the MOD16 algorithm is provided.
 
+**Example use cases can be found in the `notebooks` folder; in particular:**
+
+- [An example of how to generate ET simulations using MODIS MOD16 Collection 6.1](https://github.com/arthur-e/MOD16/blob/master/notebooks/MOD16_Forward_Run_example.ipynb)
+
 
 Algorithm Details
 -----------------

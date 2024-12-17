@@ -94,7 +94,7 @@ TODO:
 - `sw_rad_night` may not be be needed anywhere
 '''
 
-__version__ = 'v1.1.0'
+__version__ = 'v1.2.0'
 
 import warnings
 import numpy as np
