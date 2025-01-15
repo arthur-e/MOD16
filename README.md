@@ -71,14 +71,15 @@ In this expression, positive values of $R$ represent energy provided to the eart
 Latent heat, or heat that has been used to vaporize water, is the quantity of interest in the MOD16 algorithm and it can generally be described in terms:
 
 $$
-\lambda E = \frac{\rho\times C_p}{\gamma} \frac{e_{\text{sat}} - e}{r_A + r_S}
+\lambda E \propto \frac{A + (\rho\, C_p)(e_{\text{sat}} - e)}{\gamma(1 + r_S)}
 $$
 
 The individual terms are described in the sections below, but the general idea is that the latent heat flux:
 
+- Increases with incident radiation from the sun and the surrounding environment, $A$
 - Increases with the air's capacity to store water vapor, $e_{\text{sat}} - e$
 - Increases with the heat storage capacity of air, $\rho\times C_p$
-- Decreases with increasing aerodynamic and surface resistances, $r_A$ + $r_S$
+- Decreases with increasing surface resistance, $r_S$ (resistance to water reaching the evaporative front)
 
 The flux of latent heat is also termed **evapotranspiration (ET)** because it includes both *evaporated* water and *transpired* water vapor fluxes. Most discussions of modeling ET begin with a version of the equation above, which gets complicated quickly when we try to calculate ET over large areas using weather data. As such, our description of the MOD16 ET model is instead procedural, to aid implementation.
 
