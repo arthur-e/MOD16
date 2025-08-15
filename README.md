@@ -53,6 +53,14 @@ Documentation
 - [An example of how to generate ET simulations using MODIS MOD16 Collection 6.1](https://github.com/arthur-e/MOD16/blob/master/notebooks/MOD16_Forward_Run_example.ipynb)
 
 
+Citation
+-----------------
+
+If using this model, please cite our most recent peer-reviewed publication:
+
+- Endsley, K.A., M. Zhao, J.S. Kimball, T. Albrethsen, S. Devadiga. 2025. [Improved global estimates of terrestrial evapotranspiration using the MODIS and VIIRS sensors.](https://doi.org/10.1175/JHM-D-24-0145.1) *Journal of Hydrometeorology* **26**(6).
+
+
 Algorithm Details
 -----------------
 
@@ -66,7 +74,7 @@ $$
 R = H + \lambda E + G + \Delta S
 $$
 
-In this expression, positive values of $R$ represent energy provided to the earth’s surface while positive values of $H$, \lambda E, $G$, and $\Delta S$ represent energy removed from the surface. Generally, these quantities are positive during the daytime and zero or negative at night.
+In this expression, positive values of $R$ represent energy provided to the earth’s surface while positive values of $H$, $\lambda E$, $G$, and $\Delta S$ represent energy removed from the surface. Generally, these quantities are positive during the daytime and zero or negative at night.
 
 Latent heat, or heat that has been used to vaporize water, is the quantity of interest in the MOD16 algorithm and it can generally be described in terms:
 
