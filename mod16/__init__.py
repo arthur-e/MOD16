@@ -476,7 +476,7 @@ class MOD16(object):
             Fraction of photosynthetically active radiation (PAR) absorbed by
             the vegetation canopy
         rad_soil : float or numpy.ndarray
-            Net radiation to the soil surface (J m-2 s-1)
+            Net radiation to the soil surface (J m-2 s-1) or (W m-2)
         r_corr : float or numpy.ndarray or None
             (Optional) The temperature and pressure correction factor for
             surface conductance
@@ -564,6 +564,7 @@ class MOD16(object):
             Net downward long-wave radiation integrated during daylight hours
         sw_rad : Number
             Down-welling short-wave radiation integrated during daylight hours
+            (J m-2 s-1) or (W m-2)
         sw_albedo : Number
             Down-welling short-wave albedo (under "black-sky" conditions)
         pressure : float or numpy.ndarray
@@ -655,7 +656,9 @@ class MOD16(object):
         Parameters
         ----------
         temp_k : int or float or numpy.ndarray
+            Temperature in degrees K
         vpd : int or float or numpy.ndarray
+            Vapor pressure deficit (Pa)
 
         Returns
         -------
@@ -685,12 +688,16 @@ class MOD16(object):
         ----------
         lw_net_day : Number
             Net downward long-wave radiation integrated during daylight hours
+            (J m-2 s-1) or (W m-2)
         lw_net_night : Number
             Net downward long-wave radiation integrated during nighttime hours
+            (J m-2 s-1) or (W m-2)
         sw_rad_day : Number
             Down-welling short-wave radiation integrated during daylight hours
+            (J m-2 s-1) or (W m-2)
         sw_rad_night : Number
             Down-welling short-wave radiation integrated during night-time hours
+            (J m-2 s-1) or (W m-2)
         sw_albedo : Number
             Down-welling short-wave albedo (under "black-sky" conditions)
         temp_day : Number
@@ -822,7 +829,7 @@ class MOD16(object):
             Fraction of photosynthetically active radiation (PAR) absorbed by
             the vegetation canopy
         rad_soil : float or numpy.ndarray
-            Net radiation to the soil surface (J m-2 s-1)
+            Net radiation to the soil surface (J m-2 s-1) or (W m-2)
         r_corr : float or numpy.ndarray or None
             (Optional) The temperature and pressure correction factor for
             surface conductance
@@ -901,7 +908,7 @@ class MOD16(object):
             Fraction of photosynthetically active radiation (PAR) absorbed by
             the vegetation canopy
         rad_canopy : float or numpy.ndarray
-            Net radiation to the canopy (J m-2 s-1)
+            Net radiation to the canopy, (J m-2 s-1) or (W m-2) or (W m-2)
         lhv : float or numpy.ndarray or None
             (Optional) The latent heat of vaporization
         rhumidity : float or numpy.ndarray or None
@@ -993,12 +1000,16 @@ class MOD16(object):
         ----------
         lw_net_day : int or float or numpy.ndarray
             Net downward long-wave radiation integrated during daylight hours
+            (J m-2 s-1) or (W m-2)
         lw_net_night : int or float or numpy.ndarray
             Net downward long-wave radiation integrated during nighttime hours
+            (J m-2 s-1) or (W m-2)
         sw_rad_day : int or float or numpy.ndarray
             Down-welling short-wave radiation integrated during daylight hours
+            (J m-2 s-1) or (W m-2)
         sw_rad_night : int or float or numpy.ndarray
             Down-welling short-wave radiation integrated during night-time hours
+            (J m-2 s-1) or (W m-2)
         sw_albedo : int or float or numpy.ndarray
             Down-welling short-wave albedo ("black-sky" albedo)
         temp_day : int or float or numpy.ndarray
@@ -1071,10 +1082,10 @@ class MOD16(object):
         ----------
         rad_net_day : int or float or numpy.ndarray
             Net radiation to the land surface during daylight hours; i.e.,
-            integrated while the sun is up [MJ m-2]
+            integrated while the sun is up, (J m-2 s-1) or (W m-2)
         rad_net_night : int or float or numpy.ndarray
             Net radiation to the land surface during nighttime hours; i.e.,
-            integrated while the sun is down [MJ m-2]
+            integrated while the sun is down, (J m-2 s-1) or (W m-2)
         temp_day : int or float or numpy.ndarray
             Average temperature (degrees K) during daylight hours
         temp_night : int or float or numpy.ndarray
@@ -1178,7 +1189,7 @@ class MOD16(object):
             Fraction of photosynthetically active radiation (PAR) absorbed by
             the vegetation canopy
         rad_canopy : float or numpy.ndarray
-            Net radiation to the canopy (J m-2 s-1)
+            Net radiation to the canopy, (J m-2 s-1) or (W m-2)
         tmin : float or numpy.ndarray
             Minimum daily temperature (degrees K)
         r_corr : float or numpy.ndarray or None
@@ -1308,7 +1319,7 @@ def radiation_net(
     Parameters
     ----------
     sw_rad : float or numpy.ndarray
-        Incoming short-wave radiation (W m-2)
+        Incoming short-wave radiation, (J m-2 s-1) or (W m-2)
     sw_albedo : float or numpy.ndarray
         Black-sky albedo, e.g., from MODIS MCD43A3
     temp_k : float or numpy.ndarray

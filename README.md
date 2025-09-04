@@ -157,7 +157,7 @@ $$
 \text{AVP} = \frac{\text{QV10M}\times \text{P}}{0.622 + 0.379\times \text{QV10M}}
 $$
 
-Where QV10M is the water vapor mixing ratio at 10-meter height (units: kg kg$^{-1}$) and P is the surface pressure (units: Pa). Whereas surface pressure elsewhere in the MOD16 algorithm is calculated based on elevation, in the AVP calculation, above, $P$ is derived from a gridded climate re-analysis dataset.
+Where QV10M is the water vapor mixing ratio at 10-meter height (units: kg per kg) and P is the surface pressure (units: Pa). Whereas surface pressure elsewhere in the MOD16 algorithm is calculated based on elevation, in the AVP calculation, above, $P$ is derived from a gridded climate re-analysis dataset.
 
 Finally, VPD is the difference between SVP and AVP:
 

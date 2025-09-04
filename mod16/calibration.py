@@ -300,6 +300,8 @@ class CalibrationAPI(object):
 
     def _load_data(self, pft: int):
         'Read in driver datasets from the HDF5 file'
+        if 'date_start' in self.config['data'].keys():
+            raise NotImplementedError('No support for "date_start" configuration parameter')
         with h5py.File(self.hdf5, 'r') as hdf:
             sites = hdf['FLUXNET/site_id'][:].tolist()
             if hasattr(sites[0], 'decode'):
@@ -413,11 +415,25 @@ class CalibrationAPI(object):
             sites = hdf['FLUXNET/site_id'][:].tolist()
             if hasattr(sites[0], 'decode'):
                 sites = [s.decode('utf-8') for s in sites]
+            # Figure out the calibration reference period (defaults to all
+            #   data available)
+            time = hdf['time'][:]
+            t0 = 0
+            if 'date_start' in self.config['data'].keys():
+                date_start = self.config['data']['date_start']
+                ds = datetime.datetime.strptime(date_start, '%Y-%m-%d')
+                t0 = np.argwhere(
+                    np.logical_and(
+                        np.logical_and(time[:,0] == ds.year,
+                            time[:,1] == ds.month),
+                        time[:,2] == ds.day)).ravel()[0]
+                # i.e., time now starts at this start date
+                time = time[t0:]
             # Number of time steps
-            nsteps = hdf['time'].shape[0]
+            nsteps = time.shape[0]
             # In case some tower sites should not be used
             blacklist = self.config['data']['sites_blacklisted']
-            pft_map = hdf[self.config['data']['class_map']][:]
+            pft_map = hdf[self.config['data']['class_map']][t0:]
             # Also, ensure the blacklist matches the shape of this mask;
             #   i.e., blacklisted sites should NEVER be used
             if blacklist is not None:
@@ -426,7 +442,7 @@ class CalibrationAPI(object):
                     blacklist = blacklist[None,:].repeat(pft_map.shape[0], axis = 0)
 
             years = np.array([
-                datetime.date(*ymd).year for ymd in hdf['time'][:].tolist()
+                datetime.date(*ymd).year for ymd in time[:].tolist()
             ])
             if pft_map.shape[0] != years.size:
                 # NOTE: This is a generalization of a very specific case,
@@ -487,7 +503,7 @@ class CalibrationAPI(object):
             #   but we'll want driver data for a full year if that year
             #   contains *any* matching tower-day observations
             print('Masking out validation data...')
-            tower_obs = hdf['FLUXNET/latent_heat'][:]
+            tower_obs = hdf['FLUXNET/latent_heat'][t0:]
             tower_obs[~pft_mask] = np.nan # Step 1: Mask out invalid days
             # Step 2: Mask out validation samples
             tower_obs[hdf['FLUXNET/validation_mask'][pft]] = np.nan
@@ -496,35 +512,37 @@ class CalibrationAPI(object):
             # Read in driver datasets
             print('Loading driver datasets...')
             lookup = self.config['data']['datasets']
-            lw_net_day = hdf[lookup['LWGNT'][0]][:][:,site_mask]
-            lw_net_night = hdf[lookup['LWGNT'][1]][:][:,site_mask]
-            sw_albedo = hdf[lookup['albedo']][:][:,site_mask]
-            sw_rad_day = hdf[lookup['SWGDN'][0]][:][:,site_mask]
+            lw_net_day = hdf[lookup['LWGNT'][0]][t0:][:,site_mask]
+            lw_net_night = hdf[lookup['LWGNT'][1]][t0:][:,site_mask]
+            sw_albedo = hdf[lookup['albedo']][t0:][:,site_mask]
+            sw_rad_day = hdf[lookup['SWGDN'][0]][t0:][:,site_mask]
             sw_rad_night = np.zeros(sw_rad_day.shape, dtype = np.int16)
-            temp_day = hdf[lookup['T10M'][0]][:][:,site_mask]
-            temp_night = hdf[lookup['T10M'][1]][:][:,site_mask]
-            tmin = hdf[lookup['Tmin']][:][:,site_mask]
+            temp_day = hdf[lookup['T10M'][0]][t0:][:,site_mask]
+            temp_night = hdf[lookup['T10M'][1]][t0:][:,site_mask]
+            tmin = hdf[lookup['Tmin']][t0:][:,site_mask]
+            if tmin.min() < 0 or tmin.max() < 100:
+                print("WARNING: Temperatures are expected in deg K but may actually be in deg C")
 
             if self.config['constraints']['annual_precipitation']:
                 # Convert mean annual precip (Y x N) to a (T x N) array,
                 #   then subset
-                ann_precip = hdf[lookup['annual_precip']][:]
+                ann_precip = hdf[lookup['annual_precip']][t0:]
                 constraints['annual_precipitation'] = (years, ann_precip[:,site_mask])
 
             # Assumed that annual mean is (T x N) array, with the same
             #   annual value copied to each time step if time steps are
             #   more frequent than one year
-            temp_annual = hdf[lookup['MAT']][:][:,site_mask]
+            temp_annual = hdf[lookup['MAT']][t0:][:,site_mask]
             if 'VPD' in lookup.keys():
-                vpd_day = hdf[lookup['VPD'][0]][:][:,site_mask]
-                vpd_night = hdf[lookup['VPD'][1]][:][:,site_mask]
+                vpd_day = hdf[lookup['VPD'][0]][t0:][:,site_mask]
+                vpd_night = hdf[lookup['VPD'][1]][t0:][:,site_mask]
             else:
                 vpd_day = MOD16.vpd(
-                    hdf[lookup['QV10M'][0]][:][:,site_mask],
-                    hdf[lookup['PS'][0]][:][:,site_mask], temp_day)
+                    hdf[lookup['QV10M'][0]][t0:][:,site_mask],
+                    hdf[lookup['PS'][0]][t0:][:,site_mask], temp_day)
                 vpd_night = MOD16.vpd(
-                    hdf[lookup['QV10M'][1]][:][:,site_mask],
-                    hdf[lookup['PS'][1]][:][:,site_mask], temp_night)
+                    hdf[lookup['QV10M'][1]][t0:][:,site_mask],
+                    hdf[lookup['PS'][1]][t0:][:,site_mask], temp_night)
             vpd_night = np.where(vpd_night < 0, 0, vpd_night)
 
             # After VPD is calculated, air pressure is based solely
@@ -539,8 +557,8 @@ class CalibrationAPI(object):
             pressure = MOD16.air_pressure(elevation)
 
             # Read in fPAR, LAI, and convert from (%) to [0,1]
-            fpar = hdf[lookup['fPAR']][:][:,site_mask]
-            lai = hdf[lookup['LAI']][:][:,site_mask]
+            fpar = hdf[lookup['fPAR']][t0:][:,site_mask]
+            lai = hdf[lookup['LAI']][t0:][:,site_mask]
 
             # If a heterogeneous sub-grid is used at each tower (i.e., there
             #   is a third axis to these datasets), then average over that
