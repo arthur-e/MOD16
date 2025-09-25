@@ -300,14 +300,28 @@ class CalibrationAPI(object):
 
     def _load_data(self, pft: int):
         'Read in driver datasets from the HDF5 file'
-        if 'date_start' in self.config['data'].keys():
-            raise NotImplementedError('No support for "date_start" configuration parameter')
         with h5py.File(self.hdf5, 'r') as hdf:
             sites = hdf['FLUXNET/site_id'][:].tolist()
             if hasattr(sites[0], 'decode'):
                 sites = [s.decode('utf-8') for s in sites]
+
+            # Figure out the calibration reference period (defaults to all
+            #   data available)
+            time = hdf['time'][:]
+            t0 = 0
+            if 'date_start' in self.config['data'].keys():
+                date_start = self.config['data']['date_start']
+                ds = datetime.datetime.strptime(date_start, '%Y-%m-%d')
+                t0 = np.argwhere(
+                    np.logical_and(
+                        np.logical_and(time[:,0] == ds.year,
+                            time[:,1] == ds.month),
+                        time[:,2] == ds.day)).ravel()[0]
+                # i.e., time now starts at this start date
+                time = time[t0:]
             # Number of time steps
-            nsteps = hdf['time'].shape[0]
+            nsteps = time.shape[0]
+
             # In case some tower sites should not be used
             blacklist = self.config['data']['sites_blacklisted']
             # Get dominant PFT across a potentially heterogenous sub-grid,
@@ -337,7 +351,7 @@ class CalibrationAPI(object):
                 weights = weights[None,:].repeat(nsteps, axis = 0)[pft_mask]
 
             # Read in tower observations
-            tower_obs = hdf['FLUXNET/latent_heat'][:]
+            tower_obs = hdf['FLUXNET/latent_heat'][t0:]
             # Clean the tower observations (smoothing)
             tower_obs = self.clean_observed(tower_obs)
 
@@ -355,28 +369,28 @@ class CalibrationAPI(object):
             # Read in driver datasets
             print('Loading driver datasets...')
             lookup = self.config['data']['datasets']
-            lw_net_day = hdf[lookup['LWGNT'][0]][:][pft_mask]
-            lw_net_night = hdf[lookup['LWGNT'][1]][:][pft_mask]
-            sw_albedo = hdf[lookup['albedo']][:][pft_mask]
-            sw_rad_day = hdf[lookup['SWGDN'][0]][:][pft_mask]
+            lw_net_day = hdf[lookup['LWGNT'][0]][t0:][pft_mask]
+            lw_net_night = hdf[lookup['LWGNT'][1]][t0:][pft_mask]
+            sw_albedo = hdf[lookup['albedo']][t0:][pft_mask]
+            sw_rad_day = hdf[lookup['SWGDN'][0]][t0:][pft_mask]
             sw_rad_night = np.zeros(sw_rad_day.shape, dtype = np.int16)
-            temp_day = hdf[lookup['T10M'][0]][:][pft_mask]
-            temp_night = hdf[lookup['T10M'][1]][:][pft_mask]
-            tmin = hdf[lookup['Tmin']][:][pft_mask]
+            temp_day = hdf[lookup['T10M'][0]][t0:][pft_mask]
+            temp_night = hdf[lookup['T10M'][1]][t0:][pft_mask]
+            tmin = hdf[lookup['Tmin']][t0:][pft_mask]
 
             # As long as the time series is balanced w.r.t. years (i.e., same
             #   number of records per year), the overall mean is the annual mean
-            temp_annual = hdf[lookup['MAT']][:][pft_mask].mean(axis = 0)
+            temp_annual = hdf[lookup['MAT']][t0:][pft_mask].mean(axis = 0)
             if 'VPD' in lookup.keys():
-                vpd_day = hdf[lookup['VPD'][0]][:][pft_mask]
-                vpd_night = hdf[lookup['VPD'][1]][:][pft_mask]
+                vpd_day = hdf[lookup['VPD'][0]][t0:][pft_mask]
+                vpd_night = hdf[lookup['VPD'][1]][t0:][pft_mask]
             else:
                 vpd_day = MOD16.vpd(
-                    hdf[lookup['QV10M'][0]][:][pft_mask],
-                    hdf[lookup['PS'][0]][:][pft_mask], temp_day)
+                    hdf[lookup['QV10M'][0]][t0:][pft_mask],
+                    hdf[lookup['PS'][0]][t0:][pft_mask], temp_day)
                 vpd_night = MOD16.vpd(
-                    hdf[lookup['QV10M'][1]][:][pft_mask],
-                    hdf[lookup['PS'][1]][:][pft_mask], temp_night)
+                    hdf[lookup['QV10M'][1]][t0:][pft_mask],
+                    hdf[lookup['PS'][1]][t0:][pft_mask], temp_night)
             vpd_night = np.where(vpd_night < 0, 0, vpd_night)
 
             # After VPD is calculated, air pressure is based solely
@@ -387,8 +401,8 @@ class CalibrationAPI(object):
             pressure = MOD16.air_pressure(elevation.mean(axis = -1))
 
             # Read in fPAR, LAI, and convert from (%) to [0,1]
-            fpar = hdf[lookup['fPAR']][:][pft_mask]
-            lai = hdf[lookup['LAI']][:][pft_mask]
+            fpar = hdf[lookup['fPAR']][t0:][pft_mask]
+            lai = hdf[lookup['LAI']][t0:][pft_mask]
 
             # If a heterogeneous sub-grid is used at each tower (i.e., there
             #   is a third axis to these datasets), then average over that

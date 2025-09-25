@@ -1169,7 +1169,7 @@ class MOD16(object):
         NOTE: The `r_corr` argument to this function is different from that
         defined in Equation 13 in the MOD16 C61 User's Guide. For numerical
         stability, `r_corr` equals 1/r where r is the quantity defined in
-        Equaiton 13. See `MOD16.evapotranspiration()` for how `r_corr` is
+        Equation 13. See `MOD16.evapotranspiration()` for how `r_corr` is
         calculated.
 
         At nighttime, \(g_s\) is assumed to be zero, which may impact the
