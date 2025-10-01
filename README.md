@@ -171,7 +171,7 @@ $$
 \text{RH} = 100\times \frac{\text{SVP} - \text{VPD}}{\text{SVP}}
 $$
 
-After Fisher et al. (2008), we calculate **the fraction of the land surface that is saturated, $F_{\text{wet}}$,** based on the relative humidity:
+After Fisher et al. (2008), we calculate **the wetness of the evaporating surface, or fraction that has standing water, $F_{\text{wet}}$,** based on the relative humidity:
 
 - $F_{\text{wet}} = 0$ iff RH < 70%
 - Otherwise, $F_{\text{wet}} = (\text{RH}/100)^4$
@@ -394,7 +394,7 @@ $$
 
 $$
 \lambda E_{\text{trans}} = (1 - F_{\text{wet}})
-  \frac{s A_C + \rho C_p F_C [\text{VPD}] r_{\text{dry}}^{-1}}
+  \frac{s A_{\text{canopy}} + \rho C_p F_C [\text{VPD}] r_{\text{dry}}^{-1}}
     {s + \gamma(1 + C_C^{-1} r_{\text{dry}}^{-1})}
 $$
 
@@ -418,7 +418,7 @@ $$
 Where potential transpiration is given by the Priestly-Taylor equation:
 
 $$
-\lambda E_{\text{trans,potential}} = \frac{\alpha s A_C (1 - F_{\text{wet}})}{s + \gamma}
+\lambda E_{\text{trans,potential}} = \frac{\alpha s A_{\text{canopy}} (1 - F_{\text{wet}})}{s + \gamma}
 $$
 
 Where $\alpha = 1.26$.
@@ -441,6 +441,25 @@ Note that all of the ET values are given in energy units, [W m-2]. If you wish t
 | $r_{\text{BL,min}}$        | Minimum atmospheric boundary layer resistance (s m-1)       |
 | $r_{\text{BL,max}}$        | Maximum atmospheric boundary layer resistance (s m-1)       |
 | $\beta$                    | Soil moisture constraint on potential soil evaporation      |
+
+
+### Plant Functional Types (PFTs)
+
+The operational MOD16 product is calibrated separately for the following plant functional types (PFTs):
+
+| Type                        | Abbreviation | Code |
+|:----------------------------|:-------------|:-----|
+| Evergreen needleleaf forest | ENF          | 1    |
+| Evergreen broadleaf forest  | EBF          | 2    |
+| Deciduous needleleaf forest | DNF          | 3    |
+| Deciduous broadleaf forest  | DBF          | 4    |
+| Mixed forest                | MF           | 5    |
+| Closed shrublands           | CSH          | 6    |
+| Open shrublands             | OSH          | 7    |
+| Woody savannas              | WSV          | 8    |
+| Savannas                    | SAV          | 9    |
+| Grasslands                  | GRS          | 10   |
+| Croplands                   | CRO          | 12   |
 
 
 

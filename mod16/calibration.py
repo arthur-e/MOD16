@@ -298,7 +298,7 @@ class CalibrationAPI(object):
                 lambda x: signal.filtfilt(window, np.ones(1), x), 0, raw)
         return raw # Or, revert to the raw data
 
-    def _load_data(self, pft: int):
+    def _load_data(self, pft: int, exceptions: dict = None):
         'Read in driver datasets from the HDF5 file'
         with h5py.File(self.hdf5, 'r') as hdf:
             sites = hdf['FLUXNET/site_id'][:].tolist()
@@ -351,7 +351,7 @@ class CalibrationAPI(object):
                 weights = weights[None,:].repeat(nsteps, axis = 0)[pft_mask]
 
             # Read in tower observations
-            tower_obs = hdf['FLUXNET/latent_heat'][t0:]
+            tower_obs = hdf[self.config['data']['target_observable']][t0:]
             # Clean the tower observations (smoothing)
             tower_obs = self.clean_observed(tower_obs)
 
@@ -369,6 +369,10 @@ class CalibrationAPI(object):
             # Read in driver datasets
             print('Loading driver datasets...')
             lookup = self.config['data']['datasets']
+            # Allow exceptions to the configuration file's datasets to be
+            #   specified here; i.e., use a different driver
+            if exceptions is not None:
+                lookup.update(exceptions)
             lw_net_day = hdf[lookup['LWGNT'][0]][t0:][pft_mask]
             lw_net_night = hdf[lookup['LWGNT'][1]][t0:][pft_mask]
             sw_albedo = hdf[lookup['albedo']][t0:][pft_mask]
@@ -422,7 +426,7 @@ class CalibrationAPI(object):
             pressure, fpar, lai]))
         return (tower_obs, drivers, weights)
 
-    def _load_data_annual(self, pft: int):
+    def _load_data_annual(self, pft: int, exceptions: dict = None):
         'Read in driver datasets from the HDF5 file, structured by years'
         constraints = dict()
         with h5py.File(self.hdf5, 'r') as hdf:
@@ -517,7 +521,7 @@ class CalibrationAPI(object):
             #   but we'll want driver data for a full year if that year
             #   contains *any* matching tower-day observations
             print('Masking out validation data...')
-            tower_obs = hdf['FLUXNET/latent_heat'][t0:]
+            tower_obs = hdf[self.config['data']['target_observable']][t0:]
             tower_obs[~pft_mask] = np.nan # Step 1: Mask out invalid days
             # Step 2: Mask out validation samples
             tower_obs[hdf['FLUXNET/validation_mask'][pft]] = np.nan
@@ -526,6 +530,10 @@ class CalibrationAPI(object):
             # Read in driver datasets
             print('Loading driver datasets...')
             lookup = self.config['data']['datasets']
+            # Allow exceptions to the configuration file's datasets to be
+            #   specified here; i.e., use a different driver
+            if exceptions is not None:
+                lookup.update(exceptions)
             lw_net_day = hdf[lookup['LWGNT'][0]][t0:][:,site_mask]
             lw_net_night = hdf[lookup['LWGNT'][1]][t0:][:,site_mask]
             sw_albedo = hdf[lookup['albedo']][t0:][:,site_mask]
