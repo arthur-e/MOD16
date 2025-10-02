@@ -67,7 +67,7 @@ surrounding a tower:
       LWGNT             -- (T x N) Net long-wave radiation, 24-hr mean [W m-2]
       LWGNT_daytime     -- (T x N) ... for daytime hours only
       LWGNT_nighttime   -- (T x N) ... for nighttime hours only
-      PS                -- (T x N) Surface air pressure [Pa]
+      PS                -- (T x N) Surface air pressure [Pa], 24-hr mean
       PS_daytime        -- (T x N) ... for daytime hours only
       PS_nighttime      -- (T x N) ... for nighttime hours only
       QV10M             -- (T x N) Water vapor mixing ratio at 10-meter height
@@ -98,6 +98,9 @@ surrounding a tower:
 
     state/
       *PFT          -- (N x P) The plant functional type (PFT) of each pixel
+      *PFT_annual   -- (T x N x P) Same as "PFT" but with the option to change
+                        PFT at every time step T; optional, but needed if the
+                        land-cover classes (PFT classes) are dynamic
       elevation_m   -- (N) The elevation in meters above sea level
 
     time            -- (T x 3) The Year, Month, Day of each daily time step

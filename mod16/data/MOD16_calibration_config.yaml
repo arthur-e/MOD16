@@ -1,11 +1,13 @@
 ---
 BPLUT:
+  # This is the original (OLD) BPLUT; any parameters NOT calibrated will be
+  #   taken from this file
   ET: "/usr/local/dev/MOD16/mod16/data/MOD16_BPLUT_CX.X_05deg_MCD43B_Albedo_MERRA.csv"
 data:
-  file: "/anx_lagr4/MODIS_VIIRS/calibration/VIIRS_MOD16_tower_site_latent_heat_and_drivers_v6.h5"
+  file: "/anx_lagr4/MODIS_VIIRS/calibration/VIIRS_MOD16_tower_site_latent_heat_and_drivers_v7.h5"
   # HDF5 field name for PFT map
-  class_map: state/PFT_annual # For PFT=3, set this to state/PFT
   classes: [1,2,3,4,5,6,7,8,9,10,12] # The unique and valid PFT codes
+  class_map: state/PFT_annual # For PFT=3, set this to state/PFT
   # If a time-varying PFT map is used, this should be true and the corresponding
   #   "class_map" array (see above) should be a (T x N) array
   classes_are_dynamic: true
@@ -20,16 +22,16 @@ data:
   ]
   # The name of the HDF5 datasets for albedo, fPAR, LAI, etc.
   datasets:
-    annual_precip: IMERG/mean_annual_precip # Annual precipitation constraint (mm year-1)
-    elevation: state/elevation # Elevation in meters
-    albedo: MODIS/MCD43GF_black_sky_sw_albedo # (T x N)
-    fPAR: MODIS/MOD15A2HGF_fPAR_interp # (T x N)
-    LAI: MODIS/MOD15A2HGF_LAI_interp # (T x N)
+    annual_precip: "IMERG/mean_annual_precip" # Annual precipitation constraint (mm year-1)
+    elevation: "state/elevation" # Elevation in meters
+    albedo: "MODIS/MCD43GF_black_sky_sw_albedo" # (T x N)
+    fPAR: "MODIS/MOD15A2HGF_fPAR_interp" # (T x N)
+    LAI: "MODIS/MOD15A2HGF_LAI_interp" # (T x N)
     Tmin: "GEOS-IT/Tmin" # (T x N)
     # Should be lists of [daytime, nighttime] field names
     SWGDN: ["GEOS-IT/SWGDN", ~] # No nighttime SWGDN
-    LWGNT: ["GEOS-IT/LWGNT_daytime", "GEOS-IT/LWGNT_nighttime"]  # (T x N)
-    T10M: ["GEOS-IT/T10M_daytime", "GEOS-IT/T10M_nighttime"]  # (T x N)
+    LWGNT: ["GEOS-IT/LWGNT_daytime", "GEOS-IT/LWGNT_nighttime"] # (T x N)
+    T10M: ["GEOS-IT/T10M_daytime", "GEOS-IT/T10M_nighttime"] # (T x N)
     VPD: ["GEOS-IT/VPD_daytime", "GEOS-IT/VPD_nighttime"] # (T x N)
     MAT: "GEOS-IT/T10M_annual_mean" # Mean annual temperature (T x N)
 constraints:
@@ -37,7 +39,7 @@ constraints:
   #   must then provide a data/datasets/annual_precip field, above
   annual_precipitation: false
 optimization:
-  platform: MODIS
+  # The filename should have two "%s" formatting characters in it
   backend_template: "/anx_lagr4/MODIS_VIIRS/calibration/pymc_backends/20240704_MOD16_%s_calibration_PFT%d.nc4"
   prior: "/usr/local/dev/MOD16/mod16/data/MOD16_BPLUT_prior_20240415.yaml"
   chains: 3
@@ -45,7 +47,8 @@ optimization:
   tune: scaling
   scaling: 0.001
   objective: RMSD # Use nRMSD if there are "constraints"
-  # Parameter values that are fixed in advance (i.e., not calibrated)
+  # Parameter values that are fixed in advance (i.e., not calibrated);
+  #   the tilde (~) means that it is NOT fixed at a given value
   fixed:
     # beta: MOD16 is mostly insensitive to beta, but CSH and OSH are
     #   somewhat sensitive
