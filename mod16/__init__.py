@@ -117,7 +117,7 @@ STD_PRESSURE_PASCALS = 101325.0 # Standard pressure at sea level [Pa]
 # A pre-determined quantity, not physically meaningful, used in air_pressure()
 AIR_PRESSURE_RATE = GRAV_ACCEL / (TEMP_LAPSE_RATE * (GAS_LAW_CONST / AIR_MOL_WEIGHT))
 
-# Calculate the latent heat of vaporization (J kg-1)
+# Calculate the latent heat of vaporization (J kg-1), from Maidment (1995, "Handbook of Hydrology")
 latent_heat_vaporization = lambda temp_k: (2.501 - 0.002361 * (temp_k - 273.15)) * 1e6
 
 

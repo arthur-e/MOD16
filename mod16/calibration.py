@@ -119,7 +119,7 @@ because the only supported constraint (annual precipitation) requires a
 NOTE: The biggest improvement needed here is a way for users to specify not
 just the values of the prior and which parameters are fixed but also the
 functional form of the prior; currently, this is hard-coded into the
-`compile_et()` function.
+`compile_et_model()` function.
 '''
 
 import datetime
