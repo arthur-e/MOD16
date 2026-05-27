@@ -242,7 +242,7 @@ class MOD16StochasticSampler(StochasticSampler):
             rbl_min =     pm.Triangular('rbl_min', **self.prior['rbl_min'])
             rbl_max =     pm.Triangular('rbl_max', **self.prior['rbl_max'])
             beta =        pm.Uniform('beta', **self.prior['beta'])
-            # (Stochstic) Priors for unknown model parameters
+            # (Stochastic) Priors for unknown model parameters
             params_list = [
                 tmin_close, tmin_open, vpd_open, vpd_close, gl_sh, gl_wv,
                 g_cuticular, csl, rbl_min, rbl_max, beta
